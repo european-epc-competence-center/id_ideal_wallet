@@ -10,6 +10,7 @@ import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/ausweis_view.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:id_ideal_wallet/views/backup_view.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -57,12 +58,19 @@ class SettingsPageState extends State<SettingsPage> {
             onTap: () => Provider.of<NavigationProvider>(context, listen: false)
                 .changePage([NavigationPage.searchNewAbo]),
           ),
-          if (Platform.isAndroid || Platform.isIOS)
-            ListTile(
-              title: Text('Ausweis'),
-              onTap: () => Navigator.of(navigatorKey.currentContext!).push(
-                  MaterialPageRoute(builder: (context) => const AusweisView())),
-            )
+          ListTile(
+            title: Text('Ausweis'),
+            onTap: () => Navigator.of(navigatorKey.currentContext!).push(
+                MaterialPageRoute(builder: (context) => const AusweisView())),
+          ),
+          ListTile(
+            title: Text('Backup'),
+            onTap: () => showConfirmationDialog(context, performBackup)
+          ),
+          ListTile(
+            title: Text('Restore'),
+            onTap: () => showConfirmationDialog(context, applyBackup)
+          )
         ],
       ),
     );
