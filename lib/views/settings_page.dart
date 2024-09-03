@@ -65,7 +65,8 @@ class SettingsPageState extends State<SettingsPage> {
           ),
           ListTile(
             title: Text('Backup'),
-            onTap: () => showConfirmationDialog(context, performBackup)
+            onTap: () => Navigator.of(navigatorKey.currentContext!).push(
+                MaterialPageRoute(builder: (context) => BackupWidget())),
           ),
           ListTile(
             title: Text('Restore'),
