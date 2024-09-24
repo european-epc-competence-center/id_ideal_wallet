@@ -8,9 +8,11 @@ import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/ausweis_view.dart';
+import 'package:id_ideal_wallet/views/keyshare_page.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:id_ideal_wallet/views/backup_view.dart';
+import 'package:id_ideal_wallet/functions/backup_functions.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -71,7 +73,12 @@ class SettingsPageState extends State<SettingsPage> {
           ListTile(
             title: Text('Restore'),
             onTap: () => showConfirmationDialog(context, applyBackup)
-          )
+          ),
+          ListTile(
+            title: Text('KeySharing'),
+            onTap: () => Navigator.of(navigatorKey.currentContext!).push(
+                MaterialPageRoute(builder: (context) => KeyShareWidget())),
+          ),
         ],
       ),
     );
