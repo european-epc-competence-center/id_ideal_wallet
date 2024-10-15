@@ -11,6 +11,7 @@ import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:id_ideal_wallet/provider/encryption_provider.dart';
 import 'package:id_ideal_wallet/provider/server_provider.dart';
+import 'package:sss256/sss256.dart';
 
 const String localhost = "http://10.0.2.2";
 const String apiKey = 'supersecretapikey123'; 
@@ -134,4 +135,19 @@ Future<File> saveFileLocally(String fileName, String encryptedData) async {
 
   // Write the encrypted data to the file
   return file.writeAsString(encryptedData);
+}
+
+List<String> getKeyShare(String secret, int threshold, int shareAmount) {
+
+  final shares = splitSecret(
+    isBase64: false,
+    secret: secret,
+    treshold: threshold,
+    shares: shareAmount,
+
+  );
+
+  // final restoredSecret = restoreSecret(shares: shares.sublist(0, 3), isBase64: false);
+  
+  return shares;
 }

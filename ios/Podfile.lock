@@ -66,6 +66,55 @@ PODS:
     - nanopb/encode (= 2.30910.0)
   - nanopb/decode (2.30910.0)
   - nanopb/encode (2.30910.0)
+  - onesignal_flutter (5.2.5):
+    - Flutter
+    - OneSignalXCFramework (= 5.2.4)
+  - OneSignalXCFramework (5.2.4):
+    - OneSignalXCFramework/OneSignalComplete (= 5.2.4)
+  - OneSignalXCFramework/OneSignal (5.2.4):
+    - OneSignalXCFramework/OneSignalCore
+    - OneSignalXCFramework/OneSignalExtension
+    - OneSignalXCFramework/OneSignalLiveActivities
+    - OneSignalXCFramework/OneSignalNotifications
+    - OneSignalXCFramework/OneSignalOSCore
+    - OneSignalXCFramework/OneSignalOutcomes
+    - OneSignalXCFramework/OneSignalUser
+  - OneSignalXCFramework/OneSignalComplete (5.2.4):
+    - OneSignalXCFramework/OneSignal
+    - OneSignalXCFramework/OneSignalInAppMessages
+    - OneSignalXCFramework/OneSignalLocation
+  - OneSignalXCFramework/OneSignalCore (5.2.4)
+  - OneSignalXCFramework/OneSignalExtension (5.2.4):
+    - OneSignalXCFramework/OneSignalCore
+    - OneSignalXCFramework/OneSignalOutcomes
+  - OneSignalXCFramework/OneSignalInAppMessages (5.2.4):
+    - OneSignalXCFramework/OneSignalCore
+    - OneSignalXCFramework/OneSignalNotifications
+    - OneSignalXCFramework/OneSignalOSCore
+    - OneSignalXCFramework/OneSignalOutcomes
+    - OneSignalXCFramework/OneSignalUser
+  - OneSignalXCFramework/OneSignalLiveActivities (5.2.4):
+    - OneSignalXCFramework/OneSignalCore
+    - OneSignalXCFramework/OneSignalOSCore
+    - OneSignalXCFramework/OneSignalUser
+  - OneSignalXCFramework/OneSignalLocation (5.2.4):
+    - OneSignalXCFramework/OneSignalCore
+    - OneSignalXCFramework/OneSignalNotifications
+    - OneSignalXCFramework/OneSignalOSCore
+    - OneSignalXCFramework/OneSignalUser
+  - OneSignalXCFramework/OneSignalNotifications (5.2.4):
+    - OneSignalXCFramework/OneSignalCore
+    - OneSignalXCFramework/OneSignalExtension
+    - OneSignalXCFramework/OneSignalOutcomes
+  - OneSignalXCFramework/OneSignalOSCore (5.2.4):
+    - OneSignalXCFramework/OneSignalCore
+  - OneSignalXCFramework/OneSignalOutcomes (5.2.4):
+    - OneSignalXCFramework/OneSignalCore
+  - OneSignalXCFramework/OneSignalUser (5.2.4):
+    - OneSignalXCFramework/OneSignalCore
+    - OneSignalXCFramework/OneSignalNotifications
+    - OneSignalXCFramework/OneSignalOSCore
+    - OneSignalXCFramework/OneSignalOutcomes
   - OrderedSet (5.0.0)
   - printing (1.0.0):
     - Flutter
@@ -80,6 +129,8 @@ DEPENDENCIES:
   - flutter_inappwebview_ios (from `.symlinks/plugins/flutter_inappwebview_ios/ios`)
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
   - mobile_scanner (from `.symlinks/plugins/mobile_scanner/ios`)
+  - onesignal_flutter (from `.symlinks/plugins/onesignal_flutter/ios`)
+  - OneSignalXCFramework (< 6.0, >= 5.0.0)
   - printing (from `.symlinks/plugins/printing/ios`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
 
@@ -96,6 +147,7 @@ SPEC REPOS:
     - MLKitCommon
     - MLKitVision
     - nanopb
+    - OneSignalXCFramework
     - OrderedSet
     - PromisesObjC
 
@@ -112,6 +164,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_secure_storage/ios"
   mobile_scanner:
     :path: ".symlinks/plugins/mobile_scanner/ios"
+  onesignal_flutter:
+    :path: ".symlinks/plugins/onesignal_flutter/ios"
   printing:
     :path: ".symlinks/plugins/printing/ios"
   share_plus:
@@ -135,11 +189,13 @@ SPEC CHECKSUMS:
   MLKitVision: e858c5f125ecc288e4a31127928301eaba9ae0c1
   mobile_scanner: 8564358885a9253c43f822435b70f9345c87224f
   nanopb: 438bc412db1928dac798aa6fd75726007be04262
+  onesignal_flutter: bdebb6b09781cac5e2a4b401002edda258592b5d
+  OneSignalXCFramework: 46ca7cd13f44fc5bec42ec3a5f4ff1548a9244d4
   OrderedSet: aaeb196f7fef5a9edf55d89760da9176ad40b93c
   printing: 233e1b73bd1f4a05615548e9b5a324c98588640b
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   share_plus: 8875f4f2500512ea181eef553c3e27dba5135aad
 
-PODFILE CHECKSUM: 056cc2376ca1de6c39bd4c024976d2b9df92a92d
+PODFILE CHECKSUM: 5181e86aef8038bdde7b1bbd0239714757a7d468
 
 COCOAPODS: 1.15.2
