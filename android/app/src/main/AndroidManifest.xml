@@ -17,7 +17,7 @@
         android:name="${applicationName}"
         android:allowBackup="false"
         android:icon="@mipmap/app_icon"
-        android:label="Hidy"
+        android:label="EECCidentity"
         android:usesCleartextTraffic="true">
 
         <service
