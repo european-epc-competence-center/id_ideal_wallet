@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io' as io
+    show HttpClient, Platform, SecurityContext, TlsProtocolVersion;
 import 'dart:typed_data';
 
 import 'package:base_codecs/base_codecs.dart';
@@ -8,6 +10,7 @@ import 'package:dart_ssi/didcomm.dart';
 import 'package:dart_ssi/oidc.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart';
@@ -45,7 +48,7 @@ class PresentationRequestDialog extends StatefulWidget {
   final String definitionHash;
   final RequestPresentation? message;
   final bool isOidc, askForBackground, isIso;
-  final String? nonce, oidcState, oidcResponseMode;
+  final String? nonce, oidcState, oidcResponseMode, oidcRedirectUri;
   final String? lnInvoice;
   final Map<String, dynamic>? lnInvoiceRequest;
   final List<VerifiableCredential>? paymentCards;
@@ -74,7 +77,8 @@ class PresentationRequestDialog extends StatefulWidget {
       this.requesterCert,
       this.oidcResponseMode,
       this.oidcState,
-      this.oidcClientMetadata});
+      this.oidcClientMetadata,
+      this.oidcRedirectUri});
 
   @override
   PresentationRequestDialogState createState() =>
@@ -176,20 +180,22 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
     }
 
     // Requesting entity
-    childList.add(
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: RequesterInfo(
-          requesterUrl: widget.otherEndpoint,
-          requesterCert: widget.requesterCert,
-          followingText:
-              ' ${AppLocalizations.of(navigatorKey.currentContext!)!.noteGetInformation}:',
+    if (!inOidcTest) {
+      childList.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: RequesterInfo(
+            requesterUrl: widget.otherEndpoint,
+            requesterCert: widget.requesterCert,
+            followingText:
+                ' ${AppLocalizations.of(navigatorKey.currentContext!)!.noteGetInformation}:',
+          ),
         ),
-      ),
-    );
-    childList.add(const SizedBox(
-      height: 10,
-    ));
+      );
+      childList.add(const SizedBox(
+        height: 10,
+      ));
+    }
 
     if (widget.askForBackground) {
       childList.add(CheckboxListTile(
@@ -229,14 +235,14 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
                 onPressed: () async {
                   Map res;
                   int index;
-                  (res, index) = await Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => CredentialSelfIssue(
-                        input: [i],
-                        outerPos: pos,
-                      ),
-                    ),
+                  var target = CredentialSelfIssue(
+                    input: [i],
+                    outerPos: pos,
                   );
+                  (res, index) = await Navigator.of(context).push(
+                      io.Platform.isIOS
+                          ? CupertinoPageRoute(builder: (context) => target)
+                          : MaterialPageRoute(builder: (context) => target));
                   if (res.isNotEmpty) {
                     var wallet = Provider.of<WalletProvider>(
                         navigatorKey.currentContext!,
@@ -683,9 +689,9 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
           vp.add(await buildPresentation(
               finalSend, wallet.wallet, widget.nonce!,
               loadDocumentFunction: loadDocumentFast));
-          casted = VerifiablePresentation.fromJson(vp);
+          casted = VerifiablePresentation.fromJson(vp.last);
           submission = casted.presentationSubmission!;
-          logger.d(await verifyPresentation(vp, widget.nonce!,
+          logger.d(await verifyPresentation(vp.last, widget.nonce!,
               loadDocumentFunction: loadDocumentFast));
 
           logger.d(vp);
@@ -840,8 +846,10 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             var data = {
               'vp_token': vp.length == 1 ? vp.first : vp,
               'presentation_submission': submission,
-              'state': widget.oidcState
             };
+            if (widget.oidcState != null) {
+              data['state'] = widget.oidcState;
+            }
 
             Encrypter e;
             if (enc == 'A128CBC-HS256') {
@@ -868,10 +876,27 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
 
             var jwe =
                 '${removePaddingFromBase64(base64UrlEncode(utf8.encode(jsonEncode(header))))}..${removePaddingFromBase64(base64UrlEncode(encrypted.initializationVector!))}.${removePaddingFromBase64(base64UrlEncode(encrypted.data))}.${removePaddingFromBase64(base64UrlEncode(encrypted.authenticationTag!))}';
-            res = await post(Uri.parse(widget.otherEndpoint),
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body:
-                    'response=${Uri.encodeQueryComponent(jwe)}&state=${Uri.encodeQueryComponent(widget.oidcState!)}');
+
+            logger.d('jwe: $jwe');
+            var httpClient = io.HttpClient();
+            var request =
+                await httpClient.postUrl(Uri.parse(widget.otherEndpoint));
+            request.headers
+                .set('Content-Type', 'application/x-www-form-urlencoded');
+            request.write(
+                'response=${Uri.encodeQueryComponent(jwe)}${widget.oidcState != null ? '&state=${Uri.encodeQueryComponent(widget.oidcState!)}' : ''}');
+
+            var response = await request.close();
+            res = Response(await response.transform(utf8.decoder).join(),
+                response.statusCode);
+            // res = await post(Uri.parse(widget.otherEndpoint),
+            //     headers: {'content-type': 'application/x-www-form-urlencoded'},
+            //     body:
+            //         'response=${Uri.encodeQueryComponent(jwe)}${widget.oidcState != null ? '&state=${Uri.encodeQueryComponent(widget.oidcState!)}' : ''}');
+            if (widget.oidcRedirectUri != null) {
+              launchUrl(Uri.parse(widget.oidcRedirectUri!),
+                  mode: LaunchMode.externalApplication);
+            }
           } else {
             throw Exception('Unsupported alg ${header['alg']}');
           }
@@ -963,6 +988,16 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             });
 
         //Navigator.of(context).pop();
+
+        try {
+          Map bodyData = jsonDecode(res.body);
+          if (bodyData.containsKey('redirect_uri')) {
+            launchUrl(Uri.parse(bodyData['redirect_uri']),
+                mode: LaunchMode.externalApplication);
+          }
+        } catch (e) {
+          logger.d('no json response: $e');
+        }
       } else {
         if (casted != null) {
           for (var cred in casted.verifiableCredential!) {

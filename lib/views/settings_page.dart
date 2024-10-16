@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/styled_scaffold_title.dart';
@@ -63,7 +64,11 @@ class SettingsPageState extends State<SettingsPage> {
           ListTile(
             title: Text('Ausweis'),
             onTap: () => Navigator.of(navigatorKey.currentContext!).push(
-                MaterialPageRoute(builder: (context) => const AusweisView())),
+                Platform.isIOS
+                    ? CupertinoPageRoute(
+                        builder: (context) => const AusweisView())
+                    : MaterialPageRoute(
+                        builder: (context) => const AusweisView())),
           ),
           ListTile(
             title: Text('Backup'),

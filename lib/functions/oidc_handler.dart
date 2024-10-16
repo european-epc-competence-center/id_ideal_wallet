@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:cbor/cbor.dart';
 import 'package:crypto/crypto.dart';
@@ -19,7 +20,7 @@ import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
-import 'package:id_ideal_wallet/views/credential_offer.dart';
+import 'package:id_ideal_wallet/views/credential_offer_new.dart';
 import 'package:id_ideal_wallet/views/presentation_request.dart';
 import 'package:iso_mdoc/iso_mdoc.dart';
 import 'package:provider/provider.dart';
@@ -132,7 +133,7 @@ Future<void> handleOfferOidc(String offerUri) async {
     return await showCupertinoModalPopup(
       context: navigatorKey.currentContext!,
       barrierColor: Colors.white,
-      builder: (BuildContext context) => CredentialOfferDialog(
+      builder: (BuildContext context) => CredentialOfferDialogNew(
           oidcIssuer: issuerString,
           isOid: true,
           requestOidcTan: offer.grants != null &&
@@ -146,7 +147,7 @@ Future<void> handleOfferOidc(String offerUri) async {
               .map((e) => VerifiableCredential(
                   context: [credentialsV1Iri],
                   type: e.credentialType ?? [],
-                  issuer: {'name': issuerString},
+                  issuer: {'oidcEndpoint': issuerString, 'id': issuerString},
                   credentialSubject: findClaims(e.claims),
                   issuanceDate: DateTime.now()))
               .toList()),
@@ -924,7 +925,7 @@ storeCredential(String format, dynamic credential, String credentialDid,
         type);
     return;
   } else {
-    logger.d(jsonDecode(credential));
+    logger.d(credential);
 
     var verified = false;
     try {
@@ -1125,23 +1126,24 @@ Future<void> handlePresentationRequestOidc(String request) async {
     logger.d(
         'successfully filtered: sdLength: ${filtered.first.sdJwtCredentials?.length}');
 
-    Navigator.of(navigatorKey.currentContext!).push(
-      MaterialPageRoute(
-        builder: (context) => PresentationRequestDialog(
-          definition: definition!,
-          definitionHash: '',
-          otherEndpoint: responseUri ?? redirectUri ?? clientId,
-          receiverDid: clientId,
-          myDid: 'myDid',
-          results: filtered,
-          isOidc: true,
-          nonce: nonce,
-          oidcState: state,
-          oidcResponseMode: responseMode,
-          oidcClientMetadata: clientMetaData,
-        ),
-      ),
+    var target = PresentationRequestDialog(
+      definition: definition,
+      definitionHash: '',
+      otherEndpoint: responseUri ?? redirectUri ?? clientId,
+      receiverDid: clientId,
+      myDid: 'myDid',
+      results: filtered,
+      isOidc: true,
+      nonce: nonce,
+      oidcState: state,
+      oidcResponseMode: responseMode,
+      oidcClientMetadata: clientMetaData,
+      oidcRedirectUri: redirectUri,
     );
+
+    Navigator.of(navigatorKey.currentContext!).push(Platform.isIOS
+        ? CupertinoPageRoute(builder: (context) => target)
+        : MaterialPageRoute(builder: (context) => target));
   } catch (e) {
     logger.e(e);
     showErrorMessage(
