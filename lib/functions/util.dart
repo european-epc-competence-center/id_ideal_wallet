@@ -1,13 +1,19 @@
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:id_ideal_wallet/constants/root_certificates.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
+import 'package:id_ideal_wallet/provider/wallet_provider.dart';
+import 'package:iso_mdoc/iso_mdoc.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth_android/local_auth_android.dart';
 import 'package:local_auth_darwin/local_auth_darwin.dart';
 import 'package:random_password_generator/random_password_generator.dart';
+import 'package:sd_jwt/sd_jwt.dart' as sdJwt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:x509b/x509.dart' as x509;
 
@@ -70,7 +76,7 @@ Future<bool> openWallet(WalletStore wallet) async {
               passwordLength: 20);
           await storage.write(key: 'password', value: pw);
         }
-        await wallet.openBoxes(pw);
+        await wallet.openBoxes(password: pw);
       } else {
         return false;
       }
@@ -128,4 +134,55 @@ extension HexColor on Color {
       '${red.toRadixString(16).padLeft(2, '0')}'
       '${green.toRadixString(16).padLeft(2, '0')}'
       '${blue.toRadixString(16).padLeft(2, '0')}';
+}
+
+int? getCoseAlgorithmForDid(String did) {
+  if (did.startsWith('did:key:z6Mk')) {
+    return CoseAlgorithm.edDSA;
+  } else if (did.startsWith('did:key:zQ3s')) {
+    return CoseAlgorithm.es256;
+  } else if (did.startsWith('did:key:zDn')) {
+    return CoseAlgorithm.es256;
+  } else if (did.startsWith('did:key:z82')) {
+    return CoseAlgorithm.es384;
+  } else if (did.startsWith('did:key:z2J9')) {
+    return CoseAlgorithm.es512;
+  } else {
+    return null;
+  }
+}
+
+class WalletCryptoProvider extends sdJwt.CryptoProvider {
+  final WalletProvider wallet;
+  final String keyId;
+
+  WalletCryptoProvider(this.wallet, this.keyId);
+
+  @override
+  Uint8List digest(
+      {required Uint8List data, required sdJwt.DigestAlgorithm algorithm}) {
+    // TODO: implement digest
+    throw UnimplementedError();
+  }
+
+  @override
+  sdJwt.AsymmetricKey generateEcKeyPair({required sdJwt.Curve curve}) {
+    // TODO: implement generateEcKeyPair
+    throw UnimplementedError();
+  }
+
+  @override
+  FutureOr<Uint8List> sign(
+      {required Uint8List data, required sdJwt.SigningAlgorithm algorithm}) {
+    return wallet.sign(keyId, data);
+  }
+
+  @override
+  bool verify(
+      {required Uint8List data,
+      required sdJwt.SigningAlgorithm algorithm,
+      required sdJwt.Signature signature}) {
+    // TODO: implement verify
+    throw UnimplementedError();
+  }
 }

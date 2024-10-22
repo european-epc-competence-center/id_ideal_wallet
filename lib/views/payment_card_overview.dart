@@ -205,8 +205,8 @@ Future<void> issueLNPaymentCard(
   await createLNWallet(did);
   await Future.delayed(const Duration(seconds: 1));
 
-  var storageCred = wallet.getCredential(did);
+  //var storageCred = wallet.getCredential(did);
 
-  wallet.storeCredential(signed, storageCred!.hdPath);
+  wallet.storeCredential(signed, did);
   wallet.storeExchangeHistoryEntry(did, DateTime.now(), 'issue', did);
 }

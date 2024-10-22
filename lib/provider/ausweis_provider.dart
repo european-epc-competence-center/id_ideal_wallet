@@ -108,12 +108,12 @@ class AusweisProvider extends ChangeNotifier {
           issuer: did,
           issuanceDate: DateTime.now());
       var signed = await signCredential(wallet.wallet, vc);
-      var storedCred = wallet.getCredential(did);
-      if (storedCred != null) {
-        wallet.storeCredential(signed, storedCred.hdPath);
-      } else {
-        throw Exception('Das sollte nicht passieren');
-      }
+      //var storedCred = wallet.getCredential(did);
+      //if (storedCred != null) {
+      wallet.storeCredential(signed, did);
+      // } else {
+      //   throw Exception('Das sollte nicht passieren');
+      // }
 
       showSuccessMessage(
           AppLocalizations.of(navigatorKey.currentContext!)!.credentialReceived,

@@ -3,7 +3,6 @@ import 'dart:io' as io
     show HttpClient, Platform, SecurityContext, TlsProtocolVersion;
 import 'dart:typed_data';
 
-import 'package:base_codecs/base_codecs.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/did.dart';
 import 'package:dart_ssi/didcomm.dart';
@@ -658,18 +657,14 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
           for (var cred in entry.isoMdocCredentials!) {
             var mso = MobileSecurityObject.fromCbor(cred.issuerAuth.payload);
             var did = coseKeyToDid(mso.deviceKeyInfo.deviceKey);
-
-            var private = await wallet.getPrivateKeyForCredentialDid(did);
-            if (private == null) {
-              logger.d('Kein privater schlüssel');
-              throw Exception();
+            int? alg = getCoseAlgorithmForDid(did);
+            if (alg == null) {
+              throw Exception('no algorithm');
             }
-            var privateKey = await didToCosePublicKey(did);
-            privateKey.d = hexDecode(private);
 
             var transcript = SessionTranscript(handover: handover);
             var ds = await generateDeviceSignature({}, mso.docType, transcript,
-                signer: SignatureGenerator.get(privateKey));
+                signer: WalletSigner(wallet, did, alg));
             docs.add(Document(
                 docType: mso.docType, issuerSigned: cred, deviceSigned: ds));
           }
@@ -709,29 +704,19 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             var multibase = jwkToMultiBase(cnf['jwk']);
             var restoredDid = 'did:key:$multibase';
 
-            var private = await wallet.wallet
-                .getPrivateKeyForCredentialDidAsJwk(restoredDid);
-            if (private == null) {
-              logger.d('no private key found for $restoredDid');
-              throw Exception();
-            }
-            private['x'] = cnf['jwk']['x'];
-            private['y'] = cnf['jwk']['y'];
-            logger.d(private);
-
-            var jwk = sd_jwt.Jwk.fromJson(private);
-            logger.d(jwk.toJson());
             sd_jwt.SigningAlgorithm? algorithm;
-            if (private['crv'] == 'P-256') {
+            if (restoredDid.startsWith('did:key:zQ3s')) {
+              algorithm = sd_jwt.SigningAlgorithm.ecdsaSha256Koblitz;
+            } else if (restoredDid.startsWith('did:key:zDn')) {
               algorithm = sd_jwt.SigningAlgorithm.ecdsaSha256Prime;
-            } else if (private['crv'] == 'P-384') {
+            } else if (restoredDid.startsWith('did:key:z82')) {
               algorithm = sd_jwt.SigningAlgorithm.ecdsaSha384Prime;
-            } else if (private['crv'] == 'P-221') {
+            } else if (restoredDid.startsWith('did:key:z2J9')) {
               algorithm = sd_jwt.SigningAlgorithm.ecdsaSha512Prime;
             }
 
-            var signed = s.bind(
-                jsonWebKey: jwk,
+            var signed = await s.bind(
+                signer: WalletCryptoProvider(wallet, restoredDid),
                 audience: widget.otherEndpoint,
                 issuedAt: DateTime.now(),
                 nonce: widget.nonce!,
@@ -808,9 +793,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             walletKeyType = KeyType.secp256k1;
           }
           var cDid = await wallet.newConnectionDid(walletKeyType);
-          var myJwk =
-              await wallet.wallet.getPrivateKeyForConnectionDidAsJwk(cDid);
-          logger.d(myJwk);
+
           var myJwkPub = resolveDidKey(cDid)
               .convertAllKeysToJwk()
               .resolveKeyIds()
@@ -832,7 +815,8 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
           logger.d(header);
 
           if (header['alg'] == 'ECDH-ES') {
-            var sharedSecret = ecdhES(myJwk, readerKey, header['alg'], enc,
+            var sharedSecret = await ecdhES(
+                wallet.wallet, cDid, null, readerKey, header['alg'], enc,
                 apu: header['apu'], apv: header['apv']);
 
             logger.d('$sharedSecret, ${sharedSecret.length}');

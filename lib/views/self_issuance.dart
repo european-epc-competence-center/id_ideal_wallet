@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:dart_ssi/credentials.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/currency_display.dart';
@@ -12,8 +14,6 @@ import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:json_schema2/json_schema.dart';
 import 'package:json_schema_form/json_schema_form.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/cupertino.dart';
-import 'dart:io' show Platform;
 
 final emailSchema = JsonSchema.create({
   'type': 'object',
@@ -59,26 +59,24 @@ class SelfIssueList extends StatelessWidget {
         child: Column(
           children: [
             ElevatedButton(
-                onPressed: () => Navigator.of(context).push(
-                  Platform.isIOS
-                  ? CupertinoPageRoute(builder: (context) => FixedSelfIssue(
-                        schema: emailSchema, type: 'EMailCredential'))
-                  : MaterialPageRoute(
-                    builder: (context) => FixedSelfIssue(
-                        schema: emailSchema, type: 'EMailCredential'))
-                ),
+                onPressed: () => Navigator.of(context).push(Platform.isIOS
+                    ? CupertinoPageRoute(
+                        builder: (context) => FixedSelfIssue(
+                            schema: emailSchema, type: 'EMailCredential'))
+                    : MaterialPageRoute(
+                        builder: (context) => FixedSelfIssue(
+                            schema: emailSchema, type: 'EMailCredential'))),
                 child: Text(AppLocalizations.of(context)!.mailAddress)),
             ElevatedButton(
-                onPressed: () => Navigator.of(context).push(
-                  Platform.isIOS
-                  ? CupertinoPageRoute(builder: (context) => FixedSelfIssue(
-                        schema: socialMediaSchema,
-                        type: 'SocialMediaAccountCredential'))
-                  : MaterialPageRoute(
-                    builder: (context) => FixedSelfIssue(
-                        schema: socialMediaSchema,
-                        type: 'SocialMediaAccountCredential'))
-                ),
+                onPressed: () => Navigator.of(context).push(Platform.isIOS
+                    ? CupertinoPageRoute(
+                        builder: (context) => FixedSelfIssue(
+                            schema: socialMediaSchema,
+                            type: 'SocialMediaAccountCredential'))
+                    : MaterialPageRoute(
+                        builder: (context) => FixedSelfIssue(
+                            schema: socialMediaSchema,
+                            type: 'SocialMediaAccountCredential'))),
                 child: const Text('Social Media Account')),
             // ElevatedButton(
             //     onPressed: () async {
@@ -164,9 +162,9 @@ class FixedSelfIssue extends StatelessWidget {
 
     logger.d(signed);
 
-    var storageCred = wallet.getCredential(credentialDid);
+    //var storageCred = wallet.getCredential(credentialDid);
 
-    wallet.storeCredential(signed, storageCred!.hdPath);
+    wallet.storeCredential(signed, credentialDid);
     wallet.storeExchangeHistoryEntry(
         credentialDid, DateTime.now(), 'issue', credentialDid);
 

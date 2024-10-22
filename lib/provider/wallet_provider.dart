@@ -196,8 +196,8 @@ class WalletProvider extends ChangeNotifier {
               issuanceDate: DateTime.now());
 
           var signed = await signCredential(_wallet, vc.toJson());
-          var storageCred = getCredential(did);
-          storeCredential(signed, storageCred!.hdPath);
+          //var storageCred = getCredential(did);
+          storeCredential(signed, did);
           storeExchangeHistoryEntry(did, DateTime.now(), 'issue', did);
           showSuccessMessage(AppLocalizations.of(navigatorKey.currentContext!)!
               .importSuccess(type));
@@ -229,10 +229,10 @@ class WalletProvider extends ChangeNotifier {
         return;
       }
 
-      if (!_wallet.isInitialized()) {
-        await _wallet.initialize();
-        await _wallet.initializeIssuer(KeyType.ed25519);
-      }
+      // if (!_wallet.isInitialized()) {
+      //   await _wallet.initialize();
+      //   await _wallet.initializeIssuer(KeyType.ed25519);
+      // }
 
       _buildCredentialList();
 
@@ -595,8 +595,8 @@ class WalletProvider extends ChangeNotifier {
         issuanceDate: DateTime.now());
 
     var signed = await signCredential(_wallet, contextCred.toJson());
-    var storageCred = wallet.getCredential(did);
-    storeCredential(signed, storageCred!.hdPath);
+    //var storageCred = wallet.getCredential(did);
+    storeCredential(signed, did);
     storeExchangeHistoryEntry(did, DateTime.now(), 'update', did);
 
     notifyListeners();
@@ -704,7 +704,7 @@ class WalletProvider extends ChangeNotifier {
   }
 
   Future<String> newConnectionDid([KeyType keytype = KeyType.x25519]) async {
-    return _wallet.getNextConnectionDID(keytype, true);
+    return _wallet.generateNewKey(keyType: keytype);
   }
 
   Connection? getConnection(String did) {
@@ -712,19 +712,22 @@ class WalletProvider extends ChangeNotifier {
   }
 
   Future<String> newCredentialDid([KeyType keytype = KeyType.ed25519]) async {
-    return _wallet.getNextCredentialDID(keytype, true);
+    return _wallet.generateNewKey(keyType: keytype);
   }
 
   Credential? getCredential(String did) {
     return _wallet.getCredential(did);
   }
 
-  void storeCredential(String vc, String hdPath,
+  void storeCredential(String vc, String credentialId,
       {String? newDid,
       String? isoMdlData,
       KeyType keyType = KeyType.ed25519}) async {
-    await _wallet.storeCredential(vc, isoMdlData ?? '', hdPath,
-        keyType: keyType, credDid: newDid);
+    await _wallet.storeCredential(
+      vc,
+      isoMdlData ?? '',
+      credentialId,
+    );
     _buildCredentialList();
     var vcParsed = VerifiableCredential.fromJson(vc);
     var type = vcParsed.type
@@ -758,12 +761,8 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>?> privateKeyForConnectionDidAsJwk(String did) {
-    return _wallet.getPrivateKeyForConnectionDidAsJwk(did);
-  }
-
-  Future<String?> getPrivateKeyForCredentialDid(String did) {
-    return _wallet.getPrivateKeyForCredentialDid(did);
+  FutureOr<Uint8List> sign(String keyId, Uint8List data) {
+    return wallet.sign(keyId, data);
   }
 
   Map<dynamic, Connection> allConnections() {
@@ -811,7 +810,7 @@ class WalletProvider extends ChangeNotifier {
         credentialSubject: {'id': did, ...subject});
 
     var signed = await signCredential(_wallet, vc.toJson());
-    storeCredential(signed, storage!.hdPath);
+    storeCredential(signed, did);
     wallet.storeExchangeHistoryEntry(did, DateTime.now(), 'issue', did);
   }
 

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'dart:io';
 
 import 'package:base_codecs/base_codecs.dart';
@@ -9,20 +10,20 @@ import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/did.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/oidc_handler.dart';
+import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/presentation_request.dart';
 import 'package:iso_mdoc/iso_mdoc.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:x509b/x509.dart';
-import 'package:flutter/cupertino.dart';
-import 'dart:io' show Platform;
 
 enum BleMdocTransmissionState {
   uninitialized,
@@ -30,6 +31,24 @@ enum BleMdocTransmissionState {
   connected,
   disconnected,
   send
+}
+
+class WalletSigner extends SignatureGenerator {
+  final WalletProvider wallet;
+  final String keyId;
+
+  WalletSigner(this.wallet, this.keyId, super.supportedCoseAlgorithm);
+
+  @override
+  FutureOr<List<int>> generate(List<int> data) {
+    return wallet.sign(keyId, Uint8List.fromList(data));
+  }
+
+  @override
+  FutureOr<bool> verify(List<int> data, List<int> toVerify) {
+    // TODO: implement verify
+    throw UnimplementedError();
+  }
 }
 
 class MdocProvider extends ChangeNotifier {
@@ -152,17 +171,11 @@ class MdocProvider extends ChangeNotifier {
   }
 
   generateDeviceEngagement() async {
-    var wallet = Provider.of<WalletProvider>(navigatorKey.currentContext!,
-        listen: false);
-    var mdocDid = await wallet.newConnectionDid(KeyType.p256);
-    var deviceEphemeralCosePub = await didToCosePublicKey(mdocDid);
-    myPrivateKey = deviceEphemeralCosePub;
-    myPrivateKey!.d = base64Decode(addPaddingToBase64((await wallet.wallet
-        .getPrivateKeyForConnectionDidAsJwk(mdocDid))!['d']));
+    myPrivateKey = CoseKey.generate(CoseCurve.p256);
     engagement = DeviceEngagement(
         security: Security(
             cipherSuiteIdentifier: 1,
-            deviceKeyBytes: deviceEphemeralCosePub.toCoseKeyBytes().bytes),
+            deviceKeyBytes: myPrivateKey!.toPublicKey().toCoseKeyBytes().bytes),
         deviceRetrievalMethods: [
           DeviceRetrievalMethod(
               type: 2,
@@ -511,7 +524,6 @@ class MdocProvider extends ChangeNotifier {
     var requesterCert = certIt.first as X509Certificate;
 
     List<IssuerSignedObject> toShow = [];
-    List<IsoRequestedItem> filterResult = [];
 
     var isoCreds =
         Provider.of<WalletProvider>(navigatorKey.currentContext!, listen: false)
@@ -561,17 +573,6 @@ class MdocProvider extends ChangeNotifier {
             var vc = VerifiableCredential.fromJson(cred.w3cCredential);
             vc.credentialSubject = contentToShow;
             toShow.add(data);
-            var key = await Provider.of<WalletProvider>(
-                    navigatorKey.currentContext!,
-                    listen: false)
-                .wallet
-                .getPrivateKey(cred.hdPath, keyType);
-            filterResult.add(IsoRequestedItem(
-                m.docType,
-                {},
-                data,
-                CoseKey(
-                    kty: coseKey.kty, crv: coseKey.crv, d: hex.decode(key))));
           }
         }
       }
@@ -583,20 +584,19 @@ class MdocProvider extends ChangeNotifier {
         matchingDescriptorIds: [],
         presentationDefinitionId: '');
     var target = PresentationRequestDialog(
-          definition: PresentationDefinition(inputDescriptors: []),
-          definitionHash: '',
-          otherEndpoint: '',
-          receiverDid: '',
-          myDid: '',
-          results: [asFilter],
-          isIso: true,
-          requesterCert: requesterCert,
-        );
-    var res = await Navigator.of(navigatorKey.currentContext!).push(
-      Platform.isIOS
-      ? CupertinoPageRoute(builder: (context) => target)
-      : MaterialPageRoute(builder: (context) => target)
+      definition: PresentationDefinition(inputDescriptors: []),
+      definitionHash: '',
+      otherEndpoint: '',
+      receiverDid: '',
+      myDid: '',
+      results: [asFilter],
+      isIso: true,
+      requesterCert: requesterCert,
     );
+    var res = await Navigator.of(navigatorKey.currentContext!).push(
+        Platform.isIOS
+            ? CupertinoPageRoute(builder: (context) => target)
+            : MaterialPageRoute(builder: (context) => target));
 
     if (res != null) {
       String type = '';
@@ -607,21 +607,18 @@ class MdocProvider extends ChangeNotifier {
         for (var doc in entry.isoMdocCredentials ?? <IssuerSignedObject>[]) {
           var mso = MobileSecurityObject.fromCbor(doc.issuerAuth.payload);
           var did = coseKeyToDid(mso.deviceKeyInfo.deviceKey);
-
-          var private = await Provider.of<WalletProvider>(
-                  navigatorKey.currentContext!,
-                  listen: false)
-              .getPrivateKeyForCredentialDid(did);
-          if (private == null) {
-            showErrorMessage('Kein privater schlüssel');
+          int? alg = getCoseAlgorithmForDid(did);
+          if (alg == null) {
+            showErrorMessage('Unbekannte did', 'Das sollte nicht passieren');
             return (null, null);
           }
-          var privateKey = await didToCosePublicKey(did);
-          privateKey.d = hexDecode(private);
 
           var ds = await generateDeviceSignature(
               {}, mso.docType, transcriptHolder,
-              signer: SignatureGenerator.get(privateKey));
+              signer: WalletSigner(
+                  Provider.of(navigatorKey.currentContext!, listen: false),
+                  did,
+                  alg));
 
           var docToSend = Document(
               docType: mso.docType, issuerSigned: doc, deviceSigned: ds);

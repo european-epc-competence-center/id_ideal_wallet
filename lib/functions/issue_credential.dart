@@ -250,14 +250,14 @@ Future<bool> handleOfferCredential(
       var subject = credDetail.credential.credentialSubject;
       if (subject.containsKey('id')) {
         String id = subject['id'];
-        String? private;
-        try {
-          private = await wallet.getPrivateKeyForCredentialDid(id);
-        } catch (e) {
-          _sendProposeCredential(message, wallet, myDid, paymentDetails);
-          return false;
-        }
-        if (private == null) {
+        //String? private;
+        // try {
+        //   private = await wallet.getPrivateKeyForCredentialDid(id);
+        // } catch (e) {
+        //   _sendProposeCredential(message, wallet, myDid, paymentDetails);
+        //   return false;
+        // }
+        if (await wallet.wallet.containsKey(id)) {
           _sendProposeCredential(message, wallet, myDid, paymentDetails);
           return false;
         }
@@ -407,11 +407,11 @@ Future<bool> handleIssueCredential(
           var credDid = getHolderDidFromCredential(cred.toJson());
           Credential? storageCred;
           if (credDid != '') {
-            storageCred = wallet.getCredential(credDid);
-            if (storageCred == null) {
-              throw Exception(
-                  'No hd path for credential found. Sure we control it?');
-            }
+            // storageCred = wallet.getCredential(credDid);
+            // if (storageCred == null) {
+            //   throw Exception(
+            //       'No hd path for credential found. Sure we control it?');
+            // }
           }
 
           var type = getTypeToShow(cred.type);
@@ -420,11 +420,10 @@ Future<bool> handleIssueCredential(
           }
 
           if (type == 'PaymentReceipt') {
-            wallet.storeCredential(cred.toString(), storageCred?.hdPath ?? '',
+            wallet.storeCredential(cred.toString(), credDid,
                 newDid: cred.credentialSubject['receiptId']);
           } else {
-            wallet.storeCredential(cred.toString(), storageCred?.hdPath ?? '',
-                newDid: credDid);
+            wallet.storeCredential(cred.toString(), credDid, newDid: credDid);
             wallet.storeExchangeHistoryEntry(
                 credDid, DateTime.now(), 'issue', message.from!);
 
@@ -466,13 +465,13 @@ Future<bool> handleIssueCredential(
       String? issuerDid;
       VerifiableCredential? issuerCertCredential;
 
-      if (connection == null) {
-        showErrorMessage(
-            AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
-            AppLocalizations.of(navigatorKey.currentContext!)!
-                .wrongCredentialNote);
-        throw Exception('Big Problem: no connection');
-      }
+      // if (connection == null) {
+      //   showErrorMessage(
+      //       AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+      //       AppLocalizations.of(navigatorKey.currentContext!)!
+      //           .wrongCredentialNote);
+      //   throw Exception('Big Problem: no connection');
+      // }
 
       for (var v in message.credentialFulfillment!.verifiableCredential!) {
         logger.d(v.toJson());
@@ -515,8 +514,7 @@ Future<bool> handleIssueCredential(
             issuerJwk: issuerJwk.cast<String, dynamic>(),
             loadDocumentFunction: loadDocumentKaprion);
 
-        wallet.storeCredential(myCred.toString(), connection.hdPath,
-            keyType: KeyType.p384);
+        wallet.storeCredential(myCred.toString(), myDid, keyType: KeyType.p384);
 
         // wallet.storeConfig(
         //     'certCreds:$issuerDid',
