@@ -23,9 +23,9 @@ class IdCard extends StatelessWidget {
       this.bottomRightText = const SizedBox(
         height: 0,
       ),
-      this.cardColor = const Color.fromARGB(255, 103, 149, 208),
+      this.cardColor = const Color.fromARGB(255, 255, 86, 86),
       this.cardTitleColor = const Color.fromARGB(255, 255, 255, 255),
-      this.backgroundColor = const Color.fromARGB(255, 221, 242, 255),
+      this.backgroundColor = const Color.fromARGB(255, 233, 224, 200),
       this.subjectImage,
       this.backgroundImage,
       this.issuerIcon,
