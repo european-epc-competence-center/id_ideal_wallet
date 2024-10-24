@@ -58,7 +58,7 @@ class HistoryEntries extends StatelessWidget {
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          // side: const BorderSide(color: Colors.black26)
+          side: const BorderSide(color: Color.fromARGB(255, 122, 122, 122))
         ),
         clipBehavior: Clip.antiAlias,
         margin: EdgeInsets.zero,
@@ -385,6 +385,7 @@ class CredentialInfo extends StatelessWidget {
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: Color.fromARGB(255, 122, 122, 122)),
           //side: const BorderSide(color: Colors.black26)
         ),
         clipBehavior: Clip.antiAlias,
