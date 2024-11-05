@@ -6,7 +6,7 @@ class CurrencyDisplay extends StatelessWidget {
       {super.key,
       required this.amount,
       required this.symbol,
-      this.amountColor = AppColors.black,
+      this.amountColor = Colors.black,
       this.mainFontSize = 20,
       this.centered = false,
       this.width});

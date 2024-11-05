@@ -26,7 +26,7 @@ class IdCard extends StatelessWidget {
         height: 0,
       ),
       this.cardColor = AppColors.primary,
-      this.cardTitleColor = AppColors.white,
+      this.cardTitleColor = Colors.white,
       this.backgroundColor = AppColors.secondary,
       this.subjectImage,
       this.backgroundImage,
@@ -59,7 +59,7 @@ class IdCard extends StatelessWidget {
             backgroundColor: AppColors.secondary,
             cardTitleColor: credential.credentialSubject['overlaycolor'] != null
                 ? HexColor.fromHex(credential.credentialSubject['overlaycolor'])
-                : AppColors.white,
+                : Colors.white,
             cardTitle: '',
             backgroundImage:
                 credential.credentialSubject['backgroundImage'] != null
@@ -119,7 +119,7 @@ class IdCard extends StatelessWidget {
                           .startsWith('#')
                   ? HexColor.fromHex(
                       credential.credentialSubject['foregroundColor'])
-                  : AppColors.black,
+                  : Colors.black,
           cardTitle: '',
           subjectName: '');
     } else {
@@ -148,7 +148,7 @@ class IdCard extends StatelessWidget {
                 : null,
             cardTitleColor: layout['overlaycolor'] != null
                 ? HexColor.fromHex(layout['overlaycolor'])
-                : AppColors.black,
+                : Colors.black,
             cardTitle: '',
             subjectName: '',
             bottomLeftText: const SizedBox(
@@ -253,7 +253,7 @@ class IdCard extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                          blurRadius: 6, color: AppColors.grey, spreadRadius: 2)
+                          blurRadius: 6, color: Colors.grey, spreadRadius: 2)
                     ],
                   ),
                   child: CircleAvatar(
@@ -652,7 +652,7 @@ class PkPassCard extends IdCard {
   Widget buildCenterOverlay() {
     return Center(
       child: Container(
-        color: AppColors.white,
+        color: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 5),
         height: 90,
         width: 90,
