@@ -49,7 +49,7 @@ var applicationEndpoint =
     'https://hidy.app/walletcontext/apps?plattform=${Platform.isIOS ? '1' : '2'}';
 var stylingEndpoint = 'https://hidy.app/walletcontext/layouts';
 var termsVersionEndpoint = 'https://hidy.app/walletcontext/terms';
-String versionNumber = '3.2.8';
+String versionNumber = '3.4.1';
 String baseUrl = 'https://hidy.app';
 bool testBuild = false;
 
@@ -61,9 +61,11 @@ bool testBuild = false;
 //     'https://test.hidy.app/walletcontext/apps?plattform=${Platform.isIOS ? '1' : '2'}';
 // var stylingEndpoint = 'https://test.hidy.app/walletcontext/layouts';
 // var termsVersionEndpoint = 'https://test.hidy.app/walletcontext/terms';
-// String versionNumber = '3.2.5-test';
+// String versionNumber = '3.4.1-test';
 // String baseUrl = 'https://test.hidy.app';
 // bool testBuild = true;
+
+bool inOidcTest = false;
 
 var tosEndpoint =
     'https://hidy.eu/${AppLocalizations.of(navigatorKey.currentContext!)!.localeName}/terms';
