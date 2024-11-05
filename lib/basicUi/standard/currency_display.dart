@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../constants/colors.dart';
 
 class CurrencyDisplay extends StatelessWidget {
   const CurrencyDisplay(
       {super.key,
       required this.amount,
       required this.symbol,
-      this.amountColor = Colors.black,
+      this.amountColor = AppColors.black,
       this.mainFontSize = 20,
       this.centered = false,
       this.width});
@@ -45,7 +46,7 @@ class CurrencyDisplay extends StatelessWidget {
             style: TextStyle(
               fontSize: mainFontSize * 0.7,
               fontWeight: FontWeight.bold,
-              color: const Color.fromARGB(255, 255, 86, 86),
+              color: AppColors.primary,
             ),
           ),
         ),
