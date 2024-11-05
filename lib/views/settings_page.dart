@@ -41,9 +41,9 @@ class SettingsPageState extends State<SettingsPage> {
           ),
           ListTile(
             title: Text(AppLocalizations.of(context)!.settings),
-            subtitle: Text(wallet.aboutUrl),
+            subtitle: Text('https://id.eecc.de'), // wallet.aboutUrl
             onTap: () {
-              launchUrl(Uri.parse(wallet.aboutUrl),
+              launchUrl(Uri.parse('https://id.eecc.de'),
                   mode: LaunchMode.externalApplication);
             },
           ),
@@ -62,7 +62,15 @@ class SettingsPageState extends State<SettingsPage> {
               title: Text('Ausweis'),
               onTap: () => Navigator.of(navigatorKey.currentContext!).push(
                   MaterialPageRoute(builder: (context) => const AusweisView())),
-            )
+            ),
+          ListTile(
+            title: const Text('Originales Projekt'), // Neu test
+            subtitle: Text('https://github.com/b2cm/id_ideal_wallet'),
+            onTap: () {
+              launchUrl(Uri.parse('https://github.com/b2cm/id_ideal_wallet'),
+                  mode: LaunchMode.externalApplication);
+            },
+          )
         ],
       ),
     );
