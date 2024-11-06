@@ -11,6 +11,7 @@ import 'package:dart_ssi/did.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -131,8 +132,18 @@ class MdocProvider extends ChangeNotifier {
         logger.d('${characteristic.uuid} : (${value.length}) $value ');
         // connectedDevice = central;
         if (characteristic.uuid == mdocPeripheralClient2Server.uuid) {
-          readBuffer.addAll(value.sublist(1));
+          var data = value.sublist(1);
+          if (readBuffer.isNotEmpty && readBuffer.length >= data.length) {
+            var lastRec = readBuffer.sublist(readBuffer.length - data.length);
+            if (!listEquals(lastRec, data)) {
+              readBuffer.addAll(data);
+            }
+          } else {
+            readBuffer.addAll(data);
+          }
+          //readBuffer.addAll(value.sublist(1));
           if (value.first == 0) {
+            logger.d('received length: ${readBuffer.length}');
             sendResponse();
           }
         }
@@ -147,21 +158,22 @@ class MdocProvider extends ChangeNotifier {
       },
     );
 
-    characteristicNotifyStateChangedSubscription =
-        peripheralManager!.characteristicNotifyStateChanged.listen(
-      (eventArgs) async {
-        final central = eventArgs.central;
-        final characteristic = eventArgs.characteristic;
-        final state = eventArgs.state;
-        logger.d('${characteristic.uuid} : $state');
-        if (state) {
-          connectedDevice = central;
-          stopAdvertising();
-        }
-      },
-    );
+    characteristicNotifyStateChangedSubscription = peripheralManager!
+        .characteristicNotifyStateChanged
+        .listen((eventArgs) async {
+      final central = eventArgs.central;
+      final characteristic = eventArgs.characteristic;
+      final state = eventArgs.state;
+      logger.d('${characteristic.uuid} : $state');
+      if (state) {
+        connectedDevice = central;
+        stopAdvertising();
+      }
+    }, onError: (e) {
+      logger.d('error: $e');
+    });
 
-    notifyListeners();
+    //notifyListeners();
   }
 
   setBleState() async {
@@ -197,17 +209,20 @@ class MdocProvider extends ChangeNotifier {
     await peripheralManager?.removeAllServices();
     await peripheralManager?.addService(mdocService!);
     final advertisement = Advertisement(
-      //name: 'mdoc',
+      name: 'mdoc',
       serviceUUIDs: [serviceUuid!],
     );
     await peripheralManager?.startAdvertising(advertisement);
     transmissionState =
         BleMdocTransmissionState.advertising; // advertising mode
+    notifyListeners();
   }
 
-  Future<void> stopAdvertising() async {
+  Future<void> stopAdvertising([bool dispose = false]) async {
     await peripheralManager?.stopAdvertising();
-    transmissionState = BleMdocTransmissionState.connected;
+    transmissionState = dispose
+        ? BleMdocTransmissionState.uninitialized
+        : BleMdocTransmissionState.connected;
     notifyListeners();
   }
 
@@ -216,7 +231,7 @@ class MdocProvider extends ChangeNotifier {
     String? type;
 
     (responseToSend, type) = await handleMdocRequest(readBuffer);
-
+    readBuffer = [];
     if (responseToSend != null) {
       var fragmentSize =
           await peripheralManager!.getMaximumNotifyLength(connectedDevice!) - 3;
@@ -619,6 +634,8 @@ class MdocProvider extends ChangeNotifier {
                   Provider.of(navigatorKey.currentContext!, listen: false),
                   did,
                   alg));
+
+          logger.d(ds.deviceSignature?.signature);
 
           var docToSend = Document(
               docType: mso.docType, issuerSigned: doc, deviceSigned: ds);

@@ -879,7 +879,13 @@ storeCredential(String format, dynamic credential, String credentialDid,
     Map k = keys.first;
     var jwk = sdJwt.Jwk.fromJson(
         k.map((key, value) => MapEntry(key as String, value)));
-    var sd = sdJwt.SdJwt.verified(parsed, jwk);
+    var sd = sdJwt.SdJwt.fromSdJws(parsed);
+    var verified = await sd.verify(
+        parsed, sdJwt.PointyCastleCryptoProvider(jwk.key as sdJwt.EcPublicKey));
+
+    if (!verified) {
+      showErrorMessage('Credential nicht valide');
+    }
 
     var cnf = sd.confirmation!.toJson();
     logger.d(cnf['jwk']);

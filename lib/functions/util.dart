@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/material.dart';
@@ -7,13 +6,11 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:id_ideal_wallet/constants/root_certificates.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
-import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:iso_mdoc/iso_mdoc.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth_android/local_auth_android.dart';
 import 'package:local_auth_darwin/local_auth_darwin.dart';
 import 'package:random_password_generator/random_password_generator.dart';
-import 'package:sd_jwt/sd_jwt.dart' as sdJwt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:x509b/x509.dart' as x509;
 
@@ -149,40 +146,5 @@ int? getCoseAlgorithmForDid(String did) {
     return CoseAlgorithm.es512;
   } else {
     return null;
-  }
-}
-
-class WalletCryptoProvider extends sdJwt.CryptoProvider {
-  final WalletProvider wallet;
-  final String keyId;
-
-  WalletCryptoProvider(this.wallet, this.keyId);
-
-  @override
-  Uint8List digest(
-      {required Uint8List data, required sdJwt.DigestAlgorithm algorithm}) {
-    // TODO: implement digest
-    throw UnimplementedError();
-  }
-
-  @override
-  sdJwt.AsymmetricKey generateEcKeyPair({required sdJwt.Curve curve}) {
-    // TODO: implement generateEcKeyPair
-    throw UnimplementedError();
-  }
-
-  @override
-  FutureOr<Uint8List> sign(
-      {required Uint8List data, required sdJwt.SigningAlgorithm algorithm}) {
-    return wallet.sign(keyId, data);
-  }
-
-  @override
-  bool verify(
-      {required Uint8List data,
-      required sdJwt.SigningAlgorithm algorithm,
-      required sdJwt.Signature signature}) {
-    // TODO: implement verify
-    throw UnimplementedError();
   }
 }

@@ -369,7 +369,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
 
       // sd Jwt
       for (var v in result.sdJwtCredentials ?? <sd_jwt.SdJws>[]) {
-        var sd = v.unverified();
+        var sd = v.toSdJwt();
         Map<String, dynamic> subject = sd.claims;
 
         var type = subject.remove('vct');
@@ -406,7 +406,8 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
 
       var minCount = result.submissionRequirement?.min ??
           result.submissionRequirement?.count ??
-          1;
+          (result.submissionRequirement?.max == null ? 1 : 0);
+
       if (credCount < minCount) {
         logger.d('less creds: $credCount < $minCount');
         fulfillable = false;
@@ -697,7 +698,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             entry.sdJwtCredentials!.isNotEmpty) {
           logger.d('handle sd jwt');
           for (var s in entry.sdJwtCredentials!) {
-            var sd = s.unverified();
+            var sd = s.toSdJwt();
 
             var cnf = sd.confirmation!.toJson();
             logger.d(cnf['jwk']);
@@ -716,7 +717,8 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             }
 
             var signed = await s.bind(
-                signer: WalletCryptoProvider(wallet, restoredDid),
+                signer:
+                    WalletCryptoProviderForSdJwt(wallet.wallet, restoredDid),
                 audience: widget.otherEndpoint,
                 issuedAt: DateTime.now(),
                 nonce: widget.nonce!,
@@ -816,8 +818,12 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
 
           if (header['alg'] == 'ECDH-ES') {
             var sharedSecret = await ecdhES(
-                wallet.wallet, cDid, null, readerKey, header['alg'], enc,
-                apu: header['apu'], apv: header['apv']);
+                WalletKeyAgreementGenerator(wallet.wallet, cDid),
+                readerKey,
+                header['alg'],
+                enc,
+                apu: header['apu'],
+                apv: header['apv']);
 
             logger.d('$sharedSecret, ${sharedSecret.length}');
             // direct mode
@@ -931,7 +937,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
           logger.d(type);
 
           for (var cred in entry.sdJwtCredentials ?? <sd_jwt.SdJws>[]) {
-            var sdJwt = cred.unverified();
+            var sdJwt = cred.toSdJwt();
 
             var cnf = sdJwt.confirmation!.toJson();
             logger.d(cnf['jwk']);

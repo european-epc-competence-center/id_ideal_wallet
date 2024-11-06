@@ -1,5 +1,6 @@
 import 'package:bluetooth_low_energy/bluetooth_low_energy.dart';
 import 'package:flutter/material.dart';
+import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -15,12 +16,13 @@ class IsoCredentialRequestState extends State<IsoCredentialRequest> {
   @override
   void initState() {
     super.initState();
-    Provider.of<MdocProvider>(context, listen: false).startBle();
+    //Provider.of<MdocProvider>(context, listen: false).startBle();
   }
 
   @override
   void dispose() {
-    Provider.of<MdocProvider>(context, listen: false).stopAdvertising();
+    Provider.of<MdocProvider>(navigatorKey.currentContext!, listen: false)
+        .stopAdvertising(true);
     super.dispose();
   }
 
@@ -49,6 +51,8 @@ class IsoCredentialRequestState extends State<IsoCredentialRequest> {
       body: SafeArea(
         child: Center(
           child: Consumer<MdocProvider>(builder: (context, mdoc, child) {
+            if (mdoc.transmissionState ==
+                BleMdocTransmissionState.uninitialized) mdoc.startBle();
             return mdoc.bleState == BluetoothLowEnergyState.poweredOn
                 ? getText(mdoc)
                 : const Text('Bluetooth ist nicht aktiv. Bitte anschalten.');
