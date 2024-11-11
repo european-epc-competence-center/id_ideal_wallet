@@ -36,12 +36,16 @@ enum BleMdocTransmissionState {
 
 class WalletSigner extends SignatureGenerator {
   final WalletProvider wallet;
-  final String keyId;
+  // It is easier to restore a did from the cose key inside the credential because there is no guaranty that the cose key has a kid.
+  // If Keystore of android or ios is used we need to store which did belongs to the alias/keyId in this system keystore.
+  final String did;
 
-  WalletSigner(this.wallet, this.keyId, super.supportedCoseAlgorithm);
+  WalletSigner(this.wallet, this.did, super.supportedCoseAlgorithm);
 
   @override
   FutureOr<List<int>> generate(List<int> data) {
+    var keyId = wallet.getOsKeyStoreIdForDid(did) ?? did;
+    logger.d(keyId);
     return wallet.sign(keyId, Uint8List.fromList(data));
   }
 

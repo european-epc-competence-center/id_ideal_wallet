@@ -6,6 +6,7 @@ import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/didcomm.dart';
+import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,6 +27,8 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../functions/util.dart' as my_util;
+
+enum KeyStore { software, system }
 
 class WalletProvider extends ChangeNotifier {
   final WalletStore _wallet;
@@ -212,6 +215,26 @@ class WalletProvider extends ChangeNotifier {
             AppLocalizations.of(navigatorKey.currentContext!)!.importFailed);
       }
     }
+  }
+
+  String? getOsKeyStoreIdForDid(String did) {
+    var d = wallet.getConfigEntry('didToOsKeystoreId');
+    logger.d(d);
+    if (d != null) {
+      Map data = jsonDecode(d);
+      return data[did];
+    }
+    return null;
+  }
+
+  void storeDidForOsKeyStoreId(String osKeyStoreId, String did) {
+    var d = wallet.getConfigEntry('didToOsKeystoreId');
+    Map data = {};
+    if (d != null) {
+      data = jsonDecode(d);
+    }
+    data[did] = osKeyStoreId;
+    wallet.storeConfigEntry('didToOsKeystoreId', jsonEncode(data));
   }
 
   void onBoarded() {
@@ -711,8 +734,19 @@ class WalletProvider extends ChangeNotifier {
     return _wallet.getConnection(did);
   }
 
-  Future<String> newCredentialDid([KeyType keytype = KeyType.ed25519]) async {
-    return _wallet.generateNewKey(keyType: keytype);
+  Future<String> newCredentialDid(
+      [KeyType keytype = KeyType.ed25519,
+      KeyStore keystore = KeyStore.software]) async {
+    var keyId = await _wallet.generateNewKey(
+        keyType: keytype, storageBackend: keystore.name);
+    if (keystore == KeyStore.software) {
+      return keyId;
+    } else {
+      var jwk = await _wallet.getKeyInformation(keyId);
+      var did = 'did:key:${jwkToMultiBase(jwk)}';
+      storeDidForOsKeyStoreId(keyId, did);
+      return did;
+    }
   }
 
   Credential? getCredential(String did) {

@@ -92,6 +92,8 @@ dependencies:
   cbor:
   base_codecs:
   crypto_keys:
+  os_keystore_backend:
+    path: ../os_keystore_backend
 
 
   # The following adds the Cupertino Icons font to your application.

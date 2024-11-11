@@ -437,21 +437,22 @@ Future<void> handleRedirect(String uri) async {
 }
 
 Future<(String, dynamic, KeyType)> buildJwt(List<String> algValues,
-    WalletProvider wallet, String? cNonce, String credentialIssuer) async {
+    WalletProvider wallet, String? cNonce, String credentialIssuer,
+    [KeyStore keystore = KeyStore.software]) async {
   String credentialDid, alg, crv;
   KeyType keyType;
   if (algValues.contains('ES256')) {
-    credentialDid = await wallet.newCredentialDid(KeyType.p256);
+    credentialDid = await wallet.newCredentialDid(KeyType.p256, keystore);
     alg = 'ES256';
     crv = 'P-256';
     keyType = KeyType.p256;
   } else if (algValues.contains('ES384')) {
-    credentialDid = await wallet.newCredentialDid(KeyType.p384);
+    credentialDid = await wallet.newCredentialDid(KeyType.p384, keystore);
     alg = 'ES384';
     crv = 'P-384';
     keyType = KeyType.p384;
   } else if (algValues.contains('ES512')) {
-    credentialDid = await wallet.newCredentialDid(KeyType.p521);
+    credentialDid = await wallet.newCredentialDid(KeyType.p521, keystore);
     alg = 'ES512';
     crv = 'P-521';
     keyType = KeyType.p521;
@@ -487,13 +488,18 @@ Future<(String, dynamic, KeyType)> buildJwt(List<String> algValues,
     payload['nonce'] = cNonce;
   }
   logger.d(credentialDid);
+  var keyId = keystore == KeyStore.software
+      ? credentialDid
+      : wallet.getOsKeyStoreIdForDid(credentialDid);
   var jwt = await signStringOrJson(
       wallet: wallet.wallet,
-      didToSignWith: credentialDid,
+      didToSignWith: keyId,
       toSign: payload,
       jwsHeader: header,
       detached: false);
   //end JWT creation
+  logger.d(jwt);
+  logger.d(await verifyStringSignature(jwt, expectedDid: credentialDid));
 
   return (credentialDid, jwt, keyType);
 }
@@ -559,11 +565,20 @@ Future<void> getCredential(
   String credentialDid;
   dynamic proofValue;
   KeyType keyType;
+  KeyStore k = KeyStore.software;
+
+  if (credentialMetadata.format == OidcCredentialFormat.msoMdoc &&
+      credentialMetadata.credentialType != null &&
+      credentialMetadata.credentialType!
+          .contains(MobileDriversLicense.docType)) {
+    k = KeyStore.system;
+    logger.d('other keystore');
+  }
 
   if (credentialMetadata.proofTypesSupported == null) {
     proofType = 'jwt';
     (credentialDid, proofValue, keyType) =
-        await buildJwt([], wallet, tokenResponse.cNonce, credentialIssuer);
+        await buildJwt([], wallet, tokenResponse.cNonce, credentialIssuer, k);
   } else if (credentialMetadata.proofTypesSupported!.containsKey('ldp_vp')) {
     proofType = 'ldp_vp';
     credentialDid = await wallet.newCredentialDid();
@@ -588,7 +603,8 @@ Future<void> getCredential(
         credentialMetadata.proofTypesSupported?['jwt']?.cast<String>() ?? [],
         wallet,
         tokenResponse.cNonce,
-        credentialIssuer);
+        credentialIssuer,
+        k);
   } else {
     showErrorMessage('Proof type nicht unterstützt');
     return;
@@ -815,6 +831,7 @@ storeCredential(String format, dynamic credential, String credentialDid,
         showErrorMessage('Credential wurde für jemand anderen ausgestellt');
         return;
       }
+      logger.d(wallet.getOsKeyStoreIdForDid(did));
       var credSubject = <String, dynamic>{'id': credentialDid};
       doc.items.forEach((key, value) {
         for (var i in value) {
@@ -896,7 +913,7 @@ storeCredential(String format, dynamic credential, String credentialDid,
       showErrorMessage('Credential für jemand anderen');
     }
 
-    var claims = sd.claims;
+    var claims = sd.additionalClaims ?? {};
     var type = claims.remove('vct');
     claims['id'] = restoredDid;
 

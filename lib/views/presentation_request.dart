@@ -370,7 +370,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
       // sd Jwt
       for (var v in result.sdJwtCredentials ?? <sd_jwt.SdJws>[]) {
         var sd = v.toSdJwt();
-        Map<String, dynamic> subject = sd.claims;
+        Map<String, dynamic> subject = sd.additionalClaims ?? {};
 
         var type = subject.remove('vct');
         var key = 'o${outerPos}i$innerPos';
@@ -714,6 +714,8 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
               algorithm = sd_jwt.SigningAlgorithm.ecdsaSha384Prime;
             } else if (restoredDid.startsWith('did:key:z2J9')) {
               algorithm = sd_jwt.SigningAlgorithm.ecdsaSha512Prime;
+            } else if (restoredDid.startsWith('did:key:z6Mk')) {
+              algorithm = sd_jwt.SigningAlgorithm.eddsa25519Sha512;
             }
 
             var signed = await s.bind(
@@ -946,7 +948,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             wallet.storeExchangeHistoryEntry(
                 restoredDid, DateTime.now(), 'present', widget.otherEndpoint);
 
-            var vct = sdJwt.claims['vct'];
+            var vct = sdJwt.additionalClaims?['vct'] ?? '';
             type += '$vct, \n';
           }
         }
