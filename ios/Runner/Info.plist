@@ -6,7 +6,7 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>eu.hidy.app</string>
+			<string>de.eecc.ssi</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>eid</string>
@@ -14,7 +14,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>eu.hidy.app</string>
+			<string>de.eecc.ssi</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>lightning</string>
@@ -22,7 +22,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>eu.hidy.app</string>
+			<string>de.eecc.ssi</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>lnurl</string>
@@ -30,7 +30,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>eu.hidy.app</string>
+			<string>de.eecc.ssi</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>lnbc</string>
@@ -38,7 +38,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>eu.hidy.app</string>
+			<string>de.eecc.ssi</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>eudi-openid4ci</string>
@@ -46,7 +46,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>eu.hidy.app</string>
+			<string>de.eecc.ssi</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>openid-credential-offer</string>
@@ -54,7 +54,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>eu.hidy.app</string>
+			<string>de.eecc.ssi</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>eudi-openid4vci</string>
@@ -62,7 +62,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>eu.hidy.app</string>
+			<string>de.eecc.ssi</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>openid-presentation-request</string>
@@ -70,7 +70,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>eu.hidy.app</string>
+			<string>de.eecc.ssi</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>eudi-openid4vp</string>
@@ -78,7 +78,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>eu.hidy.app</string>
+			<string>de.eecc.ssi</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>openid4vp</string>

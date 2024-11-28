@@ -1,4 +1,4 @@
-package eu.hidy.app
+package de.eecc.ssi
 
 import android.app.ActivityManager
 import android.app.Application

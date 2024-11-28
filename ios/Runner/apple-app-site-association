@@ -4,7 +4,7 @@
     "details": [
       {
         "appIDs": [
-          "WBLTXUKX28.eu.hidy.app"
+          "WBLTXUKX28.de.eecc.ssi"
         ],
         "paths": [
           "*"
@@ -19,7 +19,7 @@
   },
   "webcredentials": {
     "apps": [
-      "WBLTXUKX28.eu.hidy.app"
+      "WBLTXUKX28.de.eecc.ssi"
     ]
   }
 }
