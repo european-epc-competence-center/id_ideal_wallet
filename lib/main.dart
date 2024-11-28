@@ -223,7 +223,7 @@ class HomeScreen extends StatelessWidget {
         return const AuthorizedAppsManger();
       case NavigationPage.license:
         return LicensePage(
-          applicationName: 'Hidy',
+          applicationName: 'EECC Wallet',
           applicationVersion: versionNumber,
           applicationIcon: Image.asset(
             'assets/icons/app_icon-playstore.png',

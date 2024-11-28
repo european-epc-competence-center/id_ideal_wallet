@@ -11,6 +11,7 @@ import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/credential_detail.dart';
 
 import '../../constants/server_address.dart';
+import '../../constants/colors.dart';
 import 'currency_display.dart';
 
 class IdCard extends StatelessWidget {
@@ -24,13 +25,13 @@ class IdCard extends StatelessWidget {
       this.bottomRightText = const SizedBox(
         height: 0,
       ),
-      this.cardColor = const Color.fromARGB(255, 255, 86, 86),
-      this.cardTitleColor = const Color.fromARGB(255, 255, 255, 255),
-      this.backgroundColor = const Color.fromARGB(255, 233, 224, 200),
+      this.cardColor = AppColors.primary,
+      this.cardTitleColor = Colors.white,
+      this.backgroundColor = AppColors.secondary,
       this.subjectImage,
       this.backgroundImage,
       this.issuerIcon,
-      this.borderColor = const Color.fromARGB(255, 122, 122, 122),
+      this.borderColor = AppColors.borderColor,
       this.noAspectRatio = false,
       this.borderWidth = 2,
       this.edgeRadius = 20});
@@ -55,10 +56,10 @@ class IdCard extends StatelessWidget {
         );
       } else {
         return ContextCredentialCard(
-            backgroundColor: const Color.fromARGB(255, 233, 224, 200),
+            backgroundColor: AppColors.secondary,
             cardTitleColor: credential.credentialSubject['overlaycolor'] != null
                 ? HexColor.fromHex(credential.credentialSubject['overlaycolor'])
-                : const Color.fromARGB(255, 255, 255, 255),
+                : Colors.white,
             cardTitle: '',
             backgroundImage:
                 credential.credentialSubject['backgroundImage'] != null
@@ -111,14 +112,14 @@ class IdCard extends StatelessWidget {
                       .startsWith('#')
               ? HexColor.fromHex(
                   credential.credentialSubject['backgroundColor'])
-              : const Color.fromARGB(255, 233, 224, 200),
+              : AppColors.secondary,
           cardTitleColor:
               credential.credentialSubject['foregroundColor'] != null &&
                       credential.credentialSubject['foregroundColor']
                           .startsWith('#')
                   ? HexColor.fromHex(
                       credential.credentialSubject['foregroundColor'])
-                  : const Color.fromARGB(255, 0, 0, 0),
+                  : Colors.black,
           cardTitle: '',
           subjectName: '');
     } else {
