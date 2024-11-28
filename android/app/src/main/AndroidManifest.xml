@@ -16,7 +16,7 @@
         android:name="${applicationName}"
         android:allowBackup="false"
         android:icon="@mipmap/app_icon"
-        android:label="EECCidentity"
+        android:label="EECC Wallet"
         android:usesCleartextTraffic="true">
 
         <service
