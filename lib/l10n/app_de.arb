@@ -151,7 +151,7 @@
   "invoiceLimit": "Aus Sicherheitsgründen darf dein Kontostand umgerechnet nicht mehr als 10€ betragen. Die Invoice überschreitet diesen Betrag.",
   "creationFailed": "Erstellen Fehlgeschlagen",
   "license": "Lizenzen",
-  "welcome": "Willkommen bei Hidy",
+  "welcome": "Willkommen in Ihrer EECC Wallet",
   "welcomeNote": "Bevor dir deine persönliche Wallet zur Verfügung steht, müssen noch ein paar Dinge geklärt werden.",
   "technic": "Technische Vorraussetzungen",
   "technicNoteOk": "Dein Smartphone ist mit Pin, Muster, Passwort oder Biometrie geschützt.",

@@ -151,7 +151,7 @@
   "invoiceLimit": "For security reasons, your account balance must not exceed the equivalent of 10€. The invoice exceeds this amount.",
   "creationFailed": "Creation failed",
   "license": "Licenses",
-  "welcome": "Welcome to Hidy",
+  "welcome": "Welcome to your EECC Wallet",
   "welcomeNote": "Before your personal wallet is available to you, a few things need to be cleared up.",
   "technic": "Technical Requirements",
   "technicNoteOk": "Your smartphone is protected with pin, pattern, password or biometrics.",
