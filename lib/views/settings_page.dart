@@ -6,6 +6,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/styled_scaffold_title.dart';
 import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
+import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/ausweis_view.dart';
@@ -62,7 +63,11 @@ class SettingsPageState extends State<SettingsPage> {
                           builder: (context) => const AusweisView())
                       : MaterialPageRoute(
                           builder: (context) => const AusweisView())),
-            )
+            ),
+          ListTile(
+            title: Text('Wallet Attestation'),
+            onTap: () => getWalletAttestation(),
+          ),
         ],
       ),
     );

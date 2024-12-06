@@ -8,14 +8,18 @@ import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart';
 import 'package:id_ideal_wallet/constants/root_certificates.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
+import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:iso_mdoc/iso_mdoc.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth_android/local_auth_android.dart';
 import 'package:local_auth_darwin/local_auth_darwin.dart';
 import 'package:os_keystore_backend/os_keystore_backend.dart';
+import 'package:provider/provider.dart';
 import 'package:random_password_generator/random_password_generator.dart';
+import 'package:sd_jwt/sd_jwt.dart' as sd_jwt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:x509b/x509.dart' as x509;
 
@@ -258,5 +262,40 @@ class OsKeyStore extends KeyStoreBackend {
       );
     }
     return (null, null, null);
+  }
+}
+
+Future<void> getWalletAttestation() async {
+  var nonceRes = await get(Uri.parse('http://localhost:8080/nonce'));
+  if (nonceRes.statusCode == 200) {
+    var nonce = jsonDecode(nonceRes.body)['nonce'];
+
+    var wallet = Provider.of<WalletProvider>(navigatorKey.currentContext!,
+        listen: false);
+    var keyId = await wallet.newCredentialDid(KeyType.p256, KeyStore.system);
+    logger.d(keyId);
+    var info = await wallet.wallet
+        .getKeyInformation(wallet.getOsKeyStoreIdForDid(keyId)!);
+    var jwt = sd_jwt.Jwt(
+        additionalClaims: {'nonce': nonce},
+        header: sd_jwt.JoseHeader(
+            x509certificateChain: (info['x5c'] as List)
+                .map((e) => base64Decode(e as String))
+                .toList()));
+    logger.d(jwt);
+    var jws = await jwt.sign(
+        header: sd_jwt.JwsJoseHeader(
+            algorithm: sd_jwt.SigningAlgorithm.ecdsaSha256Prime,
+            x509certificateChain: (info['x5c'] as List)
+                .map((e) => base64Decode(e as String))
+                .toList()),
+        signer: WalletCryptoProviderForSdJwt(
+            wallet.wallet, wallet.getOsKeyStoreIdForDid(keyId)!),
+        signingAlgorithm: sd_jwt.SigningAlgorithm.ecdsaSha256Prime);
+    logger.d(jws.header);
+    var attRes = await get(
+      Uri.parse('http://localhost:8080/attest/${jws.toCompactSerialization()}'),
+    );
+    logger.d(attRes.body);
   }
 }
