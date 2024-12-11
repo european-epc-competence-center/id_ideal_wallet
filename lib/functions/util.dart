@@ -299,3 +299,36 @@ Future<void> getWalletAttestation() async {
     logger.d(attRes.body);
   }
 }
+
+Future navigateClassic(Widget newView) {
+  return Navigator.of(navigatorKey.currentContext!).push(Platform.isIOS
+      ? CupertinoPageRoute(builder: (context) => newView)
+      : MaterialPageRoute(builder: (context) => newView));
+}
+
+class AboData {
+  String name, url, pictureUrl;
+
+  AboData(this.name, this.url, this.pictureUrl);
+
+  factory AboData.fromJson(dynamic jsonData) {
+    var data = credentialToMap(jsonData);
+
+    return AboData(data['name'] ?? '', data['url'],
+        data['mainbgimg'] ?? data['mainbgimage']);
+  }
+
+  String getComparableUrl() {
+    var asUri = Uri.parse(url);
+    return removeTrailingSlash('${asUri.scheme}://${asUri.host}${asUri.path}');
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'name': name, 'url': url, 'mainbgimage': pictureUrl};
+  }
+
+  @override
+  String toString() {
+    return jsonEncode(toJson());
+  }
+}

@@ -9,7 +9,6 @@ import 'package:dart_ssi/didcomm.dart';
 import 'package:dart_ssi/oidc.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart';
@@ -238,10 +237,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
                     input: [i],
                     outerPos: pos,
                   );
-                  (res, index) = await Navigator.of(context).push(
-                      io.Platform.isIOS
-                          ? CupertinoPageRoute(builder: (context) => target)
-                          : MaterialPageRoute(builder: (context) => target));
+                  (res, index) = await navigateClassic(target);
                   if (res.isNotEmpty) {
                     var wallet = Provider.of<WalletProvider>(
                         navigatorKey.currentContext!,
@@ -643,6 +639,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
 
       String definitionId = '';
       List<InputDescriptorMappingObject> descriptorMap = [];
+      bool hasW3cCreds = false;
 
       for (FilterResult entry in finalSend) {
         definitionId = entry.presentationDefinitionId;
@@ -682,15 +679,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
 
         if (entry.credentials != null && entry.credentials!.isNotEmpty) {
           logger.d('handle w3c');
-          vp.add(await buildPresentation(
-              finalSend, wallet.wallet, widget.nonce!,
-              loadDocumentFunction: loadDocumentFast));
-          casted = VerifiablePresentation.fromJson(vp.last);
-          submission = casted.presentationSubmission!;
-          logger.d(await verifyPresentation(vp.last, widget.nonce!,
-              loadDocumentFunction: loadDocumentFast));
-
-          logger.d(vp);
+          hasW3cCreds = true;
         }
 
         int arrayIndex = 0;
@@ -739,6 +728,18 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
           }
         }
       }
+
+      if (hasW3cCreds) {
+        vp.add(await buildPresentation(finalSend, wallet.wallet, widget.nonce!,
+            loadDocumentFunction: loadDocumentFast));
+        casted = VerifiablePresentation.fromJson(vp.last);
+        descriptorMap = casted.presentationSubmission!.descriptorMap;
+        logger.d(await verifyPresentation(vp.last, widget.nonce!,
+            loadDocumentFunction: loadDocumentFast));
+
+        logger.d(vp);
+      }
+
       submission = PresentationSubmission(
           presentationDefinitionId: definitionId, descriptorMap: descriptorMap);
 

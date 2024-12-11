@@ -5,10 +5,12 @@ import 'package:dart_ssi/credentials.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/ausweis_message.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
+import 'package:id_ideal_wallet/functions/oidc_handler.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -45,6 +47,7 @@ class AusweisProvider extends ChangeNotifier {
   bool selfInfo = true;
   bool connected = false;
   bool pause = false;
+  bool pidFlow = false;
 
   late final Map<Type, CustomTypeHandler> typeHandlers;
 
@@ -77,6 +80,7 @@ class AusweisProvider extends ChangeNotifier {
     errorMessage = '';
     selfInfo = true;
     pause = false;
+    pidFlow = false;
     disconnectSdk();
     if (notify) notifyListeners();
   }
@@ -86,9 +90,10 @@ class AusweisProvider extends ChangeNotifier {
     logger.d('listen data stream');
   }
 
-  void startProgress([String? tcTokenUrl]) {
+  void startProgress([String? tcTokenUrl, bool pidFlow = false]) {
     connectSdk();
     this.tcTokenUrl = tcTokenUrl;
+    this.pidFlow = pidFlow;
     screen = AusweisScreen.main;
     start = true;
     notifyListeners();
@@ -494,6 +499,22 @@ class AusweisProvider extends ChangeNotifier {
             requesterCert = null;
             disconnectSdk();
           }
+        } else if (pidFlow) {
+          //var redirect = await get(Uri.parse(message.url!));
+          // logger.d(redirect.statusCode);
+          // logger.d(redirect.headers);
+          http.Request req = http.Request("Get", Uri.parse(message.url!))
+            ..followRedirects = false;
+          http.Client baseClient = http.Client();
+          http.StreamedResponse response = await baseClient.send(req);
+          var redirectUri = response.headers['location']!;
+          logger.d(response.statusCode);
+          logger.d(response.headers);
+          if (response.statusCode == 302) {
+            handleRedirect(redirectUri, response.headers['dpop-nonce']);
+          }
+          Navigator.pop(navigatorKey.currentContext!);
+          reset(false);
         } else {
           launchUrl(Uri.parse(message.url!),
               mode: LaunchMode.externalApplication);

@@ -57,12 +57,7 @@ class SettingsPageState extends State<SettingsPage> {
           if (Platform.isAndroid || Platform.isIOS)
             ListTile(
               title: Text('Ausweis'),
-              onTap: () => Navigator.of(navigatorKey.currentContext!).push(
-                  Platform.isIOS
-                      ? CupertinoPageRoute(
-                          builder: (context) => const AusweisView())
-                      : MaterialPageRoute(
-                          builder: (context) => const AusweisView())),
+              onTap: () => navigateClassic(const AusweisView()),
             ),
           ListTile(
             title: Text('Wallet Attestation'),
