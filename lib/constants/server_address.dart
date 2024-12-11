@@ -41,15 +41,18 @@ Map knownAuthServer = {
   },
   'https://demo.pid-issuer.bundesdruckerei.de/c': {
     'client_id': 'fed79862-af36-4fee-8e64-89e3c91091ed',
-    'pidIssuer': true
+    'pidIssuer': true,
+    'dpop': true
   },
   'https://demo.pid-issuer.bundesdruckerei.de/c2': {
     'client_id': 'fed79862-af36-4fee-8e64-89e3c91091ed',
-    'pidIssuer': true
+    'pidIssuer': true,
+    'dpop': true
   },
   'https://demo.pid-issuer.bundesdruckerei.de/c1': {
     'client_id': 'fed79862-af36-4fee-8e64-89e3c91091ed',
-    'pidIssuer': true
+    'pidIssuer': true,
+    'dpop': true
   }
 };
 

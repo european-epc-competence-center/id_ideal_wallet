@@ -17,7 +17,6 @@ import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
-import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/ausweis_view.dart';
 import 'package:id_ideal_wallet/views/credential_offer_new.dart';
@@ -273,7 +272,7 @@ Future<void> handleOfferOidc(String offerUri) async {
             navigateClassic(const AusweisView());
             Provider.of<AusweisProvider>(navigatorKey.currentContext!,
                     listen: false)
-                .startProgress(authRequest);
+                .startProgress(authRequest, true);
           } else {
             navigateClassic(
                 WebViewWindow(initialUrl: authRequest, title: 'Autorisierung'));
@@ -330,8 +329,8 @@ Future<void> handleOfferOidc(String offerUri) async {
         logger.d('Access-Token : ${tokenResponse.accessToken}');
 
         for (var credMetadata in offeredCredentials) {
-          getCredential(
-              issuerString, issuerMetadata, credMetadata, tokenResponse);
+          getCredential(issuerString, issuerMetadata, credMetadata,
+              tokenResponse, null, null, null, null);
         }
       } else {
         logger.d(tokenRes.statusCode);
@@ -365,9 +364,9 @@ Future<Map?> getAuthServerMetaData(String authServer) async {
   }
 }
 
-Future<void> handleRedirect(String uri) async {
-  Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false)
-      .goBack();
+Future<void> handleRedirect(String uri, [String? dpopNonce]) async {
+  // Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false)
+  //     .goBack();
   logger.d('redirected uri: $uri');
   var asUri = Uri.parse(uri);
   var state = asUri.queryParameters['state'];
@@ -423,10 +422,43 @@ Future<void> handleRedirect(String uri) async {
   parameter += '&state=$state';
   parameter += '&code_verifier=$codeVerifier';
 
-  var tokenRes = await post(Uri.parse(tokenEndpoint),
-          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-          body: parameter)
-      .timeout(const Duration(seconds: 20), onTimeout: () {
+  var headers = <String, String>{
+    'Content-Type': 'application/x-www-form-urlencoded'
+  };
+
+  String? dpopDid, dpopJws;
+  if (clientMetaData['dpop'] ?? false) {
+    // generate Dpop header
+    var wallet = Provider.of<WalletProvider>(navigatorKey.currentContext!,
+        listen: false);
+    dpopDid = await wallet.newCredentialDid(KeyType.p256);
+    var dpopJwk = multibaseKeyToJwk(dpopDid.replaceAll('did:key:', ''));
+
+    var dpopHeader = {
+      "typ": "dpop+jwt",
+      'alg': 'ES256',
+      'crv': 'P-256',
+      'jwk': dpopJwk
+    };
+    var dpopPayload = {
+      'jti': Uuid().v4(),
+      'htm': 'POST',
+      'htu': tokenEndpoint,
+      'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      'nonce': dpopNonce
+    };
+    logger.d(dpopPayload);
+    dpopJws = await signStringOrJson(
+        toSign: dpopPayload,
+        wallet: wallet.wallet,
+        didToSignWith: dpopDid,
+        jwsHeader: dpopHeader);
+    headers['DPoP'] = dpopJws;
+  }
+
+  var tokenRes =
+      await post(Uri.parse(tokenEndpoint), headers: headers, body: parameter)
+          .timeout(const Duration(seconds: 20), onTimeout: () {
     return Response('Timeout', 400);
   });
 
@@ -434,18 +466,30 @@ Future<void> handleRedirect(String uri) async {
     logger.d(
         'successful token request: ${jsonDecode(tokenRes.body).keys.toList()}');
     var decoded = OidcTokenResponse.fromJson(tokenRes.body);
-    var payload = decoded.accessToken!.split('.')[1];
-    logger.d(
-        'decodedPayload: ${jsonDecode(utf8.decode((base64Decode(addPaddingToBase64(payload)))))}');
-    getCredential(removeTrailingSlash(offer.credentialIssuer), null,
-        credentialMetadata.first, decoded);
+    logger.d(tokenRes.headers);
+    // var payload = decoded.accessToken!.split('.')[1];
+    // logger.d(
+    //     'decodedPayload: ${jsonDecode(utf8.decode((base64Decode(addPaddingToBase64(payload)))))}');
+    getCredential(
+        removeTrailingSlash(offer.credentialIssuer),
+        null,
+        credentialMetadata.first,
+        decoded,
+        clientId,
+        dpopDid,
+        dpopJws,
+        tokenRes.headers['dpop-nonce']);
   } else {
     logger.d('Error token request: ${tokenRes.statusCode} / ${tokenRes.body}');
   }
 }
 
-Future<(String, dynamic, KeyType)> buildJwt(List<String> algValues,
-    WalletProvider wallet, String? cNonce, String credentialIssuer) async {
+Future<(String, dynamic, KeyType)> buildJwt(
+    List<String> algValues,
+    WalletProvider wallet,
+    String? cNonce,
+    String credentialIssuer,
+    String? clientId) async {
   String credentialDid, alg, crv;
   KeyType keyType;
   if (algValues.contains('ES256')) {
@@ -477,20 +521,22 @@ Future<(String, dynamic, KeyType)> buildJwt(List<String> algValues,
     'typ': 'openid4vci-proof+jwt',
     'alg': alg,
     'crv': crv,
-    'kid': credentialDid,
+    //'kid': credentialDid,
     // 'kid':
     //     'did:jwk:${removePaddingFromBase64(base64UrlEncode(utf8.encode(jsonEncode(jwk))))}#0',
-    //'jwk': ddo.verificationMethod!.first.publicKeyJwk
+    'jwk': ddo.verificationMethod!.first.publicKeyJwk
     //#${credentialDid.split(':').last
   };
 
   var payload = {
     'aud': credentialIssuer,
-    'iss': credentialDid,
     // 'iss':
     //     'did:jwk:${removePaddingFromBase64(base64UrlEncode(utf8.encode(jsonEncode(jwk))))}',
     'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
   };
+  if (clientId != null) {
+    payload['iss'] = clientId;
+  }
   if (cNonce != null) {
     payload['nonce'] = cNonce;
   }
@@ -510,7 +556,11 @@ Future<void> getCredential(
     String credentialIssuer,
     CredentialIssuerMetaData? metadata,
     CredentialsSupportedObject credentialMetadata,
-    OidcTokenResponse tokenResponse) async {
+    OidcTokenResponse tokenResponse,
+    String? clientId,
+    String? dpopDid,
+    String? dpopJws,
+    String? dpopNonce) async {
   if (metadata == null) {
     // get metadata
     var issuerMetaReq = await get(
@@ -553,7 +603,7 @@ Future<void> getCredential(
         tokenResponse.cNonce = jsonDecode(credentialResponse.body)['c_nonce'];
       } catch (e) {
         logger.d(e);
-        showErrorMessage('Kaine nonce');
+        showErrorMessage('Keine nonce');
         return;
       }
     }
@@ -570,8 +620,8 @@ Future<void> getCredential(
 
   if (credentialMetadata.proofTypesSupported == null) {
     proofType = 'jwt';
-    (credentialDid, proofValue, keyType) =
-        await buildJwt([], wallet, tokenResponse.cNonce, credentialIssuer);
+    (credentialDid, proofValue, keyType) = await buildJwt(
+        [], wallet, tokenResponse.cNonce, credentialIssuer, clientId);
   } else if (credentialMetadata.proofTypesSupported!.containsKey('ldp_vp')) {
     proofType = 'ldp_vp';
     credentialDid = await wallet.newCredentialDid();
@@ -596,7 +646,8 @@ Future<void> getCredential(
         credentialMetadata.proofTypesSupported?['jwt']?.cast<String>() ?? [],
         wallet,
         tokenResponse.cNonce,
-        credentialIssuer);
+        credentialIssuer,
+        clientId);
   } else {
     showErrorMessage('Proof type nicht unterstützt');
     return;
@@ -640,12 +691,37 @@ Future<void> getCredential(
 
   logger.d('credential Endpoint: ${metadata.credentialEndpoint}');
 
+  var headers = <String, String>{
+    'Content-Type': 'application/json',
+  };
+  if (dpopDid != null && dpopJws != null) {
+    headers['Authorization'] = 'DPoP ${tokenResponse.accessToken}';
+    var s = dpopJws.split('.');
+    var dpopHeader =
+        jsonDecode(utf8.decode(base64Decode(addPaddingToBase64(s.first))));
+    var dpopPayload =
+        jsonDecode(utf8.decode(base64Decode(addPaddingToBase64(s[1]))));
+
+    dpopPayload['iat'] = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    dpopPayload['htm'] = 'POST';
+    dpopPayload['htu'] = metadata.credentialEndpoint;
+    dpopPayload['ath'] = removePaddingFromBase64(base64UrlEncode(
+        sha256.convert(ascii.encode(tokenResponse.accessToken!)).bytes));
+    dpopPayload['nonce'] = dpopNonce;
+
+    logger.d(dpopPayload);
+    dpopJws = await signStringOrJson(
+        toSign: dpopPayload,
+        wallet: wallet.wallet,
+        didToSignWith: dpopDid,
+        jwsHeader: dpopHeader);
+    headers['DPoP'] = dpopJws;
+  } else {
+    headers['Authorization'] = 'Bearer ${tokenResponse.accessToken}';
+  }
+
   var credentialResponse = await post(Uri.parse(metadata.credentialEndpoint),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${tokenResponse.accessToken}'
-          },
-          body: credentialRequest.toString())
+          headers: headers, body: credentialRequest.toString())
       .timeout(const Duration(seconds: 20), onTimeout: () {
     return Response('Timeout', 400);
   });
@@ -810,8 +886,9 @@ sendDeferredRequest(
 storeCredential(String format, dynamic credential, String credentialDid,
     WalletProvider wallet, KeyType keyType, String credentialIssuer) async {
   if (format == OidcCredentialFormat.msoMdoc) {
-    logger.d(cborDecode(base64Decode(credential)));
-    var data = IssuerSignedObject.fromCbor(base64Decode(credential));
+    logger.d(cborDecode(base64Decode(addPaddingToBase64(credential))));
+    var data = IssuerSignedObject.fromCbor(
+        base64Decode(addPaddingToBase64(credential)));
     var doc = data;
     var verified = await verifyMso(doc);
     if (verified) {
@@ -882,7 +959,9 @@ storeCredential(String format, dynamic credential, String credentialDid,
     }
 
     var data = jsonDecode(metaRes.body);
-    List keys = data['jwks ']['keys'];
+    var jwks = data['jwks'];
+    logger.d(jwks);
+    List keys = jwks['keys'];
     logger.d(keys);
     Map k = keys.first;
     var jwk = sdJwt.Jwk.fromJson(
