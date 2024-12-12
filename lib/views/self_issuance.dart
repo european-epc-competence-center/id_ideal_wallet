@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
 
 import 'package:dart_ssi/credentials.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/currency_display.dart';
@@ -15,8 +13,6 @@ import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:json_schema2/json_schema.dart';
 import 'package:json_schema_form/json_schema_form.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/cupertino.dart';
-import 'dart:io' show Platform;
 
 final emailSchema = JsonSchema.create({
   'type': 'object',

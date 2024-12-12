@@ -5,12 +5,14 @@ import 'dart:typed_data';
 
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart';
 import 'package:id_ideal_wallet/constants/root_certificates.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
+import 'package:id_ideal_wallet/functions/oidc_handler.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:iso_mdoc/iso_mdoc.dart';
 import 'package:local_auth/local_auth.dart';

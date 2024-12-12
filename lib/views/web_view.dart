@@ -291,13 +291,9 @@ class WebViewWindowState extends State<WebViewWindow> {
                                   mimeType: d.mimeType,
                                 )
                               ], fileNameOverrides: [
-                                'hidy.jpg'
+                                'hidyShare.${d.mimeType.split('/').last}'
                               ]);
-                              if (res.status == ShareResultStatus.success) {
-                                return true;
-                              } else {
-                                return false;
-                              }
+                              return res.status == ShareResultStatus.success;
                             });
                         webViewController?.addJavaScriptHandler(
                             handlerName: 'presentationRequestHandler',

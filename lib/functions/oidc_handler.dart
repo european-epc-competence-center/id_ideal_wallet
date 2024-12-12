@@ -426,34 +426,32 @@ Future<void> handleRedirect(String uri, [String? dpopNonce]) async {
     'Content-Type': 'application/x-www-form-urlencoded'
   };
 
-  String? dpopDid, dpopJws;
+  String? dpopDid, dpopJti;
   if (clientMetaData['dpop'] ?? false) {
     // generate Dpop header
     var wallet = Provider.of<WalletProvider>(navigatorKey.currentContext!,
         listen: false);
     dpopDid = await wallet.newCredentialDid(KeyType.p256);
     var dpopJwk = multibaseKeyToJwk(dpopDid.replaceAll('did:key:', ''));
+    dpopJti = Uuid().v4();
 
-    var dpopHeader = {
-      "typ": "dpop+jwt",
-      'alg': 'ES256',
-      'crv': 'P-256',
-      'jwk': dpopJwk
-    };
     var dpopPayload = {
-      'jti': Uuid().v4(),
+      'jti': dpopJti,
       'htm': 'POST',
       'htu': tokenEndpoint,
-      'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
       'nonce': dpopNonce
     };
+    var jwt =
+        sdJwt.Jwt(additionalClaims: dpopPayload, issuedAt: DateTime.now());
+    var dpopJws = await jwt.sign(
+        signer: WalletCryptoProviderForSdJwt(wallet.wallet, dpopDid),
+        header: sdJwt.JwsJoseHeader(
+            algorithm: sdJwt.SigningAlgorithm.ecdsaSha256Prime,
+            jsonWebKey: sdJwt.Jwk.fromJson(dpopJwk),
+            type: 'dpop+jwt'));
     logger.d(dpopPayload);
-    dpopJws = await signStringOrJson(
-        toSign: dpopPayload,
-        wallet: wallet.wallet,
-        didToSignWith: dpopDid,
-        jwsHeader: dpopHeader);
-    headers['DPoP'] = dpopJws;
+
+    headers['DPoP'] = dpopJws.toCompactSerialization();
   }
 
   var tokenRes =
@@ -477,16 +475,20 @@ Future<void> handleRedirect(String uri, [String? dpopNonce]) async {
         decoded,
         clientId,
         dpopDid,
-        dpopJws,
+        dpopJti,
         tokenRes.headers['dpop-nonce']);
   } else {
     logger.d('Error token request: ${tokenRes.statusCode} / ${tokenRes.body}');
   }
 }
 
-Future<(String, dynamic, KeyType)> buildJwt(List<String> algValues,
-    WalletProvider wallet, String? cNonce, String credentialIssuer,
-     String? clientId,[KeyStore keystore = KeyStore.software]) async {
+Future<(String, dynamic, KeyType)> buildJwt(
+    List<String> algValues,
+    WalletProvider wallet,
+    String? cNonce,
+    String credentialIssuer,
+    String? clientId,
+    [KeyStore keystore = KeyStore.software]) async {
   String credentialDid, alg, crv;
   KeyType keyType;
   if (algValues.contains('ES256')) {
@@ -561,7 +563,7 @@ Future<void> getCredential(
     OidcTokenResponse tokenResponse,
     String? clientId,
     String? dpopDid,
-    String? dpopJws,
+    String? dpopJti,
     String? dpopNonce) async {
   if (metadata == null) {
     // get metadata
@@ -658,7 +660,8 @@ Future<void> getCredential(
         wallet,
         tokenResponse.cNonce,
         credentialIssuer,
-        clientId, k);
+        clientId,
+        k);
   } else {
     showErrorMessage('Proof type nicht unterstützt');
     return;
@@ -705,28 +708,30 @@ Future<void> getCredential(
   var headers = <String, String>{
     'Content-Type': 'application/json',
   };
-  if (dpopDid != null && dpopJws != null) {
+  if (dpopDid != null && dpopJti != null) {
     headers['Authorization'] = 'DPoP ${tokenResponse.accessToken}';
-    var s = dpopJws.split('.');
-    var dpopHeader =
-        jsonDecode(utf8.decode(base64Decode(addPaddingToBase64(s.first))));
-    var dpopPayload =
-        jsonDecode(utf8.decode(base64Decode(addPaddingToBase64(s[1]))));
+    var dpopPayload = {
+      'jti': dpopJti,
+      'htm': 'POST',
+      'htu': metadata.credentialEndpoint,
+      'nonce': dpopNonce,
+      'ath': removePaddingFromBase64(base64UrlEncode(
+          sha256.convert(ascii.encode(tokenResponse.accessToken!)).bytes))
+    };
+    var jwt =
+        sdJwt.Jwt(additionalClaims: dpopPayload, issuedAt: DateTime.now());
+    var dpopJwk = multibaseKeyToJwk(dpopDid.replaceAll('did:key:', ''));
+    var dpopJws = await jwt.sign(
+        signer: WalletCryptoProviderForSdJwt(wallet.wallet, dpopDid),
+        header: sdJwt.JwsJoseHeader(
+            algorithm: sdJwt.SigningAlgorithm.ecdsaSha256Prime,
+            jsonWebKey: sdJwt.Jwk.fromJson(dpopJwk),
+            type: 'dpop+jwt'));
+    logger.d(dpopPayload);
 
-    dpopPayload['iat'] = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    dpopPayload['htm'] = 'POST';
-    dpopPayload['htu'] = metadata.credentialEndpoint;
-    dpopPayload['ath'] = removePaddingFromBase64(base64UrlEncode(
-        sha256.convert(ascii.encode(tokenResponse.accessToken!)).bytes));
-    dpopPayload['nonce'] = dpopNonce;
+    headers['DPoP'] = dpopJws.toCompactSerialization();
 
     logger.d(dpopPayload);
-    dpopJws = await signStringOrJson(
-        toSign: dpopPayload,
-        wallet: wallet.wallet,
-        didToSignWith: dpopDid,
-        jwsHeader: dpopHeader);
-    headers['DPoP'] = dpopJws;
   } else {
     headers['Authorization'] = 'Bearer ${tokenResponse.accessToken}';
   }
@@ -897,6 +902,7 @@ sendDeferredRequest(
 storeCredential(String format, dynamic credential, String credentialDid,
     WalletProvider wallet, KeyType keyType, String credentialIssuer) async {
   if (format == OidcCredentialFormat.msoMdoc) {
+    printWrapped(credential);
     logger.d(cborDecode(base64Decode(addPaddingToBase64(credential))));
     var data = IssuerSignedObject.fromCbor(
         base64Decode(addPaddingToBase64(credential)));
@@ -931,7 +937,7 @@ storeCredential(String format, dynamic credential, String credentialDid,
           issuer: {
             'name': 'IsoMdlIssuer',
             'certificate':
-                base64UrlEncode(doc.issuerAuth.unprotected.x509chain!)
+                base64UrlEncode(doc.issuerAuth.unprotected.x509chain!.first)
           },
           credentialSubject: credSubject,
           issuanceDate: signedData.validityInfo.validFrom,

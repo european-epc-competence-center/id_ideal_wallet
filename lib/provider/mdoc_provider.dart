@@ -10,9 +10,7 @@ import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/did.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
@@ -25,8 +23,6 @@ import 'package:iso_mdoc/iso_mdoc.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:x509b/x509.dart';
-import 'package:flutter/cupertino.dart';
-import 'dart:io' show Platform;
 
 enum BleMdocTransmissionState {
   uninitialized,
@@ -541,7 +537,7 @@ class MdocProvider extends ChangeNotifier {
     }
 
     var certIt = parsePem(
-        '-----BEGIN CERTIFICATE-----\n${base64Encode(decodedRequest.docRequests.first.readerAuthSignature!.unprotected.x509chain!)}\n-----END CERTIFICATE-----');
+        '-----BEGIN CERTIFICATE-----\n${base64Encode(decodedRequest.docRequests.first.readerAuthSignature!.unprotected.x509chain!.first)}\n-----END CERTIFICATE-----');
     var requesterCert = certIt.first as X509Certificate;
 
     List<IssuerSignedObject> toShow = [];
@@ -614,8 +610,7 @@ class MdocProvider extends ChangeNotifier {
       isIso: true,
       requesterCert: requesterCert,
     );
-    var res = await navigateClassic( target)
-            ;
+    var res = await navigateClassic(target);
 
     if (res != null) {
       String type = '';
