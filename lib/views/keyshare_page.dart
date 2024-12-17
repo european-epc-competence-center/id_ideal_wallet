@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:id_ideal_wallet/functions/backup_functions.dart';
+import 'package:id_ideal_wallet/provider/encryption_provider.dart';
 import 'package:id_ideal_wallet/provider/server_provider.dart';
 import 'dart:convert';
 import 'dart:math';
@@ -27,7 +27,7 @@ class _KeyShareWidgetState extends State<KeyShareWidget> {
     // generate secret
     secret = List.generate(32, (index) => Random().nextInt(256)).map((e) => e.toRadixString(16).padLeft(2, '0')).join();
     // generate keyshares
-    keyShares = getKeyShare(secret, 1, 2);
+    keyShares = EncryptionService().getKeyShare(secret, 1, 2);
 
     userId = secret.substring(0,5);
     OneSignal.login(userId);

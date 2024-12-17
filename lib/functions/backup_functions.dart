@@ -11,15 +11,19 @@ import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:id_ideal_wallet/provider/encryption_provider.dart';
 import 'package:id_ideal_wallet/provider/server_provider.dart';
-import 'package:sss256/sss256.dart';
+import 'package:restart/restart.dart';
 
-const String localhost = "http://10.0.2.2";
+const String localhost = "http://78.47.219.104:3000";  //"http://ec2-18-199-147-148.eu-central-1.compute.amazonaws.com:3000";//"http://10.0.2.2";
 const String apiKey = 'supersecretapikey123'; 
 const String backupFileName = 'hidy_backup.enc';
 const String symbolsForPasswordGeneration = 'ABCDEFGHJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#\$%^&*()-_=+[]{};:,.<>?';
 
 // Function to perform backup
-Future<void> performBackup(BuildContext context, Uint8List password) async {
+Future<void> performBackup(BuildContext context, String memonic) async {
+  final encryptionService = EncryptionService();
+
+  Uint8List password = utf8.encode(encryptionService.getPasswordFromMemonic(memonic));
+  
   var wallet = Provider.of<WalletProvider>(context, listen: false);
   var boxes = wallet.wallet.getBoxes();
 
@@ -31,14 +35,9 @@ Future<void> performBackup(BuildContext context, Uint8List password) async {
   );
 
   var encodedBoxes = encodeBoxes(nonNullableBoxes);
-  
-  final encryptionService = EncryptionService();
-
-  // Initialize with a password
-  await encryptionService.init(password);
 
   // Encrypt boxes
-  final encryptedData = encryptionService.encryptData(encodedBoxes);
+  final encryptedData = encryptionService.encryptData(encodedBoxes, password);
 
   
 
@@ -52,9 +51,12 @@ Future<void> performBackup(BuildContext context, Uint8List password) async {
 }
 
 // Function to apply backup
-Future<void> applyBackup(BuildContext context, String password) async {
+Future<void> applyBackup(BuildContext context, String memonic) async {
   var wallet = Provider.of<WalletProvider>(context, listen: false);
+  
+  final encryptionService = EncryptionService();
 
+  String password = encryptionService.getPasswordFromMemonic(memonic);
   String encryptedData;
 
   try{
@@ -65,7 +67,6 @@ Future<void> applyBackup(BuildContext context, String password) async {
   }
 
   // Decrypt the data using the password
-  final encryptionService = EncryptionService();
   String encodedBoxes = await encryptionService.decryptData(password!, encryptedData);
 
   Map<String, Box<dynamic>> boxes = wallet.wallet.getBoxes().cast<String, Box<dynamic>>();
@@ -73,6 +74,7 @@ Future<void> applyBackup(BuildContext context, String password) async {
   // Decode and restore boxes
   await decodeAndSetBoxes(encodedBoxes, boxes);
 
+  restart();
 }
 
 // Function to encode boxes
@@ -135,19 +137,4 @@ Future<File> saveFileLocally(String fileName, String encryptedData) async {
 
   // Write the encrypted data to the file
   return file.writeAsString(encryptedData);
-}
-
-List<String> getKeyShare(String secret, int threshold, int shareAmount) {
-
-  final shares = splitSecret(
-    isBase64: false,
-    secret: secret,
-    treshold: threshold,
-    shares: shareAmount,
-
-  );
-
-  // final restoredSecret = restoreSecret(shares: shares.sublist(0, 3), isBase64: false);
-  
-  return shares;
 }

@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'dart:math';
+import 'package:bip39/bip39.dart' as bip39;
+import 'package:sss256/sss256.dart';
 
 const String symbolsForPasswordGeneration = 'ABCDEFGHJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#\$%^&*()-_=+[]{};:,.<>?';
 
@@ -16,11 +18,9 @@ class EncryptionService {
     return _instance;
   }
 
-  Future<void> init(Uint8List password) async {
-    _key = encrypt.Key(password); //encrypt.Key(await _deriveKeyFromPassword(password, _salt!, 10000, 32));
-  }
+  String encryptData(String plainText, Uint8List password) {
+    _key = encrypt.Key(password);
 
-  String encryptData(String plainText) {
     if (_key == null) {
       throw Exception('Encryption key is not initialized.');
     }
@@ -51,9 +51,26 @@ class EncryptionService {
     return encrypter.decrypt(encrypted, iv: iv);
   }
 
-  Uint8List generatePassword(int length) {
-    final rand = Random.secure();
-    var password = List.generate(length, (index) => symbolsForPasswordGeneration[rand.nextInt(symbolsForPasswordGeneration.length)]).join();
-    return Uint8List.fromList(utf8.encode(password));
+  String createMemonic(){
+    return bip39.generateMnemonic();
   }
+
+  String getPasswordFromMemonic(String memonic){
+    return bip39.mnemonicToSeedHex(memonic).substring(0, 32); //@dev: AES key length is 32 bytes
+  }
+
+  List<String> getKeyShare(String secret, int threshold, int shareAmount) {
+
+  final shares = splitSecret(
+    isBase64: false,
+    secret: secret,
+    treshold: threshold,
+    shares: shareAmount,
+
+  );
+
+  // final restoredSecret = restoreSecret(shares: shares.sublist(0, 3), isBase64: false);
+  
+  return shares;
+}
 }

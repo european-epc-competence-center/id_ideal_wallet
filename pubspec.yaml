@@ -42,13 +42,14 @@ dependencies:
   sd_jwt:
     git:
       url: https://github.com/b2cm/sd_jwt
+      ref: 11647deaeaf89a0b2b347085ae5439a9408c0ff3
     #path: ../sd-jwt
   path_provider: ^2.0.12
   local_auth: ^2.2.0
   flutter_secure_storage: ^9.2.2
   random_password_generator:
   uuid: any
-  mobile_scanner: 5.1.1
+  mobile_scanner: ^5.1.1
   http: ^1.2.2
   qr_flutter:
     git:
@@ -108,6 +109,8 @@ dependencies:
   path: ^1.9.0
   onesignal_flutter: ^5.1.2
   sss256: ^1.0.0
+  restart: ^1.0.0
+  bip39: ^1.0.6
 
 dependency_overrides:
   pinenacl: ^0.6.0

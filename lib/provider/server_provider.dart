@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-const String localhost = "ec2-18-199-147-148.eu-central-1.compute.amazonaws.com";//"http://10.0.2.2";
+const String localhost = "http://78.47.219.104"; //http://ec2-18-199-147-148.eu-central-1.compute.amazonaws.com";//"http://10.0.2.2";
 const String apiKey = 'supersecretapikey123';
 
 // ######### Backup functions #############
@@ -49,11 +49,10 @@ Future<void> sendStringAndFile(String apiUrl, String apiKey, String textData, Fi
 }
 
 Future<String> fetchFileInMemory(String fileId) async {
-  String apiUrl = '${localhost}/data/$fileId';  // Replace with your server URL
-
+  String apiUrl = '${localhost}:3000/data/$fileId';
 
     // Send GET request to fetch the file
-    var response = await http.get(Uri.parse(apiUrl));
+  var response = await http.get(Uri.parse(apiUrl));
   try {
     // Check if the request was successful
     if (response.statusCode == 200) {

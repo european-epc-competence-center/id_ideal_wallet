@@ -12,12 +12,12 @@ class BackupWidget extends StatefulWidget {
 
 class _BackupWidgetState extends State<BackupWidget> {
 
-  late Uint8List _generatePassword;
+  late String _generateMemonic;
 
   @override
   void initState() {
     super.initState();
-    _generatePassword = EncryptionService().generatePassword(16); // Initialize in initState
+    _generateMemonic = EncryptionService().createMemonic(); // Initialize in initState
   }
 
   void _onBackupPressed() {
@@ -25,7 +25,7 @@ class _BackupWidgetState extends State<BackupWidget> {
     FocusScope.of(context).unfocus();
 
     // Proceed with backup using the password
-    performBackup(context, _generatePassword);
+    performBackup(context, _generateMemonic);
     
     _showMessage("Your backup will be uploaded...");
     Navigator.of(context).pop();
@@ -50,7 +50,7 @@ class _BackupWidgetState extends State<BackupWidget> {
             ),
             const SizedBox(height: 16.0),
             Text(
-              utf8.decode(_generatePassword),
+              _generateMemonic,
               style: const TextStyle(fontSize: 16.0),
             ),
             const SizedBox(height: 16.0),
@@ -86,7 +86,7 @@ void showConfirmationDialog(BuildContext context, void Function(BuildContext, St
             child: Text('Yes'),
             onPressed: () {
               Navigator.of(context2).pop();
-              askForPassword(context).then((pwd)=>{onConfirmed(context, pwd!)});
+              askForMnemonic(context).then((mnemonic)=>{onConfirmed(context, mnemonic!)});
             },
           ),
         ],
@@ -95,18 +95,32 @@ void showConfirmationDialog(BuildContext context, void Function(BuildContext, St
   );
 }
 
-Future<String?> askForPassword(BuildContext context) async {
-  TextEditingController passwordController = TextEditingController();
+Future<String?> askForMnemonic(BuildContext context) async {
+  List<TextEditingController> controllers =
+      List.generate(12, (_) => TextEditingController());
+
   return showDialog<String?>(
     context: context,
     barrierDismissible: false,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text('Enter Password'),
-        content: TextField(
-          controller: passwordController,
-          obscureText: true,
-          decoration: InputDecoration(labelText: 'Password'),
+        title: Text('Enter Mnemonic'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(
+              12,
+              (index) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: TextField(
+                  controller: controllers[index],
+                  decoration: InputDecoration(
+                    labelText: 'Word ${index + 1}',
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
         actions: <Widget>[
           TextButton(
@@ -118,7 +132,11 @@ Future<String?> askForPassword(BuildContext context) async {
           TextButton(
             child: Text('OK'),
             onPressed: () {
-              Navigator.of(context).pop(passwordController.text); // Return the password
+              // Combine all entered words into a single space-separated string
+              String mnemonic = controllers
+                  .map((controller) => controller.text.trim())
+                  .join(' ');
+              Navigator.of(context).pop(mnemonic); // Return the mnemonic string
             },
           ),
         ],
@@ -126,3 +144,4 @@ Future<String?> askForPassword(BuildContext context) async {
     },
   );
 }
+
