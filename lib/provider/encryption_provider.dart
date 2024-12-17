@@ -58,19 +58,4 @@ class EncryptionService {
   String getPasswordFromMemonic(String memonic){
     return bip39.mnemonicToSeedHex(memonic).substring(0, 32); //@dev: AES key length is 32 bytes
   }
-
-  List<String> getKeyShare(String secret, int threshold, int shareAmount) {
-
-  final shares = splitSecret(
-    isBase64: false,
-    secret: secret,
-    treshold: threshold,
-    shares: shareAmount,
-
-  );
-
-  // final restoredSecret = restoreSecret(shares: shares.sublist(0, 3), isBase64: false);
-  
-  return shares;
-}
 }
