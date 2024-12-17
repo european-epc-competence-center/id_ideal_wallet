@@ -28,7 +28,6 @@ import 'package:id_ideal_wallet/views/web_view.dart';
 import 'package:id_ideal_wallet/views/welcome_screen.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 void main() async {
   if (testBuild) {
@@ -56,8 +55,6 @@ void main() async {
         File('$path/databases/com.google.android.datatransport.events');
     await file.writeAsString('Fake');
   }
-
-  initializeOneSignal();
 }
 
 class App extends StatelessWidget {
@@ -407,20 +404,4 @@ class HomeScreen extends StatelessWidget {
       }
     });
   }
-}
-
-void initializeOneSignal() {
-  //var wallet = Provider.of<WalletProvider>(context, listen: false);
-  //Remove this method to stop OneSignal Debugging 
-  OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
-
-  OneSignal.initialize("b4a581b5-0cd9-4b5f-8702-9f7de110c637");
-
-  // The promptForPushNotificationsWithUserResponse function will show the iOS or Android push notification prompt. We recommend removing the following code and instead using an In-App Message to prompt for notification permission
-  OneSignal.Notifications.requestPermission(true);
-}
-
-void loginOneSignal(WalletProvider wallet) {
-  //OneSignal.login(wallet.lndwId!);
-  OneSignal.login("1234");
 }

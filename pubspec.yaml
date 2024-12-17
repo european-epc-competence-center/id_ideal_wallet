@@ -107,7 +107,6 @@ dependencies:
   encrypt: ^5.0.3
   cryptography: ^2.7.0
   path: ^1.9.0
-  onesignal_flutter: ^5.1.2
   sss256: ^1.0.0
   restart: ^1.0.0
   bip39: ^1.0.6
