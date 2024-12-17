@@ -12,11 +12,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:id_ideal_wallet/provider/encryption_provider.dart';
 import 'package:id_ideal_wallet/provider/server_provider.dart';
 import 'package:restart/restart.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 const String localhost = "http://78.47.219.104:3000";  //"http://ec2-18-199-147-148.eu-central-1.compute.amazonaws.com:3000";//"http://10.0.2.2";
 const String apiKey = 'supersecretapikey123'; 
 const String backupFileName = 'hidy_backup.enc';
-const String symbolsForPasswordGeneration = 'ABCDEFGHJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#\$%^&*()-_=+[]{};:,.<>?';
 
 // Function to perform backup
 Future<void> performBackup(BuildContext context, String memonic) async {
@@ -62,7 +62,7 @@ Future<void> applyBackup(BuildContext context, String memonic) async {
   try{
     encryptedData = await fetchFileInMemory(sha256.convert(utf8.encode(password!)).toString());
   } catch(e) { // if we catch here we did not get a 200
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Backup not found! Wrong Password?")));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.backupNotFound)));
     return;
   }
 

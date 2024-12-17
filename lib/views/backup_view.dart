@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:id_ideal_wallet/provider/encryption_provider.dart';
 import 'package:id_ideal_wallet/functions/backup_functions.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 
 class BackupWidget extends StatefulWidget {
@@ -27,7 +28,7 @@ class _BackupWidgetState extends State<BackupWidget> {
     // Proceed with backup using the password
     performBackup(context, _generateMemonic);
     
-    _showMessage("Your backup will be uploaded...");
+    _showMessage(AppLocalizations.of(context)!.backupUpload);
     Navigator.of(context).pop();
   }
 
@@ -38,7 +39,7 @@ class _BackupWidgetState extends State<BackupWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Backup')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.backup)),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -57,7 +58,7 @@ class _BackupWidgetState extends State<BackupWidget> {
             Center(
               child: ElevatedButton(
                 onPressed: _onBackupPressed,
-                child: const Text('Backup'),
+                child: Text(AppLocalizations.of(context)!.backup),
               ),
             ),
           ],
@@ -73,17 +74,17 @@ void showConfirmationDialog(BuildContext context, void Function(BuildContext, St
     barrierDismissible: false, // Prevents dismissing by tapping outside
     builder: (BuildContext context2) {
       return AlertDialog(
-        title: Text('Backup'),
-        content: Text('Sind Sie sicher das Sie ein Backup einlesen wollen?'),
+        title: Text(AppLocalizations.of(context)!.backup),
+        content: Text(AppLocalizations.of(context)!.restoreQuestion),
         actions: <Widget>[
           TextButton(
-            child: Text('No'),
+            child: Text(AppLocalizations.of(context)!.no),
             onPressed: () {
               Navigator.of(context2).pop();
             },
           ),
           TextButton(
-            child: Text('Yes'),
+            child: Text(AppLocalizations.of(context)!.yes),
             onPressed: () {
               Navigator.of(context2).pop();
               askForMnemonic(context).then((mnemonic)=>{onConfirmed(context, mnemonic!)});
@@ -104,7 +105,7 @@ Future<String?> askForMnemonic(BuildContext context) async {
     barrierDismissible: false,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text('Enter Mnemonic'),
+        title: Text(AppLocalizations.of(context)!.restoreMnemonic),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -124,13 +125,13 @@ Future<String?> askForMnemonic(BuildContext context) async {
         ),
         actions: <Widget>[
           TextButton(
-            child: Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
             onPressed: () {
               Navigator.of(context).pop(null); // Return null if canceled
             },
           ),
           TextButton(
-            child: Text('OK'),
+            child: Text(AppLocalizations.of(context)!.ok),
             onPressed: () {
               // Combine all entered words into a single space-separated string
               String mnemonic = controllers

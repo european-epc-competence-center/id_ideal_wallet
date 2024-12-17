@@ -71,12 +71,12 @@ class SettingsPageState extends State<SettingsPage> {
                         builder: (context) => const AusweisView())),
           ),
           ListTile(
-            title: Text('Backup'),
+            title: Text(AppLocalizations.of(context)!.backup),
             onTap: () => Navigator.of(navigatorKey.currentContext!).push(
                 MaterialPageRoute(builder: (context) => BackupWidget())),
           ),
           ListTile(
-            title: Text('Restore'),
+            title: Text(AppLocalizations.of(context)!.restoreMenu),
             onTap: () => showConfirmationDialog(context, applyBackup)
           ),
         ],

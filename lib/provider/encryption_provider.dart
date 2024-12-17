@@ -1,11 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:encrypt/encrypt.dart' as encrypt;
-import 'dart:math';
 import 'package:bip39/bip39.dart' as bip39;
-import 'package:sss256/sss256.dart';
-
-const String symbolsForPasswordGeneration = 'ABCDEFGHJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#\$%^&*()-_=+[]{};:,.<>?';
 
 class EncryptionService {
   static final EncryptionService _instance = EncryptionService._internal();
