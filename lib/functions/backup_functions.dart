@@ -103,23 +103,30 @@ Future<void> decodeAndSetBoxes(String encodedData, Map<String, Box<dynamic>> box
   Map<String, dynamic> decodedData = jsonDecode(encodedData);
 
   for (var entry in decodedData.entries) {
-    var box = boxes[entry.key];
-    if (box != null) {
-      entry.value.forEach((k, v) {
-        if (v is Map<String, dynamic>) {
-          if (entry.key == 'credentialBox') {
-            box.put(k, Credential.fromJson(v));
-          } else if (entry.key == 'connectionBox') {
-            box.put(k, Connection.fromJson(v));
-          } else if (entry.key == 'didcommConversationsBox') {
-            box.put(k, DidcommConversation.fromJson(v));
-          } else if (entry.key == 'issuingHistoryBox') {
-            box.put(k, Credential.fromJson(v));
-          }
+    String boxKey = entry.key;
+    Map<dynamic, dynamic> boxData = entry.value;
+
+    if (boxes.containsKey(boxKey)) {
+      print("${boxKey} is present");
+      Box<dynamic> box = boxes[boxKey]!;
+      await box.clear(); // Clear existing data in the box
+
+      for (var dataEntry in boxData.entries) {
+        dynamic key = dataEntry.key;
+        dynamic value = dataEntry.value;
+/**
+
+ */
+        if (boxKey == 'credentialBox' || boxKey == "issuingHistory") {
+          box.put(key, Credential.fromJson(value));
+        } else if (boxKey == 'connection') {
+          box.put(key, Connection.fromJson(value));
+        } else if (boxKey == 'didcommConversations') {
+          box.put(key, DidcommConversation.fromJson(value));
         } else {
-          box.put(k, v); // For basic types (int, String, etc.)
+          box.put(key, value); // For basic types (int, String, etc.)
         }
-      });
+      }
     }
   }
 }
