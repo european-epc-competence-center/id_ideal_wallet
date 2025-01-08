@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'dart:typed_data';
-import 'package:id_ideal_wallet/provider/encryption_provider.dart';
-import 'package:id_ideal_wallet/functions/backup_functions.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-
+import 'package:id_ideal_wallet/functions/backup_functions.dart';
+import 'package:id_ideal_wallet/provider/encryption_provider.dart';
 
 class BackupWidget extends StatefulWidget {
   @override
@@ -12,13 +9,13 @@ class BackupWidget extends StatefulWidget {
 }
 
 class _BackupWidgetState extends State<BackupWidget> {
-
   late String _generateMemonic;
 
   @override
   void initState() {
     super.initState();
-    _generateMemonic = EncryptionService().createMemonic(); // Initialize in initState
+    _generateMemonic =
+        EncryptionService().createMemonic(); // Initialize in initState
   }
 
   void _onBackupPressed() {
@@ -27,13 +24,14 @@ class _BackupWidgetState extends State<BackupWidget> {
 
     // Proceed with backup using the password
     performBackup(context, _generateMemonic);
-    
+
     _showMessage(AppLocalizations.of(context)!.backupUpload);
     Navigator.of(context).pop();
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -45,9 +43,9 @@ class _BackupWidgetState extends State<BackupWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Please write down this password in order to retrieve your backup later! Without this password restoring will not be available!',
-              style: TextStyle(fontSize: 16.0),
+            Text(
+              AppLocalizations.of(context)!.backupWriteDownPassword,
+              style: const TextStyle(fontSize: 16.0),
             ),
             const SizedBox(height: 16.0),
             Text(
@@ -68,7 +66,8 @@ class _BackupWidgetState extends State<BackupWidget> {
   }
 }
 
-void showConfirmationDialog(BuildContext context, void Function(BuildContext, String) onConfirmed) {
+void showConfirmationDialog(
+    BuildContext context, void Function(BuildContext, String) onConfirmed) {
   showDialog(
     context: context,
     barrierDismissible: false, // Prevents dismissing by tapping outside
@@ -87,7 +86,8 @@ void showConfirmationDialog(BuildContext context, void Function(BuildContext, St
             child: Text(AppLocalizations.of(context)!.yes),
             onPressed: () {
               Navigator.of(context2).pop();
-              askForMnemonic(context).then((mnemonic)=>{onConfirmed(context, mnemonic!)});
+              askForMnemonic(context)
+                  .then((mnemonic) => {onConfirmed(context, mnemonic!)});
             },
           ),
         ],
@@ -145,4 +145,3 @@ Future<String?> askForMnemonic(BuildContext context) async {
     },
   );
 }
-

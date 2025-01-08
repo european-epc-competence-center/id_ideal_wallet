@@ -210,10 +210,10 @@
   "no": "Nein",
   "restore": "Wiederherstellen",
   "restoreMenu": "Wiederherstellen",
-  "restoreQuestion": "Sind Sie sich sicher das Sie ein Backup einlesen wollen?",
+  "restoreQuestion": "Sind Sie sich sicher, dass Sie ein Backup einlesen wollen?",
   "restoreMnemonic": "Wortfolge eingeben",
-  "backup": "backup",
+  "backup": "Backup",
   "backupUpload": "Ihr Backup wird hochgeladen",
   "backupWriteDownPassword": "Bitte notieren Sie sich diese Wortfolge! Ohne diese Wörter kann ihr Backup nicht wiederhergestellt werden!",
-  "backupNotFound": "Kein Passended Backup gefunden! Falsche Wortfolge?"
+  "backupNotFound": "Kein passendes Backup gefunden! Falsche Wortfolge?"
 }
