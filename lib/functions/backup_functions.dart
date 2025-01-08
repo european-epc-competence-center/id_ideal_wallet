@@ -17,7 +17,6 @@ import 'package:restart/restart.dart';
 const String localhost =
     "http://78.47.219.104:3000"; //"http://ec2-18-199-147-148.eu-central-1.compute.amazonaws.com:3000";//"http://10.0.2.2";
 const String apiKey = 'supersecretapikey123';
-const String backupFileName = 'hidy_backup.enc';
 
 // Function to perform backup
 Future<void> performBackup(BuildContext context, String memonic) async {
@@ -42,7 +41,7 @@ Future<void> performBackup(BuildContext context, String memonic) async {
   final encryptedData = encryptionService.encryptData(encodedBoxes, password);
 
   // Save the file locally first
-  File file = await saveFileLocally(backupFileName, encryptedData);
+  File file = await saveFileLocally(sha256.convert(password).toString(), encryptedData);
 
   String apiUrl =
       '${localhost}/data'; // Replace with your server URL      // Replace with your API key
@@ -114,7 +113,6 @@ Future<void> decodeAndSetBoxes(
     Map<dynamic, dynamic> boxData = entry.value;
 
     if (boxes.containsKey(boxKey)) {
-      print("${boxKey} is present");
       Box<dynamic> box = boxes[boxKey]!;
       await box.clear(); // Clear existing data in the box
 
@@ -122,8 +120,9 @@ Future<void> decodeAndSetBoxes(
         dynamic key = dataEntry.key;
         dynamic value = dataEntry.value;
         /**
-
-         */
+          The boxes are handled by the dart_ssi library. To see the boxes types with their keys 
+          check dart_ssi/lib/src/wallet/wallet_store.dart -> openBoxes()
+        */
         if (boxKey == 'credentialBox' || boxKey == "issuingHistory") {
           box.put(key, Credential.fromJson(value));
         } else if (boxKey == 'connection') {
