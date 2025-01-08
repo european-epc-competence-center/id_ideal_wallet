@@ -49,8 +49,8 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   random_password_generator:
   uuid: any
-  mobile_scanner: 6.0.2
-  http: ^1.0.0
+  mobile_scanner: ^5.1.1
+  http: ^1.2.2
   qr_flutter:
     git:
       url: https://github.com/theyakka/qr.flutter.git
@@ -93,7 +93,6 @@ dependencies:
   cbor:
   base_codecs:
   crypto_keys:
-  share_plus: ^10.1.0
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -103,6 +102,14 @@ dependencies:
 
   local_auth_android: any
   local_auth_darwin: any
+  share_plus: ^10.0.0
+  file_selector: ^1.0.3
+  encrypt: ^5.0.3
+  cryptography: ^2.7.0
+  path: ^1.9.0
+  sss256: ^1.0.0
+  restart: ^1.0.0
+  bip39: ^1.0.6
 
 dependency_overrides:
   pinenacl: ^0.6.0

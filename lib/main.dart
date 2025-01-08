@@ -249,6 +249,8 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<WalletProvider>(builder: (context, wallet, child) {
       if (wallet.isOpen()) {
+        // TODO: DOUBLE CHECK POSITION!!!!
+        // loginOneSignal(wallet);
         return Consumer<NavigationProvider>(
             builder: (context, navigator, child) {
           Widget content = getContent(navigator, wallet);
