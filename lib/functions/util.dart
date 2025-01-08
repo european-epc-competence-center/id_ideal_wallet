@@ -142,13 +142,6 @@ extension HexColor on Color {
     buffer.write(hexString.replaceFirst('#', ''));
     return Color(int.parse(buffer.toString(), radix: 16));
   }
-
-  /// Prefixes a hash sign if [leadingHashSign] is set to `true` (default is `true`).
-  String toHex({bool leadingHashSign = true}) => '${leadingHashSign ? '#' : ''}'
-      '${alpha.toRadixString(16).padLeft(2, '0')}'
-      '${red.toRadixString(16).padLeft(2, '0')}'
-      '${green.toRadixString(16).padLeft(2, '0')}'
-      '${blue.toRadixString(16).padLeft(2, '0')}';
 }
 
 int? getCoseAlgorithmForDid(String did) {
@@ -188,7 +181,7 @@ class OsKeyStore extends KeyStoreBackend {
   }
 
   @override
-  FutureOr<String> generateKey(KeyType keyType) {
+  FutureOr<String> generateKey(KeyType keyType, [additionalProperties]) {
     String curve;
     if (keyType == KeyType.p256) {
       curve = 'secp256r1';
@@ -199,7 +192,11 @@ class OsKeyStore extends KeyStoreBackend {
     } else {
       throw Exception('Unsupported KeyType');
     }
-    return _instance.generateKey(curve, false);
+
+    bool userAuth =
+        additionalProperties?['userAuthenticationRequired'] ?? false;
+
+    return _instance.generateKey(curve, userAuth);
   }
 
   @override
