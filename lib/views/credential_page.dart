@@ -122,19 +122,10 @@ class CredentialPageState extends State<CredentialPage> {
   }
 }
 
-bool isBinaryList(List<dynamic> value) {
-  try {
-    value.cast<int>();
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-
 List<Widget> buildCredSubject(Map<String, dynamic> subject, [String? before]) {
   List<Widget> children = [];
   subject.forEach((key, value) {
-    if (key != 'id') {
+    if (key == 'id') {
       return;
     }
     if (value is Map<String, dynamic>) {
