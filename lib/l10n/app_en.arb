@@ -6,6 +6,7 @@
   "scan": "Scan",
   "openWallet": "Open wallet",
   "cancel": "cancel",
+  "ok": "OK",
   "verifyIdentity": "Please verify your identity",
   "localizedReason": "Your authentication is required to open the wallet",
   "sellCredentialTitle": "Sell credential",
@@ -204,5 +205,15 @@
   "hsmwEmployeeCard": "Employee-Card (HSMW)",
   "hsmwStudentCard": "Student-Card (HSMW)",
   "pictureProcess": "Your picture is created",
-  "pictureProcessNote": "Please wait a moment"
+  "pictureProcessNote": "Please wait a moment",
+  "yes": "Yes",
+  "no": "No",
+  "restore": "Restore",
+  "restoreMenu": "Restore Backup",
+  "restoreQuestion": "Are you sure you want to load a Backup?",
+  "restoreMnemonic": "Enter your Secret Words",
+  "backup": "backup",
+  "backupUpload": "Your backup is beeing uploaded",
+  "backupWriteDownPassword": "Please note down this list of words! Without these words you wont be able to restore from Backup!",
+  "backupNotFound": "Backup not found! Wrong Password?"
 }
