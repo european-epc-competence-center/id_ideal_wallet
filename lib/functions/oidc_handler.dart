@@ -367,6 +367,7 @@ Future<Map?> getAuthServerMetaData(String authServer) async {
 Future<void> handleRedirect(String uri, [String? dpopNonce]) async {
   // Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false)
   //     .goBack();
+  Navigator.of(navigatorKey.currentContext!).popUntil((route) => route.isFirst);
   logger.d('redirected uri: $uri');
   var asUri = Uri.parse(uri);
   var state = asUri.queryParameters['state'];
@@ -492,7 +493,11 @@ Future<(String, dynamic, KeyType)> buildJwt(
   String credentialDid, alg, crv;
   KeyType keyType;
   if (algValues.contains('ES256')) {
-    credentialDid = await wallet.newCredentialDid(KeyType.p256, keystore);
+    credentialDid = await wallet.newCredentialDid(
+        KeyType.p256, keystore, <String, dynamic>{
+      'attestationChallenge': 'abc',
+      'userAuthenticationRequired': true
+    });
     alg = 'ES256';
     crv = 'P-256';
     keyType = KeyType.p256;

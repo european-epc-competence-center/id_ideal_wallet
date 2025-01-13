@@ -729,9 +729,12 @@ class WalletProvider extends ChangeNotifier {
 
   Future<String> newCredentialDid(
       [KeyType keytype = KeyType.ed25519,
-      KeyStore keystore = KeyStore.software]) async {
+      KeyStore keystore = KeyStore.software,
+      Map<String, dynamic>? additionalProperties]) async {
     var keyId = await _wallet.generateNewKey(
-        keyType: keytype, storageBackend: keystore.name);
+        keyType: keytype,
+        storageBackend: keystore.name,
+        additionalProperties: additionalProperties);
     if (keystore == KeyStore.software) {
       return keyId;
     } else {

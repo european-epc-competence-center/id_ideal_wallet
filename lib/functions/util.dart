@@ -127,7 +127,7 @@ void showScaffoldMessenger(BuildContext context, String message) {
         Radius.circular(30.0),
       ),
     ),
-    backgroundColor: Colors.black.withOpacity(0.6),
+    backgroundColor: Colors.black.withValues(alpha: 0.6),
     behavior: SnackBarBehavior.floating,
     content: Text(message),
   ));
@@ -195,8 +195,10 @@ class OsKeyStore extends KeyStoreBackend {
 
     bool userAuth =
         additionalProperties?['userAuthenticationRequired'] ?? false;
+    String attestationChallenge =
+        additionalProperties?['attestationChallenge'] ?? '';
 
-    return _instance.generateKey(curve, userAuth);
+    return _instance.generateKey(curve, userAuth, attestationChallenge);
   }
 
   @override
