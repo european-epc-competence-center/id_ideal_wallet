@@ -218,6 +218,15 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
+  List<String>? getDidsInOsKeyStore() {
+    var d = wallet.getConfigEntry('didToOsKeystoreId');
+    if (d != null) {
+      Map data = jsonDecode(d);
+      return data.keys.toList().cast<String>();
+    }
+    return null;
+  }
+
   String? getOsKeyStoreIdForDid(String did) {
     var d = wallet.getConfigEntry('didToOsKeystoreId');
     logger.d(d);

@@ -3,10 +3,13 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/src/wallet/hive_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
+import 'package:id_ideal_wallet/constants/server_address.dart';
+import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/encryption_provider.dart';
 import 'package:id_ideal_wallet/provider/server_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
@@ -27,6 +30,24 @@ Future<void> performBackup(BuildContext context, String memonic) async {
 
   var wallet = Provider.of<WalletProvider>(context, listen: false);
   var walletData = await wallet.wallet.export();
+  var osKeyStoreDids = wallet.getDidsInOsKeyStore();
+  String notBackUped = '';
+  for (var d in osKeyStoreDids ?? <String>[]) {
+    logger.d(d);
+    var c = walletData['credentials']?.remove(d);
+    if (c != null) {
+      logger.d(c);
+      notBackUped += getTypeToShow(
+          VerifiableCredential.fromJson(Credential.fromJson(c).w3cCredential)
+              .type);
+      notBackUped += ' ,';
+    }
+  }
+  logger.d(walletData['credentials']?.keys.toList());
+  if (notBackUped.isNotEmpty) {
+    notBackUped = notBackUped.substring(0, notBackUped.length - 2);
+  }
+  logger.d(notBackUped);
 
   // Filter out null boxes
   // Map<String, Box<dynamic>> nonNullableBoxes = Map.fromEntries(

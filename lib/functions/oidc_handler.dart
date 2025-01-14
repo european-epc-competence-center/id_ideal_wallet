@@ -493,10 +493,10 @@ Future<(String, dynamic, KeyType)> buildJwt(
   String credentialDid, alg, crv;
   KeyType keyType;
   if (algValues.contains('ES256')) {
-    credentialDid = await wallet.newCredentialDid(
-        KeyType.p256, keystore, <String, dynamic>{
+    credentialDid =
+        await wallet.newCredentialDid(KeyType.p256, keystore, <String, dynamic>{
       'attestationChallenge': 'abc',
-      'userAuthenticationRequired': true
+      //'userAuthenticationRequired': true
     });
     alg = 'ES256';
     crv = 'P-256';
@@ -525,7 +525,7 @@ Future<(String, dynamic, KeyType)> buildJwt(
     'typ': 'openid4vci-proof+jwt',
     'alg': alg,
     'crv': crv,
-    'kid': credentialDid,
+    // 'kid': credentialDid,
     // 'kid':
     //     'did:jwk:${removePaddingFromBase64(base64UrlEncode(utf8.encode(jsonEncode(jwk))))}#0',
     'jwk': ddo.verificationMethod!.first.publicKeyJwk
