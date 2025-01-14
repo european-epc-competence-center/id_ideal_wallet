@@ -299,6 +299,8 @@ class WalletProvider extends ChangeNotifier {
 
       notifyListeners();
     }
+    Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false)
+        .finishOpen();
   }
 
   Future<void> generateCredentialStyling([bool request = false]) async {

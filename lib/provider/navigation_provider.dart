@@ -45,6 +45,13 @@ class NavigationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void finishOpen() {
+    if (bufferedLink != null) {
+      handleLink(bufferedLink!);
+      bufferedLink = null;
+    }
+  }
+
   void changePage(List<NavigationPage> newIndex,
       {String? webViewUrl,
       VerifiableCredential? credential,
@@ -91,6 +98,13 @@ class NavigationProvider extends ChangeNotifier {
     logger.i(link);
     if (showWelcome) {
       logger.d('Buffer link');
+      bufferedLink = link;
+      return;
+    }
+    if (!(Provider.of<WalletProvider>(navigatorKey.currentContext!,
+            listen: false)
+        .isOpen())) {
+      logger.d('wallet not open, buffer');
       bufferedLink = link;
       return;
     }
