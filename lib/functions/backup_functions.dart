@@ -26,22 +26,23 @@ Future<void> performBackup(BuildContext context, String memonic) async {
       utf8.encode(encryptionService.getPasswordFromMemonic(memonic));
 
   var wallet = Provider.of<WalletProvider>(context, listen: false);
-  var boxes = wallet.wallet.getBoxes();
+  var walletData = await wallet.wallet.export();
 
   // Filter out null boxes
-  Map<String, Box<dynamic>> nonNullableBoxes = Map.fromEntries(
-    boxes.entries
-        .where((entry) => entry.value != null)
-        .map((entry) => MapEntry(entry.key, entry.value!)),
-  );
+  // Map<String, Box<dynamic>> nonNullableBoxes = Map.fromEntries(
+  //   boxes.entries
+  //       .where((entry) => entry.value != null)
+  //       .map((entry) => MapEntry(entry.key, entry.value!)),
+  // );
 
-  var encodedBoxes = encodeBoxes(nonNullableBoxes);
+  var encodedBoxes = jsonEncode(walletData);
 
   // Encrypt boxes
   final encryptedData = encryptionService.encryptData(encodedBoxes, password);
 
   // Save the file locally first
-  File file = await saveFileLocally(sha256.convert(password).toString(), encryptedData);
+  File file =
+      await saveFileLocally(sha256.convert(password).toString(), encryptedData);
 
   String apiUrl =
       '${localhost}/data'; // Replace with your server URL      // Replace with your API key
@@ -73,11 +74,15 @@ Future<void> applyBackup(BuildContext context, String memonic) async {
   String encodedBoxes =
       await encryptionService.decryptData(password!, encryptedData);
 
-  Map<String, Box<dynamic>> boxes =
-      wallet.wallet.getBoxes().cast<String, Box<dynamic>>();
+  // Map<String, Box<dynamic>> boxes =
+  //     wallet.wallet.getBoxes().cast<String, Box<dynamic>>();
+  //
+  // // Decode and restore boxes
+  // await decodeAndSetBoxes(encodedBoxes, boxes);
+  var walletData = (jsonDecode(encodedBoxes) as Map).map((k, v) => MapEntry(
+      k as String, (v as Map).map((k1, v1) => MapEntry(k1 as String, v1))));
 
-  // Decode and restore boxes
-  await decodeAndSetBoxes(encodedBoxes, boxes);
+  await wallet.wallet.import(walletData);
 
   restart();
 }
@@ -120,9 +125,9 @@ Future<void> decodeAndSetBoxes(
         dynamic key = dataEntry.key;
         dynamic value = dataEntry.value;
         /**
-          The boxes are handled by the dart_ssi library. To see the boxes types with their keys 
-          check dart_ssi/lib/src/wallet/wallet_store.dart -> openBoxes()
-        */
+            The boxes are handled by the dart_ssi library. To see the boxes types with their keys
+            check dart_ssi/lib/src/wallet/wallet_store.dart -> openBoxes()
+         */
         if (boxKey == 'credentialBox' || boxKey == "issuingHistory") {
           box.put(key, Credential.fromJson(value));
         } else if (boxKey == 'connection') {

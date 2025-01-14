@@ -525,7 +525,7 @@ Future<(String, dynamic, KeyType)> buildJwt(
     'typ': 'openid4vci-proof+jwt',
     'alg': alg,
     'crv': crv,
-    //'kid': credentialDid,
+    'kid': credentialDid,
     // 'kid':
     //     'did:jwk:${removePaddingFromBase64(base64UrlEncode(utf8.encode(jsonEncode(jwk))))}#0',
     'jwk': ddo.verificationMethod!.first.publicKeyJwk

@@ -344,6 +344,8 @@ class WalletProvider extends ChangeNotifier {
     }
 
     logger.d(credentialStyling);
+    Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false)
+        .finishOpen();
   }
 
   Future<void> updateTosUrl() async {
