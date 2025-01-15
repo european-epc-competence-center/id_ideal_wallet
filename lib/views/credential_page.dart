@@ -122,49 +122,35 @@ class CredentialPageState extends State<CredentialPage> {
   }
 }
 
-bool isBinaryList(List<dynamic> value) {
-  try {
-    value.cast<int>();
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-
 List<Widget> buildCredSubject(Map<String, dynamic> subject, [String? before]) {
   List<Widget> children = [];
   subject.forEach((key, value) {
-    if (key != 'id') {
-      if (value is Map<String, dynamic>) {
-        List<Widget> subs = buildCredSubject(value, key);
-        children.addAll(subs);
-      } else if (value is List) {
-        var index = 0;
-        var primitiveString = '';
-        if (isBinaryList(value)) {
-          primitiveString = '<Binärdaten>  ';
+    if (key == 'id') {
+      return;
+    }
+    if (value is Map<String, dynamic>) {
+      children.addAll(buildCredSubject(value, key));
+    } else if (value is List) {
+      var index = 0;
+      var primitiveString = '';
+      for (var v in value) {
+        if (v is Map) {
+          children.addAll(
+              buildCredSubject(v.cast<String, dynamic>(), '$key.$index'));
+        } else if (v is List) {
+          children.addAll(buildCredSubject({index.toString(): v}, key));
         } else {
-          for (var v in value) {
-            if (v is Map) {
-              List<Widget> subs =
-                  buildCredSubject(v.cast<String, dynamic>(), '$key.$index');
-              children.addAll(subs);
-            } else if (v is List) {
-              List<Widget> subs = buildCredSubject({index.toString(): v}, key);
-              children.addAll(subs);
-            } else {
-              primitiveString += '${uriDecode(v)}, ';
-            }
-            index++;
-          }
+          primitiveString += '${uriDecode(v)}, ';
         }
-        if (primitiveString.isNotEmpty) {
-          children.add(generateTile(before, key,
-              primitiveString.substring(0, primitiveString.length - 2)));
-        }
-      } else {
-        children.add(generateTile(before, key, value));
+        index++;
       }
+
+      if (primitiveString.isNotEmpty) {
+        children.add(generateTile(before, key,
+            primitiveString.substring(0, primitiveString.length - 2)));
+      }
+    } else {
+      children.add(generateTile(before, key, value));
     }
   });
   return children;
