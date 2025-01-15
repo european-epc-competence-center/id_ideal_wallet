@@ -215,5 +215,8 @@
   "backup": "Backup",
   "backupUpload": "Ihr Backup wird hochgeladen",
   "backupWriteDownPassword": "Bitte notieren Sie sich diese Wortfolge! Ohne diese Wörter kann ihr Backup nicht wiederhergestellt werden!",
-  "backupNotFound": "Kein passendes Backup gefunden! Falsche Wortfolge?"
+  "backupNotFound": "Kein passendes Backup gefunden! Falsche Wortfolge?",
+  "noteNotInBackup": "Folgende Nachweise können aus technischen Gründen nicht gesichert werden, da ein späteres Wiederherstellen nicht möglich ist:",
+  "askContinue": "Möchten Sie fortfahren?",
+  "note": "Hinweis"
 }

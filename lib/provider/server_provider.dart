@@ -1,13 +1,17 @@
-import 'dart:io';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'dart:io';
 
-const String localhost = "http://78.47.219.104"; //http://ec2-18-199-147-148.eu-central-1.compute.amazonaws.com";//"http://10.0.2.2";
+import 'package:http/http.dart' as http;
+import 'package:id_ideal_wallet/constants/server_address.dart';
+
+const String localhost =
+    "http://78.47.219.104"; //http://ec2-18-199-147-148.eu-central-1.compute.amazonaws.com";//"http://10.0.2.2";
 const String apiKey = 'supersecretapikey123';
 
 // ######### Backup functions #############
 
-Future<void> sendStringAndFile(String apiUrl, String apiKey, String textData, File file) async {
+Future<void> sendStringAndFile(
+    String apiUrl, String apiKey, String textData, File file) async {
   try {
     // Create the Multipart request
     var request = http.MultipartRequest('POST', Uri.parse(apiUrl));
@@ -24,7 +28,7 @@ Future<void> sendStringAndFile(String apiUrl, String apiKey, String textData, Fi
     var filename = file.path.split('/').last;
 
     var multipartFile = http.MultipartFile(
-      'file',  // This is the key the Node.js server expects for the file
+      'file', // This is the key the Node.js server expects for the file
       fileStream,
       length,
       filename: filename,
@@ -37,21 +41,21 @@ Future<void> sendStringAndFile(String apiUrl, String apiKey, String textData, Fi
 
     // Handle the response
     if (response.statusCode == 200) {
-      print('File and data uploaded successfully');
+      logger.d('File and data uploaded successfully');
       var responseData = await http.Response.fromStream(response);
-      print('Response: ${responseData.body}');
+      logger.d('Response: ${responseData.body}');
     } else {
-      print('Failed to upload. Status code: ${response.statusCode}');
+      logger.d('Failed to upload. Status code: ${response.statusCode}');
     }
   } catch (e) {
-    print('Error uploading file: $e');
+    logger.d('Error uploading file: $e');
   }
 }
 
 Future<String> fetchFileInMemory(String fileId) async {
   String apiUrl = '${localhost}:3000/data/$fileId';
 
-    // Send GET request to fetch the file
+  // Send GET request to fetch the file
   var response = await http.get(Uri.parse(apiUrl));
   try {
     // Check if the request was successful
@@ -59,9 +63,9 @@ Future<String> fetchFileInMemory(String fileId) async {
       // File is fetched, you can read the content here
       return utf8.decode(response.bodyBytes);
     } else {
-      throw('Failed to fetch file. Status code: ${response.statusCode}');
+      throw ('Failed to fetch file. Status code: ${response.statusCode}');
     }
   } catch (e) {
-    throw('Error fetching file: $e');
+    throw ('Error fetching file: $e');
   }
 }

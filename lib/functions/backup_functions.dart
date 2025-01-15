@@ -31,23 +31,54 @@ Future<void> performBackup(BuildContext context, String memonic) async {
   var wallet = Provider.of<WalletProvider>(context, listen: false);
   var walletData = await wallet.wallet.export();
   var osKeyStoreDids = wallet.getDidsInOsKeyStore();
-  String notBackUped = '';
+  String notInBackup = '';
   for (var d in osKeyStoreDids ?? <String>[]) {
     logger.d(d);
     var c = walletData['credentials']?.remove(d);
     if (c != null) {
       logger.d(c);
-      notBackUped += getTypeToShow(
+      notInBackup += getTypeToShow(
           VerifiableCredential.fromJson(Credential.fromJson(c).w3cCredential)
               .type);
-      notBackUped += ' ,';
+      notInBackup += ' ,';
     }
   }
   logger.d(walletData['credentials']?.keys.toList());
-  if (notBackUped.isNotEmpty) {
-    notBackUped = notBackUped.substring(0, notBackUped.length - 2);
+  bool doBackup = true;
+  if (notInBackup.isNotEmpty) {
+    notInBackup = notInBackup.substring(0, notInBackup.length - 2);
+    doBackup = await showDialog(
+        barrierDismissible: false,
+        context: navigatorKey.currentContext!,
+        builder: (c) {
+          return AlertDialog(
+            title: Text(AppLocalizations.of(context)!.note),
+            content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(AppLocalizations.of(context)!.noteNotInBackup),
+                  const SizedBox(
+                    height: 5,
+                  ),
+                  Text(notInBackup,
+                      style: Theme.of(context).primaryTextTheme.titleMedium),
+                  const SizedBox(
+                    height: 5,
+                  ),
+                  Text(AppLocalizations.of(context)!.askContinue)
+                ]),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.of(c).pop(false),
+                  child: Text(AppLocalizations.of(context)!.no)),
+              TextButton(
+                  onPressed: () => Navigator.of(c).pop(true),
+                  child: Text(AppLocalizations.of(context)!.yes))
+            ],
+          );
+        });
   }
-  logger.d(notBackUped);
 
   // Filter out null boxes
   // Map<String, Box<dynamic>> nonNullableBoxes = Map.fromEntries(
@@ -55,21 +86,22 @@ Future<void> performBackup(BuildContext context, String memonic) async {
   //       .where((entry) => entry.value != null)
   //       .map((entry) => MapEntry(entry.key, entry.value!)),
   // );
+  if (doBackup) {
+    var encodedBoxes = jsonEncode(walletData);
 
-  var encodedBoxes = jsonEncode(walletData);
+    // Encrypt boxes
+    final encryptedData = encryptionService.encryptData(encodedBoxes, password);
 
-  // Encrypt boxes
-  final encryptedData = encryptionService.encryptData(encodedBoxes, password);
+    // Save the file locally first
+    File file = await saveFileLocally(
+        sha256.convert(password).toString(), encryptedData);
 
-  // Save the file locally first
-  File file =
-      await saveFileLocally(sha256.convert(password).toString(), encryptedData);
+    String apiUrl =
+        '${localhost}/data'; // Replace with your server URL      // Replace with your API key
+    String textData = sha256.convert(password).toString();
 
-  String apiUrl =
-      '${localhost}/data'; // Replace with your server URL      // Replace with your API key
-  String textData = sha256.convert(password).toString();
-
-  await sendStringAndFile(apiUrl, apiKey, textData, file);
+    await sendStringAndFile(apiUrl, apiKey, textData, file);
+  }
 }
 
 // Function to apply backup

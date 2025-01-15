@@ -57,7 +57,6 @@ class WalletProvider extends ChangeNotifier {
 
   List<String> issuanceRunning = [];
 
-  //[[url, pic-url], [url, pic-url], ...]
   List<my_util.AboData> aboList = [];
   Map<String, Map<String, String>> credentialStyling = {};
 
