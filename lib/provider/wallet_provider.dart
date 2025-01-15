@@ -297,10 +297,12 @@ class WalletProvider extends ChangeNotifier {
       //Checking broadcast stream, if deep link was clicked in opened application
       stream.receiveBroadcastStream().listen((d) => getSharedText(d));
 
+      Provider.of<NavigationProvider>(navigatorKey.currentContext!,
+              listen: false)
+          .finishOpen();
+
       notifyListeners();
     }
-    Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false)
-        .finishOpen();
   }
 
   Future<void> generateCredentialStyling([bool request = false]) async {
