@@ -46,8 +46,8 @@ class NavigationProvider extends ChangeNotifier {
 
   void changePage(List<NavigationPage> newIndex,
       {String? webViewUrl,
-      VerifiableCredential? credential,
-      bool track = true}) {
+        VerifiableCredential? credential,
+        bool track = true}) {
     if (newIndex.first != activeIndex ||
         newIndex.first == NavigationPage.webView) {
       canPop = false;
@@ -76,10 +76,10 @@ class NavigationProvider extends ChangeNotifier {
 
   Future<dynamic> getInitialUri() async {
     try {
-        final initialUri = await platform.invokeMethod('getInitialLink');
-        if (initialUri != null) {
-          return initialUri;
-        }
+      final initialUri = await platform.invokeMethod('getInitialLink');
+      if (initialUri != null) {
+        return initialUri;
+      }
     } on PlatformException catch (e) {
       logger.d('Failed to Invoke Link from Android: ${e.message}.');
       return "Failed to Invoke: '${e.message}'.";
@@ -119,9 +119,9 @@ class NavigationProvider extends ChangeNotifier {
           asUri.queryParameters['tcTokenUrl'];
       logger.d(tcTokenUrl);
       Navigator.of(navigatorKey.currentContext!).push(
-        Platform.isIOS
-        ? CupertinoPageRoute(builder: (context) => const AusweisView())
-        : MaterialPageRoute(builder: (context) => const AusweisView())
+          Platform.isIOS
+              ? CupertinoPageRoute(builder: (context) => const AusweisView())
+              : MaterialPageRoute(builder: (context) => const AusweisView())
       );
       Provider.of<AusweisProvider>(navigatorKey.currentContext!, listen: false)
           .startProgress(tcTokenUrl);
@@ -151,7 +151,7 @@ class NavigationProvider extends ChangeNotifier {
         changePage([NavigationPage.credential], track: false);
         Timer(
             const Duration(milliseconds: 10),
-            () => changePage([NavigationPage.webView],
+                () => changePage([NavigationPage.webView],
                 webViewUrl: uriToCall
                     .toString()
                     .replaceAll('wid=', 'wid=${wallet.lndwId}')));
@@ -174,7 +174,7 @@ class NavigationProvider extends ChangeNotifier {
                 .unknownQrCodeNote);
       }
     } else if(link.contains("No initial link has been stored yet")) {
-        return;
+      return;
     } else {
       showErrorMessage(
           AppLocalizations.of(navigatorKey.currentContext!)!.unknownQrCode,

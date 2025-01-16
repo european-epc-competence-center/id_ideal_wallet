@@ -12,6 +12,9 @@ import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:provider/provider.dart';
 
+// global var
+List<Map<String, dynamic>> available = [];
+
 class SearchNewAbo extends StatefulWidget {
   const SearchNewAbo({super.key});
 
@@ -30,6 +33,7 @@ class SearchNewAboState extends State<SearchNewAbo> {
   }
 
   Future<void> searchAbos() async {
+    //creates a list of all the registered URLs
     var inAbo =
         Provider.of<WalletProvider>(context, listen: false).aboList.map((e) {
       var u = e['url']!;
@@ -37,15 +41,25 @@ class SearchNewAboState extends State<SearchNewAbo> {
       return '${asUri.scheme.isNotEmpty ? asUri.scheme : 'https'}://${asUri.host}${asUri.path}';
     }).toList();
 
+    //fetch the list of available abos from the server
+    //here is where we could add the eatFresh abo
     var res = await get(Uri.parse(applicationEndpoint));
-    List<Map<String, dynamic>> available = [];
     if (res.statusCode == 200) {
       List dec = jsonDecode(res.body);
       available = dec.map((e) => (e as Map).cast<String, dynamic>()).toList();
+
+      //add a new entry to the list
+      available.add({
+        'name': 'EatFresh Plugin',
+        'plattform': '0',
+        'url': 'https://www.eat-fresh.me',
+        'mainbgimg': ''
+      });
     }
 
     toShow = [];
 
+    //add the not yet registered abos to the list toShow
     if (available.isNotEmpty) {
       for (var entry in available) {
         var asUri = Uri.parse(entry['url']);
@@ -77,10 +91,10 @@ class SearchNewAboState extends State<SearchNewAbo> {
                         var e = toShow[index];
                         return InkWell(
                           onTap: () {
-                            Provider.of<NavigationProvider>(context,
-                                    listen: false)
-                                .changePage([NavigationPage.webView],
-                                    webViewUrl: e['url']);
+                            Provider.of<NavigationProvider>(context, listen: false).changePage(
+                                [NavigationPage.webView],
+                                webViewUrl: e['url']
+                            );
                           },
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 5),
