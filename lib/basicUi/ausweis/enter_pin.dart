@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/footer_buttons.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
 import 'package:provider/provider.dart';
@@ -23,10 +24,10 @@ class EnterPinState extends State<EnterPin> {
           child: Column(
             children: [
               Text(
-                'PIN-Eingabe',
+                AppLocalizations.of(context)!.enterPin,
                 style: Theme.of(context).primaryTextTheme.headlineLarge,
               ),
-              const Text('Bitte gib deine 6-stellige Ausweis-PIN ein:'),
+              Text(AppLocalizations.of(context)!.enterPinNote),
               const SizedBox(
                 height: 10,
               ),
@@ -41,30 +42,28 @@ class EnterPinState extends State<EnterPin> {
                     maxLength: 6,
                     validator: (input) {
                       if (input == null || input.length != 6) {
-                        return 'Die PIN muss genau 6 Stellen haben';
+                        return AppLocalizations.of(context)!.pinLengthNote;
                       }
                       return null;
                     },
                     decoration: const InputDecoration(
                         border: OutlineInputBorder(),
-                        labelText: 'Ausweis-PIN',
+                        labelText: 'PIN',
                         suffixIcon: Icon(Icons.remove_red_eye_outlined)),
                   )),
               const SizedBox(
                 height: 10,
               ),
-              Text('Verbleibende Versuche: ${ausweis.pinRetry}'),
+              Text(
+                  '${AppLocalizations.of(context)!.remainingTry} ${ausweis.pinRetry}'),
               if (ausweis.pinRetry == 2)
-                Text(
-                    'Solltest Du auch bei diesem Versuch eine falsche PIN eingeben, muss vor dem letzten Versuch die CAN eingegeben werden. Das ist die 6-stellige Zahlenfolge auf der Vorderseite deines Ausweises.'),
+                Text(AppLocalizations.of(context)!.retryNote2),
               if (ausweis.pinRetry == 1)
-                Text(
-                    'Das ist dein letzter Versuch, eine korrekte PIN einzugeben. Sollte auch dieser fehlschlagen, wird die Online-Ausweis-Funktion gesperrt.'),
+                Text(AppLocalizations.of(context)!.retryNote1),
               const SizedBox(
                 height: 20,
               ),
-              const Text(
-                  'Du hast nur eine 5-stellige PIN? Dann brich den Vorgang bitte ab und nutze die Funktion "PIN ändern" der offiziellen Ausweis-App.')
+              Text(AppLocalizations.of(context)!.note5digit)
             ],
           ),
         ),

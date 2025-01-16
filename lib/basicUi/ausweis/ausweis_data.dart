@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/footer_buttons.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
@@ -17,7 +18,7 @@ class AusweisData extends StatelessWidget {
           child: Column(
             children: [
               Text(
-                'Ausweisdaten',
+                AppLocalizations.of(context)!.cardData,
                 style: Theme.of(context).primaryTextTheme.headlineLarge,
               ),
               const SizedBox(
@@ -31,7 +32,7 @@ class AusweisData extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: ausweis.statusProgress,
                     minHeight: 7,
-                    semanticsLabel: 'Lese Daten',
+                    semanticsLabel: AppLocalizations.of(context)!.readCard,
                   ),
                 )
             ],
@@ -40,7 +41,8 @@ class AusweisData extends StatelessWidget {
         persistentFooterButtons: ausweis.selfInfo
             ? [
                 FooterButtons(
-                    positiveText: 'Als Nachweis speichern',
+                    positiveText:
+                        AppLocalizations.of(context)!.storeAsCredential,
                     positiveFunction: () {
                       if (ausweis.readData != null) {
                         ausweis.storeAsCredential();

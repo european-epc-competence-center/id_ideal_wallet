@@ -266,7 +266,7 @@ class WalletProvider extends ChangeNotifier {
       //   await _wallet.initializeIssuer(KeyType.ed25519);
       // }
 
-      _buildCredentialList();
+      await _buildCredentialList();
 
       var e = _wallet.getConfigEntry('aboList');
       if (e != null) {
@@ -356,8 +356,6 @@ class WalletProvider extends ChangeNotifier {
     }
 
     logger.d(credentialStyling);
-    Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false)
-        .finishOpen();
   }
 
   Future<void> updateTosUrl() async {
@@ -632,7 +630,7 @@ class WalletProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _buildCredentialList() {
+  Future<void> _buildCredentialList() async {
     credentials = [];
     paymentCredentials = [];
     isoMdocCredentials = [];

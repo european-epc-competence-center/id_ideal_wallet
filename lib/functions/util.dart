@@ -333,3 +333,46 @@ class AboData {
     return jsonEncode(toJson());
   }
 }
+
+bool isRawJson(String json) {
+  try {
+    jsonDecode(json);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+String coseKeyToDid(CoseKey coseKey) {
+  var crvInt = coseKey.crv;
+
+  Map<String, dynamic> jwk;
+  if (crvInt == 6) {
+    jwk = {
+      'crv': 'Ed25519',
+      'x': removePaddingFromBase64(base64UrlEncode(coseKey.x!))
+    };
+  } else if (crvInt == 1) {
+    jwk = {
+      'crv': 'P-256',
+      'x': removePaddingFromBase64(base64UrlEncode(coseKey.x!)),
+      'y': removePaddingFromBase64(base64UrlEncode(coseKey.y!))
+    };
+  } else if (crvInt == 2) {
+    jwk = {
+      'crv': 'P-384',
+      'x': removePaddingFromBase64(base64UrlEncode(coseKey.x!)),
+      'y': removePaddingFromBase64(base64UrlEncode(coseKey.y!))
+    };
+  } else if (crvInt == 3) {
+    jwk = {
+      'crv': 'P-521',
+      'x': removePaddingFromBase64(base64UrlEncode(coseKey.x!)),
+      'y': removePaddingFromBase64(base64UrlEncode(coseKey.y!))
+    };
+  } else {
+    throw Exception('Unknown KeyType');
+  }
+
+  return 'did:key:${jwkToMultiBase(jwk)}';
+}

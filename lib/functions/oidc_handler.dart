@@ -24,7 +24,7 @@ import 'package:id_ideal_wallet/views/presentation_request.dart';
 import 'package:id_ideal_wallet/views/web_view.dart';
 import 'package:iso_mdoc/iso_mdoc.dart';
 import 'package:provider/provider.dart';
-import 'package:sd_jwt/sd_jwt.dart' as sdJwt;
+import 'package:sd_jwt/sd_jwt.dart' as sd_jwt;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 import 'package:x509b/x509.dart' as x509;
@@ -90,8 +90,10 @@ Future<void> handleOfferOidc(String offerUri) async {
   if (issuerMetaReq.statusCode != 200) {
     logger.d(
         'Bad Status code: ${issuerMetaReq.statusCode} /${issuerMetaReq.body}');
-    showErrorMessage('Keine Issuer-Metadaten',
-        'Issuer-Metadaten können nicht heruntergeladen werden.');
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+        AppLocalizations.of(navigatorKey.currentContext!)!
+            .oidMetadataErrorNote);
     return;
   }
 
@@ -99,7 +101,11 @@ Future<void> handleOfferOidc(String offerUri) async {
   try {
     issuerMetadata = CredentialIssuerMetaData.fromJson(issuerMetaReq.body);
   } catch (e) {
-    showErrorMessage('Fehlerhafte Metadaten');
+    logger.d('Failed parsing issuer metadata');
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+        AppLocalizations.of(navigatorKey.currentContext!)!
+            .oidMetadataErrorNote);
     return;
   }
 
@@ -122,7 +128,11 @@ Future<void> handleOfferOidc(String offerUri) async {
   for (String t in credentialToRequest) {
     var credConfig = issuerMetadata.credentialsSupported[t];
     if (credConfig == null) {
-      showErrorMessage('Credential ohne Konfiguration');
+      logger.d('credential without config');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .oidMetadataErrorNote);
       return;
     }
     offeredCredentials.add(credConfig);
@@ -181,7 +191,9 @@ Future<void> handleOfferOidc(String offerUri) async {
       Map? clientMetaData = knownAuthServer[authserver.trim()];
       logger.d('authServer: ${knownAuthServer.keys}');
       if (clientMetaData == null) {
-        showErrorMessage('Unbekannter Authorization Server');
+        logger.d('no client metadata for $authserver');
+        showErrorMessage(AppLocalizations.of(navigatorKey.currentContext!)!
+            .unknownAuthServer);
         return;
       }
 
@@ -206,11 +218,17 @@ Future<void> handleOfferOidc(String offerUri) async {
       String redirectUri =
           clientMetaData['redirect_uri'] ?? 'https://wallet.bccm.dev/redirect';
 
+      String authServerQuery = 'response_type=code&client_id=$clientId';
+      authServerQuery +=
+          '&redirect_uri=${Uri.encodeQueryComponent(redirectUri)}';
+      authServerQuery += '&state=$state';
+      authServerQuery += '&code_challenge=$pkceCodeChallenge';
+      authServerQuery += '&code_challenge_method=S256';
+
       authServerMetaData = await getAuthServerMetaData(authserver);
       if (authServerMetaData == null) {
         // without config we assume standard endpoint
-        launchUrl(Uri.parse(
-            '$authserver/authorize?response_type=code&client_id=$clientId&redirect_uri=${Uri.encodeQueryComponent(redirectUri)}&state=$state&code_challenge=$pkceCodeChallenge&code_challenge_method=S256'));
+        launchUrl(Uri.parse('$authserver/authorize?$authServerQuery'));
         logger.d('$authserver without config');
         return;
       }
@@ -218,7 +236,10 @@ Future<void> handleOfferOidc(String offerUri) async {
       String authIssuer = authServerMetaData['issuer'];
       if (authIssuer != authserver) {
         logger.d('$authIssuer != $authserver');
-        showErrorMessage('Falsche Metadaten erhalten');
+        showErrorMessage(
+            AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+            AppLocalizations.of(navigatorKey.currentContext!)!
+                .oidMetadataErrorNote);
         return;
       }
 
@@ -226,13 +247,9 @@ Future<void> handleOfferOidc(String offerUri) async {
       var parEndpoint =
           authServerMetaData['pushed_authorization_request_endpoint'];
       if (parEndpoint != null) {
-        String body =
-            'client_id=$clientId&redirect_uri=${Uri.encodeQueryComponent(redirectUri)}&response_type=code&state=$state';
-        body += '&code_challenge_method=S256';
-        body += '&code_challenge=$pkceCodeChallenge';
         if (offeredCredentials.length == 1 &&
             offeredCredentials.first.scope != null) {
-          body += '&scope=${offeredCredentials.first.scope}';
+          authServerQuery += '&scope=${offeredCredentials.first.scope}';
         } else {
           List<Map> authDetails = [];
           for (var entry in offeredCredentials) {
@@ -242,14 +259,14 @@ Future<void> handleOfferOidc(String offerUri) async {
                 credentialType: entry.credentialType);
             authDetails.add(details.toJson());
           }
-          body +=
+          authServerQuery +=
               '&authorization_details=${Uri.encodeQueryComponent(jsonEncode(authDetails))}';
         }
-        logger.d(body);
+        logger.d(authServerQuery);
 
         var parResponse = await post(Uri.parse(parEndpoint),
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: body);
+            body: authServerQuery);
 
         if (parResponse.statusCode == 201 || parResponse.statusCode == 200) {
           logger.d(parResponse.body);
@@ -274,13 +291,18 @@ Future<void> handleOfferOidc(String offerUri) async {
                     listen: false)
                 .startProgress(authRequest, true);
           } else {
-            navigateClassic(
-                WebViewWindow(initialUrl: authRequest, title: 'Autorisierung'));
+            navigateClassic(WebViewWindow(
+                initialUrl: authRequest,
+                title: AppLocalizations.of(navigatorKey.currentContext!)!
+                    .authorization));
           }
           //launchUrl(Uri.parse(authRequest));
           return;
         } else {
-          showErrorMessage('Authorization Request fehlgeschlagen');
+          showErrorMessage(
+              AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+              AppLocalizations.of(navigatorKey.currentContext!)!
+                  .oidAuthFailedNote);
           logger.d(
               'Par request failed: ${parResponse.statusCode} / ${parResponse.body}');
           return;
@@ -289,12 +311,13 @@ Future<void> handleOfferOidc(String offerUri) async {
         // if not, use redirect and authorization endpoint
         var authEndpoint = authServerMetaData['authorization_endpoint'];
         if (authEndpoint != null) {
-          launchUrl(Uri.parse(
-              '$authEndpoint?response_type=code&state$state&client_id=$clientId&redirect_uri=${Uri.encodeQueryComponent(redirectUri)}&code_challenge=$pkceCodeChallenge&code_challenge_method=S256'));
+          launchUrl(Uri.parse('$authEndpoint?$authServerQuery'));
           return;
         } else {
-          showErrorMessage('Authentifizierung nicht durchführbar',
-              'Keinen Endpunkt gefunden');
+          showErrorMessage(
+              AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+              AppLocalizations.of(navigatorKey.currentContext!)!
+                  .oidAuthFailedNote);
         }
       }
     } else if (offer.grants != null &&
@@ -336,11 +359,17 @@ Future<void> handleOfferOidc(String offerUri) async {
         logger.d(tokenRes.statusCode);
         logger.d(tokenRes.body);
 
-        showErrorMessage('Authentifizierung fehlgeschlagen');
+        showErrorMessage(
+            AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+            AppLocalizations.of(navigatorKey.currentContext!)!
+                .oidAuthFailedNote);
         return;
       }
     } else {
-      showErrorMessage('Unbekannte Authentifizierungsmethode');
+      logger.d('Unbekannte Authentifizierungsmethode');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+          AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailedNote);
       return;
     }
   }
@@ -374,11 +403,17 @@ Future<void> handleRedirect(String uri, [String? dpopNonce]) async {
   var code = asUri.queryParameters['code'];
   logger.d('state: $state');
   if (state == null) {
-    showErrorMessage('Prozess nicht auffindbar');
+    logger.d('Prozess nicht auffindbar');
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailedNote);
     return;
   }
   if (code == null) {
-    showErrorMessage('Keinen Auth-Code empfangen');
+    logger.d('Keinen Auth-Code empfangen');
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailedNote);
     return;
   }
 
@@ -387,7 +422,10 @@ Future<void> handleRedirect(String uri, [String? dpopNonce]) async {
           .getConfig(state);
 
   if (storedData == null) {
-    showErrorMessage('Prozess nicht auffindbar');
+    logger.d('Prozess nicht auffindbar');
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailedNote);
     return;
   }
 
@@ -403,7 +441,9 @@ Future<void> handleRedirect(String uri, [String? dpopNonce]) async {
 
   Map? clientMetaData = knownAuthServer[authServer];
   if (clientMetaData == null) {
-    showErrorMessage('Unbekannter Authorization Server');
+    showErrorMessage(
+      AppLocalizations.of(navigatorKey.currentContext!)!.unknownAuthServer,
+    );
     return;
   }
 
@@ -434,7 +474,7 @@ Future<void> handleRedirect(String uri, [String? dpopNonce]) async {
         listen: false);
     dpopDid = await wallet.newCredentialDid(KeyType.p256);
     var dpopJwk = multibaseKeyToJwk(dpopDid.replaceAll('did:key:', ''));
-    dpopJti = Uuid().v4();
+    dpopJti = const Uuid().v4();
 
     var dpopPayload = {
       'jti': dpopJti,
@@ -443,12 +483,12 @@ Future<void> handleRedirect(String uri, [String? dpopNonce]) async {
       'nonce': dpopNonce
     };
     var jwt =
-        sdJwt.Jwt(additionalClaims: dpopPayload, issuedAt: DateTime.now());
+        sd_jwt.Jwt(additionalClaims: dpopPayload, issuedAt: DateTime.now());
     var dpopJws = await jwt.sign(
         signer: WalletCryptoProviderForSdJwt(wallet.wallet, dpopDid),
-        header: sdJwt.JwsJoseHeader(
-            algorithm: sdJwt.SigningAlgorithm.ecdsaSha256Prime,
-            jsonWebKey: sdJwt.Jwk.fromJson(dpopJwk),
+        header: sd_jwt.JwsJoseHeader(
+            algorithm: sd_jwt.SigningAlgorithm.ecdsaSha256Prime,
+            jsonWebKey: sd_jwt.Jwk.fromJson(dpopJwk),
             type: 'dpop+jwt'));
     logger.d(dpopPayload);
 
@@ -480,6 +520,9 @@ Future<void> handleRedirect(String uri, [String? dpopNonce]) async {
         tokenRes.headers['dpop-nonce']);
   } else {
     logger.d('Error token request: ${tokenRes.statusCode} / ${tokenRes.body}');
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailedNote);
   }
 }
 
@@ -582,7 +625,10 @@ Future<void> getCredential(
     });
 
     if (issuerMetaReq.statusCode != 200) {
-      showErrorMessage('Keine Issuer Metadaten');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .oidMetadataErrorNote);
       return;
     }
 
@@ -611,8 +657,11 @@ Future<void> getCredential(
       try {
         tokenResponse.cNonce = jsonDecode(credentialResponse.body)['c_nonce'];
       } catch (e) {
-        logger.d(e);
-        showErrorMessage('Keine nonce');
+        logger.d('Keine nonce: $e');
+        showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .credentialDownloadFailed,
+        );
         return;
       }
     }
@@ -668,7 +717,11 @@ Future<void> getCredential(
         clientId,
         k);
   } else {
-    showErrorMessage('Proof type nicht unterstützt');
+    logger.d('Proof type nicht unterstützt');
+    showErrorMessage(
+      AppLocalizations.of(navigatorKey.currentContext!)!
+          .credentialDownloadFailed,
+    );
     return;
   }
 
@@ -724,13 +777,13 @@ Future<void> getCredential(
           sha256.convert(ascii.encode(tokenResponse.accessToken!)).bytes))
     };
     var jwt =
-        sdJwt.Jwt(additionalClaims: dpopPayload, issuedAt: DateTime.now());
+        sd_jwt.Jwt(additionalClaims: dpopPayload, issuedAt: DateTime.now());
     var dpopJwk = multibaseKeyToJwk(dpopDid.replaceAll('did:key:', ''));
     var dpopJws = await jwt.sign(
         signer: WalletCryptoProviderForSdJwt(wallet.wallet, dpopDid),
-        header: sdJwt.JwsJoseHeader(
-            algorithm: sdJwt.SigningAlgorithm.ecdsaSha256Prime,
-            jsonWebKey: sdJwt.Jwk.fromJson(dpopJwk),
+        header: sd_jwt.JwsJoseHeader(
+            algorithm: sd_jwt.SigningAlgorithm.ecdsaSha256Prime,
+            jsonWebKey: sd_jwt.Jwk.fromJson(dpopJwk),
             type: 'dpop+jwt'));
     logger.d(dpopPayload);
 
@@ -755,7 +808,11 @@ Future<void> getCredential(
         decodedCredentialResponse =
             decryptResponse(decryptionKey, credentialResponse.body);
       } catch (e) {
-        showErrorMessage('Fehler beim Entschlüsseln');
+        logger.d('Fehler beim Entschlüsseln');
+        showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .credentialDownloadFailed,
+        );
         return;
       }
     } else {
@@ -870,7 +927,8 @@ sendDeferredRequest(
         decodedCredentialResponse =
             decryptResponse(decryptionKey, credentialResponse.body);
       } catch (e) {
-        showErrorMessage('Fehler beim Entschlüsseln');
+        showErrorMessage(AppLocalizations.of(navigatorKey.currentContext!)!
+            .credentialDownloadFailed);
         return;
       }
     } else {
@@ -919,7 +977,10 @@ storeCredential(String format, dynamic credential, String credentialDid,
       var did = coseKeyToDid(signedData.deviceKeyInfo.deviceKey);
       logger.d('$did == $credentialDid');
       if (did != credentialDid) {
-        showErrorMessage('Credential wurde für jemand anderen ausgestellt');
+        showErrorMessage(
+            AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+            AppLocalizations.of(navigatorKey.currentContext!)!
+                .wrongCredentialNote2);
         return;
       }
       logger.d(wallet.getOsKeyStoreIdForDid(did));
@@ -969,7 +1030,7 @@ storeCredential(String format, dynamic credential, String credentialDid,
     }
   } else if (format == OidcCredentialFormat.sdJwt) {
     printWrapped(credential);
-    var parsed = sdJwt.SdJws.fromCompactSerialization(credential);
+    var parsed = sd_jwt.SdJws.fromCompactSerialization(credential);
     logger.d(parsed.jsonContent());
     var iss = parsed.jsonContent()['payload']['iss'];
     var issMetaUrl = '$iss/.well-known/jwt-vc-issuer';
@@ -978,7 +1039,11 @@ storeCredential(String format, dynamic credential, String credentialDid,
 
     var metaRes = await get(Uri.parse(issMetaUrl));
     if (metaRes.statusCode != 200) {
-      showErrorMessage('Kein Public Key', 'Verifikation nicht möglich');
+      logger.d('Kein Public Key, Verifikation nicht möglich');
+      showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+      );
+      return;
     }
 
     var data = jsonDecode(metaRes.body);
@@ -987,14 +1052,17 @@ storeCredential(String format, dynamic credential, String credentialDid,
     List keys = jwks['keys'];
     logger.d(keys);
     Map k = keys.first;
-    var jwk = sdJwt.Jwk.fromJson(
+    var jwk = sd_jwt.Jwk.fromJson(
         k.map((key, value) => MapEntry(key as String, value)));
-    var sd = sdJwt.SdJwt.fromSdJws(parsed);
-    var verified = await sd.verify(
-        parsed, sdJwt.PointyCastleCryptoProvider(jwk.key as sdJwt.EcPublicKey));
+    var sd = sd_jwt.SdJwt.fromSdJws(parsed);
+    var verified = await sd.verify(parsed,
+        sd_jwt.PointyCastleCryptoProvider(jwk.key as sd_jwt.EcPublicKey));
 
     if (!verified) {
-      showErrorMessage('Credential nicht valide');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .wrongCredentialNote);
     }
 
     var cnf = sd.confirmation!.toJson();
@@ -1003,7 +1071,10 @@ storeCredential(String format, dynamic credential, String credentialDid,
     logger.d('$credentialDid, did:key:$multibase');
     var restoredDid = 'did:key:$multibase';
     if (restoredDid != credentialDid) {
-      showErrorMessage('Credential für jemand anderen');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .wrongCredentialNote2);
     }
 
     var claims = sd.additionalClaims ?? {};
@@ -1145,7 +1216,11 @@ Future<void> handlePresentationRequestOidc(String request) async {
     });
     logger.d(requestRaw.statusCode);
     if (requestRaw.statusCode != 200) {
-      showErrorMessage('Request nicht gefunden');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.downloadFailed,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .downloadFailedExplanation);
+      logger.d('Request nicht gefunden');
       return;
     }
     logger.d(requestRaw.headers);
@@ -1204,7 +1279,7 @@ Future<void> handlePresentationRequestOidc(String request) async {
   var isoCreds = wallet.isoMdocCredentials;
   List<VerifiableCredential> creds = [];
   List<IssuerSignedObject> isoCredsParsed = [];
-  List<sdJwt.SdJws> sdJwtCredentials = [];
+  List<sd_jwt.SdJws> sdJwtCredentials = [];
   allCreds.forEach((key, value) {
     if (value.w3cCredential != '') {
       var vc = VerifiableCredential.fromJson(value.w3cCredential);
@@ -1221,7 +1296,7 @@ Future<void> handlePresentationRequestOidc(String request) async {
   }
 
   for (var c in wallet.sdJwtCredentials) {
-    sdJwtCredentials.add(sdJwt.SdJws.fromCompactSerialization(
+    sdJwtCredentials.add(sd_jwt.SdJws.fromCompactSerialization(
         c.plaintextCredential.replaceAll('$sdPrefix:', '')));
   }
 
@@ -1264,47 +1339,4 @@ Future<void> handlePresentationRequestOidc(String request) async {
         AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsTitle,
         AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsNote);
   }
-}
-
-bool isRawJson(String json) {
-  try {
-    jsonDecode(json);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-String coseKeyToDid(CoseKey coseKey) {
-  var crvInt = coseKey.crv;
-
-  Map<String, dynamic> jwk;
-  if (crvInt == 6) {
-    jwk = {
-      'crv': 'Ed25519',
-      'x': removePaddingFromBase64(base64UrlEncode(coseKey.x!))
-    };
-  } else if (crvInt == 1) {
-    jwk = {
-      'crv': 'P-256',
-      'x': removePaddingFromBase64(base64UrlEncode(coseKey.x!)),
-      'y': removePaddingFromBase64(base64UrlEncode(coseKey.y!))
-    };
-  } else if (crvInt == 2) {
-    jwk = {
-      'crv': 'P-384',
-      'x': removePaddingFromBase64(base64UrlEncode(coseKey.x!)),
-      'y': removePaddingFromBase64(base64UrlEncode(coseKey.y!))
-    };
-  } else if (crvInt == 3) {
-    jwk = {
-      'crv': 'P-521',
-      'x': removePaddingFromBase64(base64UrlEncode(coseKey.x!)),
-      'y': removePaddingFromBase64(base64UrlEncode(coseKey.y!))
-    };
-  } else {
-    throw Exception('Unknown KeyType');
-  }
-
-  return 'did:key:${jwkToMultiBase(jwk)}';
 }
