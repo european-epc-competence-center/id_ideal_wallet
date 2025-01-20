@@ -35,6 +35,10 @@ Map knownAuthServer = {
     'client_id': 'wallet-dev',
     'redirect_uri': 'eudi-openid4ci://authorize'
   },
+  // 'https://id.staging.authada.de/eudi/issuer/pid': {
+  //   'client_id': 'eEWA Wallet',
+  //   'redirect_uri': 'eudi-issuance://authorization'
+  // },
   'https://localhost:4443/idp/realms/pid-issuer-realm': {
     'client_id': 'wallet-dev',
     'redirect_uri': 'eudi-openid4ci://authorize'

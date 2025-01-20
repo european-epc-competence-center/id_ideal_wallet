@@ -8,8 +8,13 @@ import 'package:path_provider/path_provider.dart';
 class CachedImage extends StatefulWidget {
   final String imageUrl;
   final String? placeholder;
+  final double borderRadius;
 
-  const CachedImage({super.key, required this.imageUrl, this.placeholder});
+  const CachedImage(
+      {super.key,
+      required this.imageUrl,
+      this.placeholder,
+      this.borderRadius = 0});
 
   @override
   CachedImageState createState() => CachedImageState();
@@ -44,9 +49,14 @@ class CachedImageState extends State<CachedImage> {
   @override
   Widget build(BuildContext context) {
     return imageBytes != null
-        ? Image.memory(
-            imageBytes!,
-            fit: BoxFit.cover,
+        ? Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(widget.borderRadius)),
+            child: Image.memory(
+              imageBytes!,
+              fit: BoxFit.cover,
+            ),
           )
         : Text(widget.placeholder ?? '');
   }

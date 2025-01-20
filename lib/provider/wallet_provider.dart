@@ -265,7 +265,7 @@ class WalletProvider extends ChangeNotifier {
       //   await _wallet.initialize();
       //   await _wallet.initializeIssuer(KeyType.ed25519);
       // }
-
+      var s = DateTime.now();
       await _buildCredentialList();
 
       var e = _wallet.getConfigEntry('aboList');
@@ -282,45 +282,7 @@ class WalletProvider extends ChangeNotifier {
         aboutUrl = a;
       }
 
-      var lastUpdateCheck = _wallet.getConfigEntry('lastUpdateCheck');
-      if (lastUpdateCheck != null) {
-        logger.d(
-            'lastUpdate: ${DateTime.now().difference(DateTime.parse(lastUpdateCheck))}');
-      }
-      if (lastUpdateCheck == null ||
-          DateTime.now().difference(DateTime.parse(lastUpdateCheck)) >=
-              Duration(days: testBuild ? 0 : 1, seconds: testBuild ? 1 : 0)) {
-        logger.d('with request');
-        generateCredentialStyling(true);
-        updateTosUrl();
-        _wallet.storeConfigEntry(
-            'lastUpdateCheck', DateTime.now().toIso8601String());
-      } else {
-        logger.d('without request');
-        generateCredentialStyling();
-      }
-
-      lndwId = _wallet.getConfigEntry('lndwId');
-      if (lndwId == null) {
-        lndwId = const Uuid().v4();
-        _wallet.storeConfigEntry('lndwId', lndwId!);
-      }
-
-      var lastCheck = _wallet.getConfigEntry('lastValidityCheckTime');
-      var revState = _wallet.getConfigEntry('revocationState');
-      if (revState != null) {
-        Map<String, dynamic> tmp = jsonDecode(revState);
-        revocationState = tmp.cast<String, int>();
-      }
-      if (lastCheck == null || revocationState.isEmpty) {
-        checkValidity();
-      } else {
-        lastCheckRevocation = DateTime.parse(lastCheck);
-        if (DateTime.now().difference(lastCheckRevocation!) >=
-            const Duration(days: 1)) {
-          checkValidity();
-        }
-      }
+      await _checkInitialStuff();
 
       _authRunning = false;
 
@@ -328,11 +290,56 @@ class WalletProvider extends ChangeNotifier {
       //Checking broadcast stream, if deep link was clicked in opened application
       stream.receiveBroadcastStream().listen((d) => getSharedText(d));
 
+      var s2 = DateTime.now();
+      logger.d('rest: ${s2.difference(s).inMilliseconds}');
+
       Provider.of<NavigationProvider>(navigatorKey.currentContext!,
               listen: false)
           .finishOpen();
 
       notifyListeners();
+    }
+  }
+
+  Future<void> _checkInitialStuff() async {
+    var lastUpdateCheck = _wallet.getConfigEntry('lastUpdateCheck');
+    if (lastUpdateCheck != null) {
+      logger.d(
+          'lastUpdate: ${DateTime.now().difference(DateTime.parse(lastUpdateCheck))}');
+    }
+    if (lastUpdateCheck == null ||
+        DateTime.now().difference(DateTime.parse(lastUpdateCheck)) >=
+            Duration(days: testBuild ? 0 : 1, seconds: testBuild ? 1 : 0)) {
+      logger.d('with request');
+      generateCredentialStyling(true);
+      updateTosUrl();
+      _wallet.storeConfigEntry(
+          'lastUpdateCheck', DateTime.now().toIso8601String());
+    } else {
+      logger.d('without request');
+      generateCredentialStyling();
+    }
+
+    lndwId = _wallet.getConfigEntry('lndwId');
+    if (lndwId == null) {
+      lndwId = const Uuid().v4();
+      _wallet.storeConfigEntry('lndwId', lndwId!);
+    }
+
+    var lastCheck = _wallet.getConfigEntry('lastValidityCheckTime');
+    var revState = _wallet.getConfigEntry('revocationState');
+    if (revState != null) {
+      Map<String, dynamic> tmp = jsonDecode(revState);
+      revocationState = tmp.cast<String, int>();
+    }
+    if (lastCheck == null || revocationState.isEmpty) {
+      checkValidity();
+    } else {
+      lastCheckRevocation = DateTime.parse(lastCheck);
+      if (DateTime.now().difference(lastCheckRevocation!) >=
+          const Duration(days: 1)) {
+        checkValidity();
+      }
     }
   }
 
@@ -770,7 +777,7 @@ class WalletProvider extends ChangeNotifier {
       isoMdlData ?? '',
       credentialId,
     );
-    _buildCredentialList();
+    await _buildCredentialList();
     var vcParsed = VerifiableCredential.fromJson(vc);
     var type = vcParsed.type
         .firstWhere((element) => element != 'VerifiableCredential');

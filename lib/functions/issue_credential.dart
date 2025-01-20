@@ -257,7 +257,7 @@ Future<bool> handleOfferCredential(
         //   _sendProposeCredential(message, wallet, myDid, paymentDetails);
         //   return false;
         // }
-        if (await wallet.wallet.containsKey(id)) {
+        if (!(await wallet.wallet.containsKey(id))) {
           _sendProposeCredential(message, wallet, myDid, paymentDetails);
           return false;
         }
@@ -418,6 +418,8 @@ Future<bool> handleIssueCredential(
           if (credDid == '') {
             credDid = '${cred.issuanceDate.toIso8601String()}$type';
           }
+
+          logger.d(credDid);
 
           if (type == 'PaymentReceipt') {
             wallet.storeCredential(cred.toString(), credDid,

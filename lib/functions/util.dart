@@ -84,6 +84,7 @@ Future<bool> openWallet(WalletStore wallet) async {
               passwordLength: 20);
           await storage.write(key: 'password', value: pw);
         }
+        var s = DateTime.now();
         await wallet.openBoxes(
             password: pw,
             keyStorage: Platform.isAndroid
@@ -92,6 +93,8 @@ Future<bool> openWallet(WalletStore wallet) async {
                     'system': OsKeyStore()
                   }
                 : null);
+        var s2 = DateTime.now();
+        logger.d(s2.difference(s).inMilliseconds);
       } else {
         return false;
       }

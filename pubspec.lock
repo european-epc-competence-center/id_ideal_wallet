@@ -205,10 +205,10 @@ packages:
     dependency: "direct main"
     description:
       name: cbor
-      sha256: "69b1fe99f4632acc597034d73a5eb440f82667b58e2489223bb798e31b6c90db"
+      sha256: e60380c7329da6b415841be93884b8d4380cbd86cd4cecb2067baa221b8d88b5
       url: "https://pub.dev"
     source: hosted
-    version: "6.3.3"
+    version: "6.3.5"
   characters:
     dependency: transitive
     description:
