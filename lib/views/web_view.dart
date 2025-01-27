@@ -117,14 +117,15 @@ class WebViewWindowState extends State<WebViewWindow> {
   }
 
   Future<(List<String>, Map<String, String>, List<String>)> initTrustedSites() async {
-    // gets the JSON again here, might use the one we edited in search_new_abo
-    /*var res = await get(Uri.parse(applicationEndpoint));
+    // Don't fetch the json list again, just use the var available from search_new_abo
+    /*
+    var res = await get(Uri.parse(applicationEndpoint));
     List<Map<String, dynamic>> available = [];
     if (res.statusCode == 200) {
       List dec = jsonDecode(res.body);
       available = dec.map((e) => (e as Map).cast<String, dynamic>()).toList();
-    }*/
-    var res = available;
+    }
+    */
 
     Map<String, String> uriToImage = {};
     List<String> trusted = [];

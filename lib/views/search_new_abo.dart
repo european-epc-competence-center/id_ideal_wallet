@@ -12,7 +12,6 @@ import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:provider/provider.dart';
 
-// global var
 List<Map<String, dynamic>> available = [];
 
 class SearchNewAbo extends StatefulWidget {
@@ -33,7 +32,7 @@ class SearchNewAboState extends State<SearchNewAbo> {
   }
 
   Future<void> searchAbos() async {
-    //creates a list of all the registered URLs
+    // Creates a list of all registered URLs (registered = shown directly after startup)
     var inAbo =
         Provider.of<WalletProvider>(context, listen: false).aboList.map((e) {
       var u = e['url']!;
@@ -41,14 +40,13 @@ class SearchNewAboState extends State<SearchNewAbo> {
       return '${asUri.scheme.isNotEmpty ? asUri.scheme : 'https'}://${asUri.host}${asUri.path}';
     }).toList();
 
-    //fetch the list of available abos from the server
-    //here is where we could add the eatFresh abo
+    // Fetch the json list from the endpoint including all available abos
     var res = await get(Uri.parse(applicationEndpoint));
     if (res.statusCode == 200) {
       List dec = jsonDecode(res.body);
       available = dec.map((e) => (e as Map).cast<String, dynamic>()).toList();
 
-      //add a new entry to the list
+      // Manually add a new entry to the list
       available.add({
         'name': 'EatFresh Plugin',
         'plattform': '0',
@@ -59,7 +57,7 @@ class SearchNewAboState extends State<SearchNewAbo> {
 
     toShow = [];
 
-    //add the not yet registered abos to the list toShow
+    // Ensures that toShow contains only the abos that are available but not yet registered
     if (available.isNotEmpty) {
       for (var entry in available) {
         var asUri = Uri.parse(entry['url']);
