@@ -12,8 +12,6 @@ import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:provider/provider.dart';
 
-List<Map<String, dynamic>> available = [];
-
 class SearchNewAbo extends StatefulWidget {
   const SearchNewAbo({super.key});
 
@@ -41,18 +39,11 @@ class SearchNewAboState extends State<SearchNewAbo> {
     }).toList();
 
     // Fetch the json list from the endpoint including all available abos
-    var res = await get(Uri.parse(applicationEndpoint));
+    var res = await get(Uri.parse(pluginEndpoint));
+    List<Map<String, dynamic>> available = [];
     if (res.statusCode == 200) {
       List dec = jsonDecode(res.body);
       available = dec.map((e) => (e as Map).cast<String, dynamic>()).toList();
-
-      // Manually add a new entry to the list
-      available.add({
-        'name': 'EatFresh Plugin',
-        'plattform': '0',
-        'url': 'https://www.eat-fresh.me',
-        'mainbgimg': ''
-      });
     }
 
     toShow = [];

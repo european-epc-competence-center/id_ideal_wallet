@@ -16,7 +16,6 @@ import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/presentation_request.dart';
-import 'package:id_ideal_wallet/views/search_new_abo.dart';
 import 'package:provider/provider.dart';
 
 class WebViewWindow extends StatefulWidget {
@@ -117,15 +116,12 @@ class WebViewWindowState extends State<WebViewWindow> {
   }
 
   Future<(List<String>, Map<String, String>, List<String>)> initTrustedSites() async {
-    // Don't fetch the json list again, just use the var available from search_new_abo
-    /*
-    var res = await get(Uri.parse(applicationEndpoint));
+    var res = await get(Uri.parse(pluginEndpoint));
     List<Map<String, dynamic>> available = [];
     if (res.statusCode == 200) {
       List dec = jsonDecode(res.body);
       available = dec.map((e) => (e as Map).cast<String, dynamic>()).toList();
     }
-    */
 
     Map<String, String> uriToImage = {};
     List<String> trusted = [];
