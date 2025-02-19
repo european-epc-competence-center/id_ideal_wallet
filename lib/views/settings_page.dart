@@ -86,6 +86,7 @@ class SettingsPageState extends State<SettingsPage> {
               launchUrl(Uri.parse('https://github.com/b2cm/id_ideal_wallet'),
                   mode: LaunchMode.externalApplication);
             },
+          ),
         ],
       ),
     );
