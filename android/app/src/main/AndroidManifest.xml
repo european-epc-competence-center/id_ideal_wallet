@@ -68,7 +68,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:host="wallet.bccm.dev"
+                    android:host="ssi-wallet.prod-k8s.eecc.de"
                     android:scheme="https" />
             </intent-filter>
             <intent-filter>
