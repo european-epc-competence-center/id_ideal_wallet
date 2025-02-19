@@ -6,6 +6,7 @@
   "scan": "Scannen",
   "openWallet": "Wallet öffnen",
   "cancel": "Abbrechen",
+  "ok": "OK",
   "verifyIdentity": "Bitte verifizieren Sie Ihre Identität",
   "localizedReason": "Zum Öffnen des Wallets ist Ihre Authentifizierung nötig",
   "sellCredentialTitle": "Nachweis verkaufen",
@@ -204,5 +205,15 @@
   "hsmwEmployeeCard": "Mitarbeiterausweis (HSMW)",
   "hsmwStudentCard": "Studierendenausweis (HSMW)",
   "pictureProcess": "Ihr Bild wird erstellt",
-  "pictureProcessNote": "Bitte haben Sie einen Moment Geduld"
+  "pictureProcessNote": "Bitte haben Sie einen Moment Geduld",
+  "yes": "Ja",
+  "no": "Nein",
+  "restore": "Wiederherstellen",
+  "restoreMenu": "Wiederherstellen",
+  "restoreQuestion": "Sind Sie sich sicher, dass Sie ein Backup einlesen wollen?",
+  "restoreMnemonic": "Wortfolge eingeben",
+  "backup": "Backup",
+  "backupUpload": "Ihr Backup wird hochgeladen",
+  "backupWriteDownPassword": "Bitte notieren Sie sich diese Wortfolge! Ohne diese Wörter kann ihr Backup nicht wiederhergestellt werden!",
+  "backupNotFound": "Kein passendes Backup gefunden! Falsche Wortfolge?"
 }

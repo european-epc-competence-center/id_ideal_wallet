@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dart_ssi/credentials.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -9,12 +10,12 @@ import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/oidc_handler.dart';
 import 'package:id_ideal_wallet/functions/payment_utils.dart';
+import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/ausweis_view.dart';
+import 'package:id_ideal_wallet/views/web_view.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/cupertino.dart';
-import 'dart:io' show Platform;
 
 class NavigationProvider extends ChangeNotifier {
   NavigationPage activeIndex = NavigationPage.abo;
@@ -42,6 +43,13 @@ class NavigationProvider extends ChangeNotifier {
       bufferedLink = null;
     }
     notifyListeners();
+  }
+
+  void finishOpen() {
+    if (bufferedLink != null) {
+      handleLink(bufferedLink!);
+      bufferedLink = null;
+    }
   }
 
   void changePage(List<NavigationPage> newIndex,
@@ -76,10 +84,10 @@ class NavigationProvider extends ChangeNotifier {
 
   Future<dynamic> getInitialUri() async {
     try {
-        final initialUri = await platform.invokeMethod('getInitialLink');
-        if (initialUri != null) {
-          return initialUri;
-        }
+      final initialUri = await platform.invokeMethod('getInitialLink');
+      if (initialUri != null) {
+        return initialUri;
+      }
     } on PlatformException catch (e) {
       logger.d('Failed to Invoke Link from Android: ${e.message}.');
       return "Failed to Invoke: '${e.message}'.";
@@ -90,6 +98,13 @@ class NavigationProvider extends ChangeNotifier {
     logger.i(link);
     if (showWelcome) {
       logger.d('Buffer link');
+      bufferedLink = link;
+      return;
+    }
+    if (!(Provider.of<WalletProvider>(navigatorKey.currentContext!,
+            listen: false)
+        .isOpen())) {
+      logger.d('wallet not open, buffer');
       bufferedLink = link;
       return;
     }
@@ -118,11 +133,7 @@ class NavigationProvider extends ChangeNotifier {
       var tcTokenUrl = asUri.queryParameters['tcTokenURL'] ??
           asUri.queryParameters['tcTokenUrl'];
       logger.d(tcTokenUrl);
-      Navigator.of(navigatorKey.currentContext!).push(
-        Platform.isIOS
-        ? CupertinoPageRoute(builder: (context) => const AusweisView())
-        : MaterialPageRoute(builder: (context) => const AusweisView())
-      );
+      navigateClassic(const AusweisView());
       Provider.of<AusweisProvider>(navigatorKey.currentContext!, listen: false)
           .startProgress(tcTokenUrl);
     }
@@ -148,13 +159,14 @@ class NavigationProvider extends ChangeNotifier {
         var uriToCall = Uri.parse(asUri.queryParameters['url']!);
         var wallet = Provider.of<WalletProvider>(navigatorKey.currentContext!,
             listen: false);
-        changePage([NavigationPage.credential], track: false);
+        // changePage([NavigationPage.credential], track: false);
         Timer(
             const Duration(milliseconds: 10),
-            () => changePage([NavigationPage.webView],
-                webViewUrl: uriToCall
+            () => navigateClassic(WebViewWindow(
+                initialUrl: uriToCall
                     .toString()
-                    .replaceAll('wid=', 'wid=${wallet.lndwId}')));
+                    .replaceAll('wid=', 'wid=${wallet.lndwId}'),
+                title: '')));
       } else if (link.contains('redirect')) {
         handleRedirect(link);
       } else if (link.contains('/invoice')) {
@@ -173,8 +185,8 @@ class NavigationProvider extends ChangeNotifier {
             AppLocalizations.of(navigatorKey.currentContext!)!
                 .unknownQrCodeNote);
       }
-    } else if(link.contains("No initial link has been stored yet")) {
-        return;
+    } else if (link.contains("No initial link has been stored yet")) {
+      return;
     } else {
       showErrorMessage(
           AppLocalizations.of(navigatorKey.currentContext!)!.unknownQrCode,

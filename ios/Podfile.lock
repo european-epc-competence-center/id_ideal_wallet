@@ -70,6 +70,8 @@ PODS:
   - printing (1.0.0):
     - Flutter
   - PromisesObjC (2.4.0)
+  - restart (1.0.0):
+    - Flutter
 
 DEPENDENCIES:
   - app_settings (from `.symlinks/plugins/app_settings/ios`)
@@ -79,6 +81,7 @@ DEPENDENCIES:
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
   - mobile_scanner (from `.symlinks/plugins/mobile_scanner/ios`)
   - printing (from `.symlinks/plugins/printing/ios`)
+  - restart (from `.symlinks/plugins/restart/ios`)
 
 SPEC REPOS:
   trunk:
@@ -111,6 +114,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/mobile_scanner/ios"
   printing:
     :path: ".symlinks/plugins/printing/ios"
+  restart:
+    :path: ".symlinks/plugins/restart/ios"
 
 SPEC CHECKSUMS:
   app_settings: 017320c6a680cdc94c799949d95b84cb69389ebc
@@ -133,7 +138,8 @@ SPEC CHECKSUMS:
   OrderedSet: e539b66b644ff081c73a262d24ad552a69be3a94
   printing: 233e1b73bd1f4a05615548e9b5a324c98588640b
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
+  restart: b5fe16e6e038f0024b2f3af43768e9d2a1557554
 
-PODFILE CHECKSUM: 056cc2376ca1de6c39bd4c024976d2b9df92a92d
+PODFILE CHECKSUM: cc2bf07b9d8594a33edeed5c342b15bf7afc4b19
 
 COCOAPODS: 1.15.2
