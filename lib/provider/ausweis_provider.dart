@@ -477,17 +477,24 @@ class AusweisProvider extends ChangeNotifier {
         // successful response
         if (selfInfo) {
           var response = await get(Uri.parse(message.url!),
-              headers: {'Accept': 'text/html'});
+              headers: {'Accept': 'application/json'});
           logger.d('${response.statusCode} / ${response.body}');
 
           if (response.statusCode == 200) {
             readData = {};
-            var document = XmlDocument.parse(response.body);
-            var t = document.findAllElements('td').toList();
-            for (int i = 0; i < t.length; i += 2) {
-              logger.d('${t[i].innerText} ${t[i + 1].innerText}');
-              readData![t[i].innerText] = t[i + 1].innerText;
-            }
+            var jsonResponse = jsonDecode(response.body);
+
+            // Extract PersonalData fields
+            var personalData = jsonResponse['PersonalData'];
+            personalData.forEach((key, value) {
+              if (value is Map) {
+                value.forEach((subKey, subValue) {
+                  readData!['$key.$subKey'] = subValue;
+                });
+              } else {
+                readData![key] = value;
+              }
+            });
 
             screen = AusweisScreen.finish;
             requestedAttributes = [];

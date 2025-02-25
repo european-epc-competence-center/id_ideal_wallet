@@ -62,15 +62,6 @@ class SettingsPageState extends State<SettingsPage> {
                 .changePage([NavigationPage.searchNewAbo]),
           ),
           ListTile(
-            title: Text('Ausweis'),
-            onTap: () => Navigator.of(navigatorKey.currentContext!).push(
-                Platform.isIOS
-                    ? CupertinoPageRoute(
-                        builder: (context) => const AusweisView())
-                    : MaterialPageRoute(
-                        builder: (context) => const AusweisView())),
-          ),
-          ListTile(
             title: Text(AppLocalizations.of(context)!.backup),
             onTap: () => Navigator.of(navigatorKey.currentContext!).push(
                 MaterialPageRoute(builder: (context) => BackupWidget())),

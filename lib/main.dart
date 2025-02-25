@@ -15,6 +15,7 @@ import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/abo_overview.dart';
 import 'package:id_ideal_wallet/views/ausweis_view.dart';
+import 'package:id_ideal_wallet/views/ausweis_start.dart';
 import 'package:id_ideal_wallet/views/authorized_apps.dart';
 import 'package:id_ideal_wallet/views/credential_detail.dart';
 import 'package:id_ideal_wallet/views/credential_page.dart';
@@ -146,14 +147,11 @@ class HomeScreen extends StatelessWidget {
                   width: 20,
                 ),
                 CustomNavigationItem(
-                    text: AppLocalizations.of(context)!.payments(0),
+                    text: "ID card",
                     activeIcon: Icons.credit_card,
                     inactiveIcon: Icons.credit_card_outlined,
                     activeIndices: const [
-                      NavigationPage.paymentCard,
-                      NavigationPage.sendSatoshi,
-                      NavigationPage.topUp,
-                      NavigationPage.paymentOverview
+                      NavigationPage.ausweisStart
                     ],
                     navigator: navigator),
                 CustomNavigationItem(
@@ -165,7 +163,6 @@ class HomeScreen extends StatelessWidget {
                       NavigationPage.authorizedApps,
                       NavigationPage.license,
                       NavigationPage.searchNewAbo,
-                      NavigationPage.ausweis
                     ],
                     navigator: navigator),
               ],
@@ -215,6 +212,8 @@ class HomeScreen extends StatelessWidget {
         return const PaymentCardOverview();
       case NavigationPage.settings:
         return const SettingsPage();
+      case NavigationPage.ausweisStart:
+        return const AusweisStart();
       case NavigationPage.webView:
         return WebViewWindow(initialUrl: navigator.webViewUrl, title: '');
       case NavigationPage.credentialDetail:

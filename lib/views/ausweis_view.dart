@@ -68,7 +68,7 @@ class AusweisViewState extends State<AusweisView> {
             ? AppBar(
                 title: Center(
                   child: Text(
-                    "Ausweis",
+                    "ID card",
                     textAlign: TextAlign.center,
                     style: Theme.of(context).primaryTextTheme.headlineLarge,
                   ),
