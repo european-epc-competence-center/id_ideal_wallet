@@ -25,7 +25,7 @@ class AusweisStartState extends State<AusweisStart> {
       child: Column(
         children: [
           ListTile(
-            title: Text('Read ID card'),
+            title: Text('Ausweis auslesen'),
             onTap: () => Navigator.of(navigatorKey.currentContext!).push(
                 Platform.isIOS
                     ? CupertinoPageRoute(

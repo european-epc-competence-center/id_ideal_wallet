@@ -10,9 +10,12 @@ import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/ausweis_message.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:xml/xml.dart';
+
+import '../basicUi/ausweis/main_content.dart';
 
 enum AusweisScreen {
   enterPin,
@@ -470,31 +473,63 @@ class AusweisProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Map<String, String> idCardTranslations = {
+    'DocumentType': 'Dokumententyp:',
+    'IssuingState': 'Ausstellender Staat:',
+    'DateOfExpiry': 'Ablaufdatum:',
+    'GivenNames': 'Vorname:',
+    'FamilyNames': 'Nachname:',
+    'ArtisticName': 'Künstlername:',
+    'AcademicTitle': 'Akademischer Titel:',
+    'PlaceOfBirth': 'Geburtsort:',
+    'Nationality': 'Staatsangehörigkeit:',
+    'BirthName': 'Geburtsname:',
+    'PlaceOfResidence': 'Adresse:',
+    'DateOfBirth': 'Geburtsdatum:',
+    'ResidencePermitI': 'Aufenthaltserlaubnis 1:'
+  };
+
   void handleAuthMessage(dynamic message) async {
     if (message is AuthMessage) {
       if (message.major ==
           'http://www.bsi.bund.de/ecard/api/1.1/resultmajor#ok') {
-        // successful response
         if (selfInfo) {
           var response = await get(Uri.parse(message.url!),
               headers: {'Accept': 'application/json'});
-          logger.d('${response.statusCode} / ${response.body}');
-
           if (response.statusCode == 200) {
             readData = {};
-            var jsonResponse = jsonDecode(response.body);
-
-            // Extract PersonalData fields
+            String utf8body = utf8.decode(response.bodyBytes);
+            var jsonResponse = jsonDecode(utf8body);
             var personalData = jsonResponse['PersonalData'];
             personalData.forEach((key, value) {
-              if (value is Map) {
+              String translatedKey = idCardTranslations[key] ?? key;
+              if (key == 'PlaceOfBirth' && value is Map) {
+                readData![translatedKey] = value['FreetextPlace'];
+              } else if (key == 'PlaceOfResidence' && value is Map) {
+                var structuredPlace = value['StructuredPlace'];
+                if (structuredPlace is Map) {
+                  readData![translatedKey] =
+                      'Land: ${structuredPlace['Country']}, '
+                          'Stadt: ${structuredPlace['ZipCode']} ${structuredPlace['City']}, Straße: ${structuredPlace['Street'].replaceAll('ẞ', 'ß')}';
+                  logger.d('Street: ${structuredPlace['Street']}');
+                }
+              } else if (value is Map) {
                 value.forEach((subKey, subValue) {
-                  readData!['$key.$subKey'] = subValue;
+                  readData!['$translatedKey.$subKey'] = subValue;
                 });
               } else {
-                readData![key] = value;
+                if (key == 'DateOfBirth' || key == 'DateOfExpiry') {
+                  value = value.split("+")[0];
+                  DateTime parsedDate = DateTime.parse(value);
+                  String formattedDate =
+                      DateFormat('dd.MM.yyyy').format(parsedDate);
+                  readData![translatedKey] = formattedDate;
+                } else {
+                  readData![translatedKey] = value;
+                }
               }
             });
+            logger.d(readData);
 
             screen = AusweisScreen.finish;
             requestedAttributes = [];
