@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_ssi/credentials.dart';
+import 'package:dart_ssi/util.dart';
+import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -11,8 +13,10 @@ import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/ausweis_message.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/oidc_handler.dart';
+import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:sd_jwt/sd_jwt.dart' as sd_jwt;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:xml/xml.dart';
 
@@ -112,10 +116,11 @@ class AusweisProvider extends ChangeNotifier {
           credentialSubject: readData,
           issuer: did,
           issuanceDate: DateTime.now());
-      var signed = await signCredential(wallet.wallet, vc);
+      var (signer, proofType) = await getCredentialSigningStuff(wallet, did);
+      await vc.sign(signer, proofType);
       //var storedCred = wallet.getCredential(did);
       //if (storedCred != null) {
-      wallet.storeCredential(signed, did);
+      wallet.storeCredential(vc, did);
       // } else {
       //   throw Exception('Das sollte nicht passieren');
       // }
@@ -127,6 +132,104 @@ class AusweisProvider extends ChangeNotifier {
       showErrorMessage('Speichern fehlgeschlagen', e.toString());
     }
     reset();
+  }
+
+  Future<void> requestSignedCredential() async {
+    var nonceRes = await get(Uri.parse('http://localhost:8080/nonce'));
+    if (nonceRes.statusCode == 200) {
+      var nonce = jsonDecode(nonceRes.body)['nonce'];
+
+      var wallet = Provider.of<WalletProvider>(navigatorKey.currentContext!,
+          listen: false);
+      var keyId = await wallet.newCredentialDid(KeyType.p256, KeyStore.system);
+      logger.d(keyId);
+      var info = await wallet.wallet
+          .getKeyInformation(wallet.getOsKeyStoreIdForDid(keyId)!);
+      var jwt = sd_jwt.Jwt(
+          additionalClaims: {'nonce': nonce},
+          header: sd_jwt.JoseHeader(
+              x509certificateChain: (info['x5c'] as List)
+                  .map((e) => base64Decode(e as String))
+                  .toList()));
+      logger.d(jwt);
+      var jws = await jwt.sign(
+          header: sd_jwt.JwsJoseHeader(
+              algorithm: sd_jwt.SigningAlgorithm.ecdsaSha256Prime,
+              x509certificateChain: (info['x5c'] as List)
+                  .map((e) => base64Decode(e as String))
+                  .toList()),
+          signer: WalletCryptoProviderForSdJwt(
+              wallet.wallet, wallet.getOsKeyStoreIdForDid(keyId)!),
+          signingAlgorithm: sd_jwt.SigningAlgorithm.ecdsaSha256Prime);
+      logger.d(jws.header);
+      var attRes = await post(Uri.parse('http://localhost:8080/ausweis'),
+          headers: <String, String>{'Content-Type': 'application/json'},
+          body: jsonEncode(
+              {'jwt': jws.toCompactSerialization(), 'data': readData}));
+      logger.d(attRes.body);
+      var credential = attRes.body;
+      var parsed = sd_jwt.SdJws.fromCompactSerialization(credential);
+      var sd = sd_jwt.SdJwt.fromSdJws(parsed);
+      logger.d(parsed.jsonContent());
+
+      var iss = parsed.jsonContent()['payload']['iss'];
+      var issMetaUrl = '$iss/.well-known/jwt-vc-issuer';
+
+      logger.d(issMetaUrl);
+
+      var metaRes = await get(Uri.parse(issMetaUrl));
+      if (metaRes.statusCode != 200) {
+        logger.d('Kein Public Key, Verifikation nicht möglich');
+        showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+        );
+        return;
+      }
+
+      var data = jsonDecode(metaRes.body);
+      var jwks = data['jwks'];
+      logger.d(jwks);
+      List keys = jwks['keys'];
+      logger.d(keys);
+      Map k = keys.first;
+      var jwk = sd_jwt.Jwk.fromJson(
+          k.map((key, value) => MapEntry(key as String, value)));
+      var verified = await sd.verify(parsed,
+          sd_jwt.PointyCastleCryptoProvider(jwk.key as sd_jwt.EcPublicKey));
+
+      logger.d(verified);
+
+      var cnf = sd.confirmation!.toJson();
+      logger.d(cnf['jwk']);
+      var multibase = jwkToMultiBase(cnf['jwk']);
+      logger.d('did:key:$multibase');
+      var restoredDid = 'did:key:$multibase';
+
+      var claims = sd.additionalClaims ?? {};
+      var type = claims.remove('vct');
+      claims['id'] = restoredDid;
+
+      var vc = VerifiableCredential(
+          id: restoredDid,
+          context: [credentialsV1Iri, schemaOrgIri],
+          type: ['VerifiableCredential', type],
+          issuer: {
+            'id': iss,
+            if (jwk.x509CertificateChain != null)
+              'certificate': jwk.x509CertificateChain!.first
+          },
+          credentialSubject: claims,
+          issuanceDate: sd.issuedAt ?? DateTime.now(),
+          expirationDate: sd.expirationTime);
+
+      wallet.storeCredential(vc, restoredDid,
+          isoMdlData: '$sdPrefix:$credential');
+      wallet.storeExchangeHistoryEntry(
+          restoredDid, DateTime.now(), 'issue', iss);
+      reset();
+    } else {
+      reset();
+    }
   }
 
   void handleData(String data) async {
@@ -512,8 +615,9 @@ class AusweisProvider extends ChangeNotifier {
           logger.d(response.headers);
           if (response.statusCode == 302) {
             handleRedirect(redirectUri, response.headers['dpop-nonce']);
+          } else {
+            Navigator.pop(navigatorKey.currentContext!);
           }
-          Navigator.pop(navigatorKey.currentContext!);
           reset(false);
         } else {
           launchUrl(Uri.parse(message.url!),

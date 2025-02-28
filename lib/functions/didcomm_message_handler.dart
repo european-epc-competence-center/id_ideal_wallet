@@ -538,11 +538,8 @@ sendMessage(String myDid, String? otherEndpoint, WalletProvider wallet,
         for (var pres in message.verifiablePresentation) {
           if (pres.verifiableCredential != null) {
             for (var cred in pres.verifiableCredential!) {
-              wallet.storeExchangeHistoryEntry(
-                  getHolderDidFromCredential(cred.toJson()),
-                  DateTime.now(),
-                  'present failed',
-                  message.to!.first);
+              wallet.storeExchangeHistoryEntry(cred.credentialSubject['id'],
+                  DateTime.now(), 'present failed', message.to!.first);
             }
           }
         }

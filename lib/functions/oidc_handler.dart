@@ -6,7 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:crypto_keys/crypto_keys.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/did.dart';
-import 'package:dart_ssi/oidc.dart';
+import 'package:dart_ssi/oid.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/cupertino.dart';
@@ -43,7 +43,7 @@ Map<String, dynamic> findClaims(Map? claimsDescription) {
   for (var key in claimsDescription.keys) {
     var value = claimsDescription[key];
     if (value is CredentialSubjectMetadata) {
-      var displayList = value.display ?? <OidcDisplayObject>[];
+      var displayList = value.display ?? <OidDisplayObject>[];
       var locale =
           AppLocalizations.of(navigatorKey.currentContext!)!.localeName;
       String? defaultName, localName, localeDes, defaultDes;
@@ -71,8 +71,8 @@ Map<String, dynamic> findClaims(Map? claimsDescription) {
   return claims;
 }
 
-Future<void> handleOfferOidc(String offerUri) async {
-  var offer = OidcCredentialOffer.fromUri(offerUri);
+Future<void> handleOfferOid(String offerUri) async {
+  var offer = OidCredentialOffer.fromUri(offerUri);
 
   var issuerString = removeTrailingSlash(offer.credentialIssuer);
   logger.d('$issuerString/.well-known/openid-credential-issuer');
@@ -157,7 +157,7 @@ Future<void> handleOfferOidc(String offerUri) async {
               .map((e) => VerifiableCredential(
                   context: [credentialsV1Iri],
                   type: e.credentialType ?? [],
-                  issuer: {'oidcEndpoint': issuerString, 'id': issuerString},
+                  issuer: {'OidEndpoint': issuerString, 'id': issuerString},
                   credentialSubject: findClaims(e.claims),
                   issuanceDate: DateTime.now()))
               .toList()),
@@ -346,8 +346,8 @@ Future<void> handleOfferOidc(String offerUri) async {
       });
       if (tokenRes.statusCode == 200) {
         logger.d(jsonDecode(tokenRes.body));
-        OidcTokenResponse tokenResponse =
-            OidcTokenResponse.fromJson(tokenRes.body);
+        OidTokenResponse tokenResponse =
+            OidTokenResponse.fromJson(tokenRes.body);
 
         logger.d('Access-Token : ${tokenResponse.accessToken}');
 
@@ -376,13 +376,13 @@ Future<void> handleOfferOidc(String offerUri) async {
 }
 
 Future<Map?> getAuthServerMetaData(String authServer) async {
-  var oidConfigRes =
+  var OidonfigRes =
       await get(Uri.parse('$authServer/.well-known/openid-configuration'));
-  if (oidConfigRes.statusCode == 200) {
-    return jsonDecode(oidConfigRes.body);
+  if (OidonfigRes.statusCode == 200) {
+    return jsonDecode(OidonfigRes.body);
   } else {
     logger.d(
-        'status oidConfig $authServer: ${oidConfigRes.statusCode} / ${oidConfigRes.body}');
+        'status Oidonfig $authServer: ${OidonfigRes.statusCode} / ${OidonfigRes.body}');
     var oauthConfigRes = await get(
         Uri.parse('$authServer/.well-known/oauth-authorization-server'));
     if (oauthConfigRes.statusCode == 200) {
@@ -432,7 +432,7 @@ Future<void> handleRedirect(String uri, [String? dpopNonce]) async {
   var parsed = jsonDecode(storedData);
   String authServer = parsed['authServer'];
   String codeVerifier = parsed['codeVerifier'];
-  OidcCredentialOffer offer = OidcCredentialOffer.fromJson(parsed['offer']);
+  OidCredentialOffer offer = OidCredentialOffer.fromJson(parsed['offer']);
   List<CredentialsSupportedObject> credentialMetadata =
       (parsed['credentials'] as List)
           .map((e) => CredentialsSupportedObject.fromJson(e))
@@ -504,7 +504,7 @@ Future<void> handleRedirect(String uri, [String? dpopNonce]) async {
   if (tokenRes.statusCode == 200) {
     logger.d(
         'successful token request: ${jsonDecode(tokenRes.body).keys.toList()}');
-    var decoded = OidcTokenResponse.fromJson(tokenRes.body);
+    var decoded = OidTokenResponse.fromJson(tokenRes.body);
     logger.d(tokenRes.headers);
     // var payload = decoded.accessToken!.split('.')[1];
     // logger.d(
@@ -528,6 +528,7 @@ Future<void> handleRedirect(String uri, [String? dpopNonce]) async {
 
 Future<(String, dynamic, KeyType)> buildJwt(
     List<String> algValues,
+    List<String> bindingMethods,
     WalletProvider wallet,
     String? cNonce,
     String credentialIssuer,
@@ -564,51 +565,57 @@ Future<(String, dynamic, KeyType)> buildJwt(
   var ddo = resolveDidKey(credentialDid).convertAllKeysToJwk().resolveKeyIds();
   var jwk = ddo.verificationMethod!.first.publicKeyJwk!;
   jwk.remove('kid');
-  var header = {
+  var header = <String, dynamic>{
     'typ': 'openid4vci-proof+jwt',
     'alg': alg,
     'crv': crv,
     // 'kid': credentialDid,
     // 'kid':
     //     'did:jwk:${removePaddingFromBase64(base64UrlEncode(utf8.encode(jsonEncode(jwk))))}#0',
-    'jwk': ddo.verificationMethod!.first.publicKeyJwk
+    //'jwk': ddo.verificationMethod!.first.publicKeyJwk
     //#${credentialDid.split(':').last
   };
 
-  var payload = {
-    'aud': credentialIssuer,
-    // 'iss':
-    //     'did:jwk:${removePaddingFromBase64(base64UrlEncode(utf8.encode(jsonEncode(jwk))))}',
-    'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-  };
-  if (clientId != null) {
-    payload['iss'] = clientId;
+  logger.d('binding methods: $bindingMethods');
+
+  if (bindingMethods.isEmpty || bindingMethods.contains('did:key')) {
+    header['kid'] = credentialDid;
+  } else if (bindingMethods.contains('jwk') ||
+      bindingMethods.contains('cose_key')) {
+    header['jwk'] = ddo.verificationMethod!.first.publicKeyJwk;
+  } else if (bindingMethods.contains('did:jwk')) {
+    header['kid'] =
+        'did:jwk:${removePaddingFromBase64(base64UrlEncode(utf8.encode(jsonEncode(jwk))))}#0';
+  } else {
+    showErrorMessage(
+      AppLocalizations.of(navigatorKey.currentContext!)!
+          .credentialDownloadFailed,
+    );
+    throw Exception('unsupported binding method');
   }
-  if (cNonce != null) {
-    payload['nonce'] = cNonce;
-  }
+  logger.d(header);
   logger.d(credentialDid);
+  var headerParsed = sd_jwt.JoseHeader.fromJson(header);
+  var jwt = sd_jwt.Jwt(
+      audience: credentialIssuer,
+      issuedAt: DateTime.now(),
+      issuer: clientId,
+      additionalClaims: cNonce != null ? {'nonce': cNonce} : null);
   var keyId = keystore == KeyStore.software
       ? credentialDid
       : wallet.getOsKeyStoreIdForDid(credentialDid);
-  var jwt = await signStringOrJson(
-      wallet: wallet.wallet,
-      didToSignWith: keyId,
-      toSign: payload,
-      jwsHeader: header,
-      detached: false);
-  //end JWT creation
-  logger.d(jwt);
-  logger.d(await verifyStringSignature(jwt, expectedDid: credentialDid));
+  var jws = await jwt.sign(
+      signer: WalletCryptoProviderForSdJwt(wallet.wallet, keyId!),
+      header: headerParsed as sd_jwt.JwsJoseHeader);
 
-  return (credentialDid, jwt, keyType);
+  return (credentialDid, jws.toCompactSerialization(), keyType);
 }
 
 Future<void> getCredential(
     String credentialIssuer,
     CredentialIssuerMetaData? metadata,
     CredentialsSupportedObject credentialMetadata,
-    OidcTokenResponse tokenResponse,
+    OidTokenResponse tokenResponse,
     String? clientId,
     String? dpopDid,
     String? dpopJti,
@@ -637,32 +644,55 @@ Future<void> getCredential(
 
   if (tokenResponse.cNonce == null) {
     logger.d('need new c_nonce');
-    // send false cred request to get cNonce
-    var credentialRequest = OidcCredentialRequest(
-      format: credentialMetadata.format,
-      credentialType: credentialMetadata.credentialType,
-    );
-
-    var credentialResponse = await post(Uri.parse(metadata.credentialEndpoint),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ${tokenResponse.accessToken}'
-            },
-            body: credentialRequest.toString())
-        .timeout(const Duration(seconds: 20), onTimeout: () {
-      return Response('Timeout', 400);
-    });
-
-    if (credentialResponse.statusCode != 200) {
-      try {
-        tokenResponse.cNonce = jsonDecode(credentialResponse.body)['c_nonce'];
-      } catch (e) {
-        logger.d('Keine nonce: $e');
+    if (metadata.nonceEndpoint != null) {
+      var nonceResponse = await post(Uri.parse(metadata.nonceEndpoint!));
+      if (nonceResponse.statusCode == 200 || nonceResponse.statusCode == 201) {
+        try {
+          tokenResponse.cNonce = jsonDecode(nonceResponse.body)['c_nonce'];
+        } catch (e) {
+          logger.d('Keine nonce: $e');
+          showErrorMessage(
+            AppLocalizations.of(navigatorKey.currentContext!)!
+                .credentialDownloadFailed,
+          );
+          return;
+        }
+      } else {
         showErrorMessage(
           AppLocalizations.of(navigatorKey.currentContext!)!
               .credentialDownloadFailed,
         );
         return;
+      }
+    } else {
+      // send false cred request to get cNonce
+      var credentialRequest = OidCredentialRequest(
+        format: credentialMetadata.format,
+        credentialType: credentialMetadata.credentialType,
+      );
+
+      var credentialResponse =
+          await post(Uri.parse(metadata.credentialEndpoint),
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ${tokenResponse.accessToken}'
+                  },
+                  body: credentialRequest.toString())
+              .timeout(const Duration(seconds: 20), onTimeout: () {
+        return Response('Timeout', 400);
+      });
+
+      if (credentialResponse.statusCode != 200) {
+        try {
+          tokenResponse.cNonce = jsonDecode(credentialResponse.body)['c_nonce'];
+        } catch (e) {
+          logger.d('Keine nonce: $e');
+          showErrorMessage(
+            AppLocalizations.of(navigatorKey.currentContext!)!
+                .credentialDownloadFailed,
+          );
+          return;
+        }
       }
     }
   }
@@ -677,7 +707,7 @@ Future<void> getCredential(
   KeyType keyType;
   KeyStore k = KeyStore.software;
 
-  if (credentialMetadata.format == OidcCredentialFormat.msoMdoc &&
+  if (credentialMetadata.format == OidCredentialFormat.msoMdoc &&
       credentialMetadata.credentialType != null &&
       credentialMetadata.credentialType!
           .contains(MobileDriversLicense.docType)) {
@@ -687,30 +717,32 @@ Future<void> getCredential(
 
   if (credentialMetadata.proofTypesSupported == null) {
     proofType = 'jwt';
-    (credentialDid, proofValue, keyType) = await buildJwt(
-        [], wallet, tokenResponse.cNonce, credentialIssuer, clientId, k);
+    (credentialDid, proofValue, keyType) = await buildJwt([],
+        credentialMetadata.cryptographicBindingMethods ?? [],
+        wallet,
+        tokenResponse.cNonce,
+        credentialIssuer,
+        clientId,
+        k);
   } else if (credentialMetadata.proofTypesSupported!.containsKey('ldp_vp')) {
     proofType = 'ldp_vp';
     credentialDid = await wallet.newCredentialDid();
     // create VP
-    var presentation = VerifiablePresentation(
-        context: [credentialsV1Iri, ed25519ContextIri],
-        type: ['VerifiablePresentation'],
-        holder: credentialDid);
-    var signer = EdDsaSigner(loadDocumentFast);
-    var p = await signer.buildProof(
-        presentation.toJson(), wallet.wallet, credentialDid,
-        challenge: tokenResponse.cNonce,
-        domain: credentialIssuer,
-        proofPurpose: 'authentication');
-    presentation.proof = [LinkedDataProof.fromJson(p)];
+    var presentation = VerifiablePresentation(holder: credentialDid);
+    var (signer, type) = await getCredentialSigningStuff(wallet, credentialDid);
+    presentation.addProof(signer, type,
+        challenge: tokenResponse.cNonce, domain: credentialIssuer);
     // end VP creation
     proofValue = presentation.toJson();
     keyType = KeyType.ed25519;
   } else if (credentialMetadata.proofTypesSupported!.containsKey('jwt')) {
     proofType = 'jwt';
     (credentialDid, proofValue, keyType) = await buildJwt(
-        credentialMetadata.proofTypesSupported?['jwt']?.cast<String>() ?? [],
+        credentialMetadata
+                .proofTypesSupported?['jwt']?.signingAlgValuesSupported
+                .cast<String>() ??
+            [],
+        credentialMetadata.cryptographicBindingMethods ?? [],
         wallet,
         tokenResponse.cNonce,
         credentialIssuer,
@@ -725,7 +757,7 @@ Future<void> getCredential(
     return;
   }
 
-  var credentialRequest = OidcCredentialRequest(
+  var credentialRequest = OidCredentialRequest(
       format: credentialMetadata.format,
       credentialType: credentialMetadata.credentialType,
       context: credentialMetadata.context,
@@ -801,7 +833,7 @@ Future<void> getCredential(
   });
 
   if (credentialResponse.statusCode == 200) {
-    OidcCredentialResponse decodedCredentialResponse;
+    OidCredentialResponse decodedCredentialResponse;
     logger.d(credentialResponse.body);
     if (decryptionKey != null) {
       try {
@@ -817,7 +849,7 @@ Future<void> getCredential(
       }
     } else {
       decodedCredentialResponse =
-          OidcCredentialResponse.fromJson(credentialResponse.body);
+          OidCredentialResponse.fromJson(credentialResponse.body);
     }
     var format = credentialMetadata.format;
 
@@ -844,7 +876,7 @@ Future<void> getCredential(
               decryptionKey));
     } else {
       storeCredential(format, decodedCredentialResponse.credential,
-          credentialDid, wallet, keyType, credentialIssuer);
+          credentialDid, wallet, credentialIssuer);
     }
   } else {
     logger.d(credentialResponse.statusCode);
@@ -856,7 +888,7 @@ Future<void> getCredential(
   }
 }
 
-OidcCredentialResponse decryptResponse(KeyPair decryptionKey, String data) {
+OidCredentialResponse decryptResponse(KeyPair decryptionKey, String data) {
   logger.d('decryption');
   var split = data.split('.');
   logger.d('length: ${split.length}');
@@ -896,7 +928,7 @@ OidcCredentialResponse decryptResponse(KeyPair decryptionKey, String data) {
       authenticationTag: tag,
       additionalAuthenticatedData: ascii.encode(split.first)));
   logger.d(utf8.decode(decrypted2));
-  return OidcCredentialResponse.fromJson(utf8.decode(decrypted2));
+  return OidCredentialResponse.fromJson(utf8.decode(decrypted2));
 }
 
 sendDeferredRequest(
@@ -920,7 +952,7 @@ sendDeferredRequest(
   });
 
   if (credentialResponse.statusCode == 200) {
-    OidcCredentialResponse decodedCredentialResponse;
+    OidCredentialResponse decodedCredentialResponse;
 
     if (decryptionKey != null) {
       try {
@@ -933,10 +965,10 @@ sendDeferredRequest(
       }
     } else {
       decodedCredentialResponse =
-          OidcCredentialResponse.fromJson(credentialResponse.body);
+          OidCredentialResponse.fromJson(credentialResponse.body);
     }
     storeCredential(format, decodedCredentialResponse.credential, credentialDid,
-        wallet, keyType, credentialIssuer);
+        wallet, credentialIssuer);
   } else {
     logger.d('${credentialResponse.statusCode} / ${credentialResponse.body}');
     var parsedBody = jsonDecode(credentialResponse.body);
@@ -963,8 +995,8 @@ sendDeferredRequest(
 }
 
 storeCredential(String format, dynamic credential, String credentialDid,
-    WalletProvider wallet, KeyType keyType, String credentialIssuer) async {
-  if (format == OidcCredentialFormat.msoMdoc) {
+    WalletProvider wallet, String credentialIssuer) async {
+  if (format == OidCredentialFormat.msoMdoc) {
     printWrapped(credential);
     logger.d(cborDecode(base64Decode(addPaddingToBase64(credential))));
     var data = IssuerSignedObject.fromCbor(
@@ -987,7 +1019,7 @@ storeCredential(String format, dynamic credential, String credentialDid,
       var credSubject = <String, dynamic>{'id': credentialDid};
       doc.items.forEach((key, value) {
         for (var i in value) {
-          credSubject[i.dataElementIdentifier] = i.dataElementValue;
+          credSubject[i.dataElementIdentifier] = i.dataElementValue.toString();
         }
       });
 
@@ -1009,6 +1041,8 @@ storeCredential(String format, dynamic credential, String credentialDid,
           issuanceDate: signedData.validityInfo.validFrom,
           expirationDate: signedData.validityInfo.validUntil);
 
+      logger.d(vc.toJson());
+
       // var storageCred = wallet.getCredential(credentialDid);
       //
       // if (storageCred == null) {
@@ -1018,9 +1052,11 @@ storeCredential(String format, dynamic credential, String credentialDid,
       //   return;
       // }
 
-      wallet.storeCredential(vc.toString(), credentialDid,
-          isoMdlData: '$isoPrefix:${base64Encode(doc.toEncodedCbor())}',
-          keyType: keyType);
+      wallet.storeCredential(
+        vc,
+        credentialDid,
+        isoMdlData: '$isoPrefix:${base64Encode(doc.toEncodedCbor())}',
+      );
       wallet.storeExchangeHistoryEntry(
           credentialDid, DateTime.now(), 'issue', credentialIssuer);
 
@@ -1028,7 +1064,7 @@ storeCredential(String format, dynamic credential, String credentialDid,
           AppLocalizations.of(navigatorKey.currentContext!)!.credentialReceived,
           signedData.docType);
     }
-  } else if (format == OidcCredentialFormat.sdJwt) {
+  } else if (format == OidCredentialFormat.sdJwt) {
     printWrapped(credential);
     var parsed = sd_jwt.SdJws.fromCompactSerialization(credential);
     logger.d(parsed.jsonContent());
@@ -1091,7 +1127,7 @@ storeCredential(String format, dynamic credential, String credentialDid,
             'certificate': jwk.x509CertificateChain!.first
         },
         credentialSubject: claims,
-        issuanceDate: sd.issuedAt ?? DateTime.now(),
+        issuanceDate: sd.issuedAt,
         expirationDate: sd.expirationTime);
 
     // var storageCred = wallet.getCredential(restoredDid);
@@ -1102,8 +1138,8 @@ storeCredential(String format, dynamic credential, String credentialDid,
     //   return;
     // }
 
-    wallet.storeCredential(vc.toString(), restoredDid,
-        isoMdlData: '$sdPrefix:$credential', keyType: keyType);
+    wallet.storeCredential(vc, restoredDid,
+        isoMdlData: '$sdPrefix:$credential');
     wallet.storeExchangeHistoryEntry(
         credentialDid, DateTime.now(), 'issue', credentialIssuer);
 
@@ -1113,11 +1149,11 @@ storeCredential(String format, dynamic credential, String credentialDid,
     return;
   } else {
     logger.d(credential);
+    var asVc = VerifiableCredential.fromJson(credential);
 
     var verified = false;
     try {
-      verified = await verifyCredential(credential,
-          loadDocumentFunction: loadDocumentFast);
+      verified = await asVc.verify(loadDocument: loadDocumentFast);
     } catch (e) {
       showErrorMessage(
         AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
@@ -1128,7 +1164,7 @@ storeCredential(String format, dynamic credential, String credentialDid,
 
     logger.d(verified);
     if (verified) {
-      var credDid = getHolderDidFromCredential(credential);
+      var credDid = asVc.credentialSubject['id'];
       logger.d(credDid);
       // var storageCred = wallet.getCredential(credDid.split('#').first);
       // if (storageCred == null) {
@@ -1138,20 +1174,18 @@ storeCredential(String format, dynamic credential, String credentialDid,
       //   return;
       // }
 
-      wallet.storeCredential(jsonEncode(credential), credDid);
+      wallet.storeCredential(asVc, credDid);
       wallet.storeExchangeHistoryEntry(
           credDid, DateTime.now(), 'issue', credentialIssuer);
 
-      var asVC = VerifiableCredential.fromJson(credential);
-
       showSuccessMessage(
           AppLocalizations.of(navigatorKey.currentContext!)!.credentialReceived,
-          getTypeToShow(asVC.type));
+          getTypeToShow(asVc.type));
     }
   }
 }
 
-Future<void> handlePresentationRequestOidc(String request) async {
+Future<void> handlePresentationRequestOid(String request) async {
   var asUri = Uri.parse(request);
   PresentationDefinition? definition;
   String? nonce, responseUri;
@@ -1281,8 +1315,8 @@ Future<void> handlePresentationRequestOidc(String request) async {
   List<IssuerSignedObject> isoCredsParsed = [];
   List<sd_jwt.SdJws> sdJwtCredentials = [];
   allCreds.forEach((key, value) {
-    if (value.w3cCredential != '') {
-      var vc = VerifiableCredential.fromJson(value.w3cCredential);
+    if (value.verifiableCredential != '') {
+      var vc = VerifiableCredential.fromJson(value.verifiableCredential);
       var type = getTypeToShow(vc.type);
       if (type != 'PaymentReceipt') {
         creds.add(vc);
@@ -1292,12 +1326,12 @@ Future<void> handlePresentationRequestOidc(String request) async {
 
   for (var cred in isoCreds) {
     isoCredsParsed.add(IssuerSignedObject.fromCbor(
-        base64Decode(cred.plaintextCredential.replaceAll('$isoPrefix:', ''))));
+        base64Decode(cred.metadata.replaceAll('$isoPrefix:', ''))));
   }
 
   for (var c in wallet.sdJwtCredentials) {
     sdJwtCredentials.add(sd_jwt.SdJws.fromCompactSerialization(
-        c.plaintextCredential.replaceAll('$sdPrefix:', '')));
+        c.metadata.replaceAll('$sdPrefix:', '')));
   }
 
   if (definition == null) {

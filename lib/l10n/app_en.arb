@@ -265,5 +265,12 @@
   "residencePermit2": "Residence permit 2",
   "communityId": "Community ID",
   "addressVerification": "Address verification",
-  "ageVerification": "Age verification"
+  "ageVerification": "Age verification",
+  "bleOff": "Bluetooth is deactivated. Please activate it.",
+  "bleTransmissionStart": "Preparing",
+  "bleTransmissionPrepare": "Data is created",
+  "bleTransmissionConnected": "Successfully connected. Wait for request",
+  "bleTransmissionSend": "Data send",
+  "bleTransmissionFinished": "Transmission ended and connection disconnected",
+  "bleButton": "Restart"
 }

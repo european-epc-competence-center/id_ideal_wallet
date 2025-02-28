@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/cupertino.dart';
@@ -208,7 +209,7 @@ class OsKeyStore extends KeyStoreBackend {
   FutureOr<Map<String, dynamic>> getKeyInformation(String keyId) async {
     var p = (await _instance.getKeyInfo(keyId))
         .map((k, v) => MapEntry(k as String, v));
-    if (p.containsKey('x5c')) {
+    if (p.containsKey('x5c') && (p['x5c'] as List).isNotEmpty) {
       String? x, y, crv;
       (x, y, crv) = _parseCert((p['x5c'] as List).first);
       if (x != null) {
@@ -267,6 +268,30 @@ class OsKeyStore extends KeyStoreBackend {
     }
     return (null, null, null);
   }
+}
+
+Future<(CredentialSigner, LdpProofType)> getCredentialSigningStuff(
+    WalletProvider wallet, String did) async {
+  var keyId = wallet.getOsKeyStoreIdForDid(did) ?? did;
+  var keyInfo = await wallet.wallet.getKeyInformation(keyId);
+  String alg = 'EdDSA';
+  LdpProofType type = LdpProofType.ed25519Signature2020;
+  if (keyInfo['crv'] == 'P-256' || keyInfo['crv'] == 'secp256k1') {
+    alg = 'ES256';
+    type = LdpProofType.jsonWebSignature2020;
+  } else if (keyInfo['crv'] == 'P-384') {
+    alg = 'ES384';
+    type = LdpProofType.jsonWebSignature2020;
+  } else if (keyInfo['crv'] == 'P-521') {
+    alg = 'ES512';
+    type = LdpProofType.jsonWebSignature2020;
+  }
+
+  return (
+    WalletCredentialSigner(
+        wallet.wallet, keyId, alg, '$did#${did.split(':').last}'),
+    type
+  );
 }
 
 Future<void> getWalletAttestation() async {

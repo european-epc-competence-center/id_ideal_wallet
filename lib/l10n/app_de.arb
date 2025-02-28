@@ -265,5 +265,12 @@
   "residencePermit2": "Aufenthaltserlaubnis 2",
   "communityId": "Wohnort-ID",
   "addressVerification": "Adress-Verifikation",
-  "ageVerification": "Altersverifikation"
+  "ageVerification": "Altersverifikation",
+  "bleOff": "Bluetooth ist nicht aktiv. Bitte aktivieren Sie es.",
+  "bleTransmissionStart": "Vorbereitung",
+  "bleTransmissionPrepare": "Daten werden erstellt",
+  "bleTransmissionConnected": "Erfolgreich verbunden. Warte auf Anfrage",
+  "bleTransmissionSend": "Daten gesendet",
+  "bleTransmissionFinished": "Übertragung beendet und Verbindung getrennt",
+  "bleButton": "Neustart"
 }

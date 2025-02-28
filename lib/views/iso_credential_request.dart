@@ -1,5 +1,6 @@
 import 'package:bluetooth_low_energy/bluetooth_low_energy.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
 import 'package:provider/provider.dart';
@@ -28,18 +29,18 @@ class IsoCredentialRequestState extends State<IsoCredentialRequest> {
 
   Widget getText(MdocProvider mdoc) {
     if (mdoc.transmissionState == BleMdocTransmissionState.uninitialized) {
-      return Text('Es wird vorbereitet');
+      return Text(AppLocalizations.of(context)!.bleTransmissionStart);
     } else if (mdoc.transmissionState == BleMdocTransmissionState.advertising) {
       return mdoc.qrData.isEmpty
-          ? Text('Daten werden erstellt')
+          ? Text(AppLocalizations.of(context)!.bleTransmissionPrepare)
           : QrImageView(data: mdoc.qrData);
     } else if (mdoc.transmissionState == BleMdocTransmissionState.connected) {
-      return Text('Erfolgreich verbunden. Warte auf Anfrage');
+      return Text(AppLocalizations.of(context)!.bleTransmissionConnected);
     } else if (mdoc.transmissionState == BleMdocTransmissionState.send) {
-      return Text('Daten gesendet');
+      return Text(AppLocalizations.of(context)!.bleTransmissionSend);
     } else if (mdoc.transmissionState ==
         BleMdocTransmissionState.disconnected) {
-      return Text('Übertragung beendet. Verbindung getrennt');
+      return Text(AppLocalizations.of(context)!.bleTransmissionFinished);
     } else {
       return Text('Keine Ahnung was grad los ist');
     }
@@ -52,10 +53,27 @@ class IsoCredentialRequestState extends State<IsoCredentialRequest> {
         child: Center(
           child: Consumer<MdocProvider>(builder: (context, mdoc, child) {
             if (mdoc.transmissionState ==
-                BleMdocTransmissionState.uninitialized) mdoc.startBle();
-            return mdoc.bleState == BluetoothLowEnergyState.poweredOn
-                ? getText(mdoc)
-                : const Text('Bluetooth ist nicht aktiv. Bitte anschalten.');
+                BleMdocTransmissionState.uninitialized) {
+              mdoc.startBle();
+            }
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                mdoc.bleState == BluetoothLowEnergyState.poweredOn
+                    ? getText(mdoc)
+                    : Text(AppLocalizations.of(context)!.bleOff),
+                const SizedBox(
+                  height: 10,
+                ),
+                if (mdoc.transmissionState ==
+                    BleMdocTransmissionState.disconnected)
+                  ElevatedButton(
+                      onPressed: () {
+                        mdoc.restartBle();
+                      },
+                      child: Text(AppLocalizations.of(context)!.bleButton))
+              ],
+            );
           }),
         ),
       ),

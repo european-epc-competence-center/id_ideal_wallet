@@ -37,9 +37,9 @@ Future<void> performBackup(BuildContext context, String memonic) async {
     var c = walletData['credentials']?.remove(d);
     if (c != null) {
       logger.d(c);
-      notInBackup += getTypeToShow(
-          VerifiableCredential.fromJson(Credential.fromJson(c).w3cCredential)
-              .type);
+      notInBackup += getTypeToShow(VerifiableCredential.fromJson(
+              Credential.fromJson(c).verifiableCredential)
+          .type);
       notInBackup += ' ,';
     }
   }

@@ -122,11 +122,11 @@ class NavigationProvider extends ChangeNotifier {
       handleRedirect(link);
     } else if (link.startsWith('openid-credential-offer') ||
         link.startsWith('eudi-openid4vci')) {
-      handleOfferOidc(link);
+      handleOfferOid(link);
     } else if (link.startsWith('openid-presentation-request') ||
         link.startsWith('eudi-openid4vp') ||
         link.startsWith('openid4vp')) {
-      handlePresentationRequestOidc(link);
+      handlePresentationRequestOid(link);
     } else if (link.startsWith('eid')) {
       logger.d(link);
       var asUri = Uri.parse(link);
@@ -142,7 +142,7 @@ class NavigationProvider extends ChangeNotifier {
       var asUri = Uri.parse(link);
       // Known Query Parameter
       if (link.contains('credential_offer')) {
-        handleOfferOidc(link);
+        handleOfferOid(link);
       } else if (link.contains('ooburl=')) {
         handleOobUrl(link);
       } else if (link.contains('oobid=')) {

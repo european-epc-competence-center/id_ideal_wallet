@@ -82,7 +82,7 @@ var stylingEndpoint = 'https://test.hidy.app/walletcontext/layouts';
 var termsVersionEndpoint = 'https://test.hidy.app/walletcontext/terms';
 String versionNumber = '3.5.3-test';
 String baseUrl = 'https://test.hidy.app';
-bool testBuild = false;
+bool testBuild = true;
 
 bool inOidcTest = false;
 

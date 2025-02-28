@@ -43,9 +43,9 @@ class AusweisData extends StatelessWidget {
                 FooterButtons(
                     positiveText:
                         AppLocalizations.of(context)!.storeAsCredential,
-                    positiveFunction: () {
+                    positiveFunction: () async {
                       if (ausweis.readData != null) {
-                        ausweis.storeAsCredential();
+                        await ausweis.requestSignedCredential();
                         Navigator.of(context).pop();
                       }
                     })

@@ -1,6 +1,6 @@
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/did.dart';
-import 'package:dart_ssi/x509.dart';
+import 'package:dart_ssi/util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
@@ -189,8 +189,19 @@ class IssuerInfoIconState extends State<IssuerInfoIcon> {
         try {
           var verified = await verifyIssuerCert(cert);
           if (verified) {
-            marker = Icons.verified_outlined;
-            iconColor = Colors.green;
+            if (widget.issuer['id'] != null) {
+              if (commonName == widget.issuer['id']) {
+                marker = Icons.verified_outlined;
+                iconColor = Colors.green;
+              } else {
+                iconColor = Colors.red;
+                marker = Icons.close;
+                logger.d('did in credential and did in cert do not match');
+              }
+            } else {
+              marker = Icons.verified_outlined;
+              iconColor = Colors.green;
+            }
           }
         } catch (e) {
           iconColor = Colors.red;

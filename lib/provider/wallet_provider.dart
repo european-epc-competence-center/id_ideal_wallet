@@ -6,6 +6,7 @@ import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/didcomm.dart';
+import 'package:dart_ssi/exceptions.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/material.dart';
@@ -198,9 +199,11 @@ class WalletProvider extends ChangeNotifier {
               credentialSubject: {'id': did, ...passAsJson, ...simplyfiedData},
               issuanceDate: DateTime.now());
 
-          var signed = await signCredential(_wallet, vc.toJson());
-          //var storageCred = getCredential(did);
-          storeCredential(signed, did);
+          var (signer, proofType) =
+              await my_util.getCredentialSigningStuff(this, did);
+          await vc.sign(signer, proofType);
+
+          storeCredential(vc, did);
           storeExchangeHistoryEntry(did, DateTime.now(), 'issue', did);
           showSuccessMessage(AppLocalizations.of(navigatorKey.currentContext!)!
               .importSuccess(type));
@@ -433,7 +436,7 @@ class WalletProvider extends ChangeNotifier {
 
   Future<void> checkValiditySingle(VerifiableCredential vc,
       [bool notify = false]) async {
-    var id = getHolderDidFromCredential(vc.toJson());
+    var id = vc.credentialSubject['id'] ?? '';
     if (id == '') {
       var type = my_util.getTypeToShow(vc.type);
       id = '${vc.issuanceDate.toIso8601String()}$type';
@@ -458,7 +461,7 @@ class WalletProvider extends ChangeNotifier {
     if (vc.status != null) {
       logger.d(vc.status);
       try {
-        var revoked = await checkForRevocation(vc);
+        var revoked = await vc.status!.isRevoked(vc);
         if (!revoked) {
           revocationState[id] = RevocationState.valid.index;
         }
@@ -629,9 +632,11 @@ class WalletProvider extends ChangeNotifier {
         },
         issuanceDate: DateTime.now());
 
-    var signed = await signCredential(_wallet, contextCred.toJson());
+    var (signer, proofType) =
+        await my_util.getCredentialSigningStuff(this, did);
+    await contextCred.sign(signer, proofType);
     //var storageCred = wallet.getCredential(did);
-    storeCredential(signed, did);
+    storeCredential(contextCred, did);
     storeExchangeHistoryEntry(did, DateTime.now(), 'update', did);
 
     notifyListeners();
@@ -648,20 +653,21 @@ class WalletProvider extends ChangeNotifier {
 
     var all = allCredentials();
     for (var cred in all.values) {
-      if (cred.w3cCredential == '' || cred.w3cCredential == 'vc') {
+      if (cred.verifiableCredential == '' ||
+          cred.verifiableCredential == 'vc') {
         continue;
       }
-      if (cred.plaintextCredential == '' ||
-          cred.plaintextCredential.startsWith('$isoPrefix:') ||
-          cred.plaintextCredential.startsWith('$sdPrefix:')) {
-        if (cred.plaintextCredential.startsWith('$isoPrefix:')) {
+      if (cred.metadata == '' ||
+          cred.metadata.startsWith('$isoPrefix:') ||
+          cred.metadata.startsWith('$sdPrefix:')) {
+        if (cred.metadata.startsWith('$isoPrefix:')) {
           isoMdocCredentials.add(cred);
         }
-        if (cred.plaintextCredential.startsWith('$sdPrefix:')) {
+        if (cred.metadata.startsWith('$sdPrefix:')) {
           sdJwtCredentials.add(cred);
         }
 
-        var vc = VerifiableCredential.fromJson(cred.w3cCredential);
+        var vc = VerifiableCredential.fromJson(cred.verifiableCredential);
         if (vc.type.contains('PaymentContext')) {
           paymentCredentials.add(vc);
           _updateLastThreePayments(vc.id!);
@@ -768,19 +774,17 @@ class WalletProvider extends ChangeNotifier {
     return _wallet.getCredential(did);
   }
 
-  void storeCredential(String vc, String credentialId,
-      {String? newDid,
-      String? isoMdlData,
-      KeyType keyType = KeyType.ed25519}) async {
+  void storeCredential(VerifiableCredential vc, String credentialId,
+      {String? isoMdlData}) async {
     await _wallet.storeCredential(
-      vc,
-      isoMdlData ?? '',
+      vc.toString(),
       credentialId,
+      isoMdlData ?? '',
     );
     await _buildCredentialList();
-    var vcParsed = VerifiableCredential.fromJson(vc);
-    var type = vcParsed.type
-        .firstWhere((element) => element != 'VerifiableCredential');
+
+    var type =
+        vc.type.firstWhere((element) => element != 'VerifiableCredential');
     logger.d(type);
 
     if (type == 'PieceOfArt') {
@@ -795,7 +799,7 @@ class WalletProvider extends ChangeNotifier {
             false);
       }
     }
-    await checkValiditySingle(vcParsed);
+    await checkValiditySingle(vc);
     notifyListeners();
     var nav = Provider.of<NavigationProvider>(navigatorKey.currentContext!,
         listen: false);
@@ -857,8 +861,10 @@ class WalletProvider extends ChangeNotifier {
         type: ['VerifiableCredential', 'MemberCard'],
         credentialSubject: {'id': did, ...subject});
 
-    var signed = await signCredential(_wallet, vc.toJson());
-    storeCredential(signed, did);
+    var (signer, proofType) =
+        await my_util.getCredentialSigningStuff(this, did);
+    await vc.sign(signer, proofType);
+    storeCredential(vc, did);
     wallet.storeExchangeHistoryEntry(did, DateTime.now(), 'issue', did);
   }
 

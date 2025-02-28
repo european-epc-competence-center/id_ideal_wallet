@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'dart:io';
 
 import 'package:base_codecs/base_codecs.dart';
@@ -15,7 +14,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
-import 'package:id_ideal_wallet/functions/oidc_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/presentation_request.dart';
@@ -155,6 +153,7 @@ class MdocProvider extends ChangeNotifier {
           } else if (value.first == 2) {
             logger.d('End Signal received');
             transmissionState = BleMdocTransmissionState.disconnected;
+            notifyListeners();
           }
         }
       },
@@ -176,6 +175,21 @@ class MdocProvider extends ChangeNotifier {
     });
 
     //notifyListeners();
+  }
+
+  void restartBle() {
+    serviceUuid = UUID.fromString(const Uuid().v4().toString());
+    mdocService = GATTService(
+        uuid: serviceUuid!,
+        characteristics: [
+          mdocPeripheralState,
+          mdocPeripheralClient2Server,
+          mdocPeripheralServer2Client
+        ],
+        isPrimary: true,
+        includedServices: []);
+    generateDeviceEngagement();
+    startAdvertising();
   }
 
   setBleState() async {
@@ -211,7 +225,7 @@ class MdocProvider extends ChangeNotifier {
     await peripheralManager?.removeAllServices();
     await peripheralManager?.addService(mdocService!);
     final advertisement = Advertisement(
-      name: 'mdoc',
+      name: 'Hidy Mdoc Service',
       serviceUUIDs: [serviceUuid!],
     );
     await peripheralManager?.startAdvertising(advertisement);
@@ -252,6 +266,10 @@ class MdocProvider extends ChangeNotifier {
 
       transmissionState = BleMdocTransmissionState.send;
     }
+    showSuccessMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!
+            .presentationSuccessful,
+        type?.substring(0, type.length - 1) ?? '');
     notifyListeners();
   }
 
@@ -550,7 +568,7 @@ class MdocProvider extends ChangeNotifier {
 
     for (var cred in isoCreds) {
       var data = IssuerSignedObject.fromCbor(
-          base64Decode(cred.plaintextCredential.replaceAll('$isoPrefix:', '')));
+          base64Decode(cred.metadata.replaceAll('$isoPrefix:', '')));
       var m = MobileSecurityObject.fromCbor(data.issuerAuth.payload);
       var coseKey = m.deviceKeyInfo.deviceKey;
       KeyType keyType;
@@ -587,7 +605,7 @@ class MdocProvider extends ChangeNotifier {
             });
 
             data.items = revealedData;
-            var vc = VerifiableCredential.fromJson(cred.w3cCredential);
+            var vc = VerifiableCredential.fromJson(cred.verifiableCredential);
             vc.credentialSubject = contentToShow;
             toShow.add(data);
           }
