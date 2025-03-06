@@ -67,7 +67,7 @@ class CredentialPageState extends State<CredentialPage> {
                 ? [
                     InkWell(
                         onTap: () =>
-                            navigateClassic(const IsoCredentialRequest()),
+                            navigateClassic(const IsoCredentialRequest(), true),
                         child: const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 10),
                             child: Icon(Icons.qr_code_2, size: 30)))

@@ -12,8 +12,10 @@ import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/oidc_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
+import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
+import 'package:id_ideal_wallet/views/iso_credential_request.dart';
 import 'package:id_ideal_wallet/views/presentation_request.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -35,6 +37,7 @@ class WebViewWindowState extends State<WebViewWindow> {
   bool isInAbo = false;
   String imageUrl = '';
   List<String>? trustedSites;
+  bool mdocRunning = false;
 
   InAppWebViewController? webViewController;
   InAppWebViewSettings settings = InAppWebViewSettings(
@@ -276,6 +279,13 @@ class WebViewWindowState extends State<WebViewWindow> {
                             callback: (args) async {
                               var res = await Share.share(args.first);
                               return res.status == ShareResultStatus.success;
+                            });
+                        webViewController?.addJavaScriptHandler(
+                            handlerName: 'initiateProximitySharing',
+                            callback: (args) async {
+                              navigateClassic(
+                                  const IsoCredentialRequest(), true);
+                              return true;
                             });
                         webViewController?.addJavaScriptHandler(
                             handlerName: 'shareImageHandler',
@@ -558,5 +568,14 @@ class WebViewWindowState extends State<WebViewWindow> {
           AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsNote);
       return null;
     }
+  }
+
+  @override
+  void dispose() {
+    if (mdocRunning) {
+      Provider.of<MdocProvider>(navigatorKey.currentContext!, listen: false)
+          .stopAdvertising(true);
+    }
+    super.dispose();
   }
 }

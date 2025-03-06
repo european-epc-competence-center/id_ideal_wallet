@@ -27,7 +27,8 @@ enum BleMdocTransmissionState {
   advertising,
   connected,
   disconnected,
-  send
+  send,
+  error
 }
 
 class WalletSigner extends SignatureGenerator {
@@ -83,6 +84,7 @@ class MdocProvider extends ChangeNotifier {
   PeripheralManager? peripheralManager;
   List<int> readBuffer = [];
   Central? connectedDevice;
+  int errorCount = 0;
 
   MdocProvider();
 
@@ -149,7 +151,7 @@ class MdocProvider extends ChangeNotifier {
         }
         if (characteristic.uuid == mdocPeripheralState.uuid) {
           if (value.first == 1) {
-            logger.d('Start Signal recieved');
+            logger.d('Start Signal received');
           } else if (value.first == 2) {
             logger.d('End Signal received');
             transmissionState = BleMdocTransmissionState.disconnected;
@@ -174,22 +176,13 @@ class MdocProvider extends ChangeNotifier {
       logger.d('error: $e');
     });
 
+    logger.d(bleState);
     //notifyListeners();
   }
 
-  void restartBle() {
-    serviceUuid = UUID.fromString(const Uuid().v4().toString());
-    mdocService = GATTService(
-        uuid: serviceUuid!,
-        characteristics: [
-          mdocPeripheralState,
-          mdocPeripheralClient2Server,
-          mdocPeripheralServer2Client
-        ],
-        isPrimary: true,
-        includedServices: []);
-    generateDeviceEngagement();
-    startAdvertising();
+  void restartBle() async {
+    await stopAdvertising(true);
+    startBle();
   }
 
   setBleState() async {
@@ -198,7 +191,7 @@ class MdocProvider extends ChangeNotifier {
     bleState = s ?? BluetoothLowEnergyState.unknown;
   }
 
-  generateDeviceEngagement() async {
+  generateDeviceEngagement() {
     myPrivateKey = CoseKey.generate(CoseCurve.p256);
     engagement = DeviceEngagement(
         security: Security(
@@ -222,16 +215,36 @@ class MdocProvider extends ChangeNotifier {
   }
 
   Future<void> startAdvertising() async {
-    await peripheralManager?.removeAllServices();
-    await peripheralManager?.addService(mdocService!);
-    final advertisement = Advertisement(
-      name: 'Hidy Mdoc Service',
-      serviceUUIDs: [serviceUuid!],
-    );
-    await peripheralManager?.startAdvertising(advertisement);
-    transmissionState =
-        BleMdocTransmissionState.advertising; // advertising mode
-    notifyListeners();
+    try {
+      if (peripheralManager == null) {
+        transmissionState = BleMdocTransmissionState.error;
+        notifyListeners();
+        return;
+      }
+      await peripheralManager?.removeAllServices();
+      await peripheralManager?.addService(mdocService!);
+      final advertisement = Advertisement(
+        name: 'Hidy Mdoc Service',
+        serviceUUIDs: [serviceUuid!],
+      );
+      await peripheralManager?.startAdvertising(advertisement);
+      transmissionState =
+          BleMdocTransmissionState.advertising; // advertising mode
+      logger.d('advertising');
+      errorCount = 0;
+      notifyListeners();
+    } catch (e) {
+      if (errorCount >= 20) {
+        transmissionState = BleMdocTransmissionState.error;
+        errorCount = 0;
+        notifyListeners();
+      } else {
+        logger.d('start advertising failed');
+        await stopAdvertising(true);
+        startBle();
+        errorCount++;
+      }
+    }
   }
 
   Future<void> stopAdvertising([bool dispose = false]) async {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
+import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -22,6 +23,7 @@ class IsoCredentialRequestState extends State<IsoCredentialRequest> {
 
   @override
   void dispose() {
+    logger.d('Iso request dispose');
     Provider.of<MdocProvider>(navigatorKey.currentContext!, listen: false)
         .stopAdvertising(true);
     super.dispose();
@@ -35,14 +37,13 @@ class IsoCredentialRequestState extends State<IsoCredentialRequest> {
           ? Text(AppLocalizations.of(context)!.bleTransmissionPrepare)
           : QrImageView(data: mdoc.qrData);
     } else if (mdoc.transmissionState == BleMdocTransmissionState.connected) {
+      Provider.of<NavigationProvider>(context, listen: false)
+          .removeStoredRoute();
       return Text(AppLocalizations.of(context)!.bleTransmissionConnected);
-    } else if (mdoc.transmissionState == BleMdocTransmissionState.send) {
-      return Text(AppLocalizations.of(context)!.bleTransmissionSend);
-    } else if (mdoc.transmissionState ==
-        BleMdocTransmissionState.disconnected) {
-      return Text(AppLocalizations.of(context)!.bleTransmissionFinished);
+    } else if (mdoc.transmissionState == BleMdocTransmissionState.error) {
+      return Text(AppLocalizations.of(context)!.bleError);
     } else {
-      return Text('Keine Ahnung was grad los ist');
+      return const Text('Keine Ahnung was grad los ist');
     }
   }
 
@@ -52,8 +53,12 @@ class IsoCredentialRequestState extends State<IsoCredentialRequest> {
       body: SafeArea(
         child: Center(
           child: Consumer<MdocProvider>(builder: (context, mdoc, child) {
+            logger.d(mdoc.transmissionState);
             if (mdoc.transmissionState ==
-                BleMdocTransmissionState.uninitialized) {
+                    BleMdocTransmissionState.uninitialized ||
+                mdoc.transmissionState == BleMdocTransmissionState.send ||
+                mdoc.transmissionState ==
+                    BleMdocTransmissionState.disconnected) {
               mdoc.startBle();
             }
             return Column(

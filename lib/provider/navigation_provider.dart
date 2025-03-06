@@ -26,6 +26,7 @@ class NavigationProvider extends ChangeNotifier {
   bool canPop = true;
   bool showWelcome;
   String? bufferedLink;
+  PageRoute? storedRoute;
 
   static const platform = MethodChannel('app.channel.deeplink');
   static const stream = EventChannel('app.channel.deeplink/events');
@@ -34,6 +35,13 @@ class NavigationProvider extends ChangeNotifier {
     getInitialUri().then((l) => handleLink(l));
     stream.receiveBroadcastStream().listen((link) => handleLink(link));
     logger.d('listen link stream');
+  }
+
+  void removeStoredRoute() {
+    if (storedRoute != null) {
+      logger.d('storedRoute removed');
+      Navigator.of(navigatorKey.currentContext!).removeRoute(storedRoute!);
+    }
   }
 
   void finishOnboard() {

@@ -272,5 +272,6 @@
   "bleTransmissionConnected": "Successfully connected. Wait for request",
   "bleTransmissionSend": "Data send",
   "bleTransmissionFinished": "Transmission ended and connection disconnected",
-  "bleButton": "Restart"
+  "bleButton": "Restart",
+  "bleError": "An error has occurred. Please restart the process using the button.\nIf you see this message repeatedly, try switching Bluetooth off and on again or restarting Hidy"
 }

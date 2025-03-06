@@ -14,6 +14,7 @@ import 'package:http/http.dart';
 import 'package:id_ideal_wallet/constants/root_certificates.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/oidc_handler.dart';
+import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:iso_mdoc/iso_mdoc.dart';
 import 'package:local_auth/local_auth.dart';
@@ -329,10 +330,15 @@ Future<void> getWalletAttestation() async {
   }
 }
 
-Future navigateClassic(Widget newView) {
-  return Navigator.of(navigatorKey.currentContext!).push(Platform.isIOS
+Future navigateClassic(Widget newView, [bool storeRoute = false]) {
+  var route = Platform.isIOS
       ? CupertinoPageRoute(builder: (context) => newView)
-      : MaterialPageRoute(builder: (context) => newView));
+      : MaterialPageRoute(builder: (context) => newView);
+  if (storeRoute) {
+    Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false)
+        .storedRoute = route;
+  }
+  return Navigator.of(navigatorKey.currentContext!).push(route);
 }
 
 class AboData {
