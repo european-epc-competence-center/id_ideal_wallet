@@ -401,7 +401,12 @@ class HomeScreen extends StatelessWidget {
                     width: double.infinity,
                     height: MediaQuery.of(context).size.height * 0.1,
                   ),
-                  const CircularProgressIndicator()
+                  Text(AppLocalizations.of(context)!.pictureProcessNote),
+                  const SizedBox(
+                    width: double.infinity,
+                    height: 5,
+                  ),
+                  Text(AppLocalizations.of(context)!.prepareWallet),
                 ],
               )
             ]),
