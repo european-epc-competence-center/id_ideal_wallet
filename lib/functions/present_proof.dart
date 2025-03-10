@@ -1,20 +1,21 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:crypto/crypto.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/didcomm.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:uuid/uuid.dart';
+
 import '../constants/server_address.dart';
 import '../provider/wallet_provider.dart';
 import '../views/presentation_dialog.dart';
 import '../views/presentation_proposal_dialog.dart';
 import '../views/presentation_request.dart';
 import 'didcomm_message_handler.dart';
-import 'package:flutter/cupertino.dart';
-import 'dart:io' show Platform;
 
 Future<bool> handleProposePresentation(
     ProposePresentation message, WalletProvider wallet) async {
@@ -76,11 +77,11 @@ Future<bool> handleRequestPresentation(
   var allCreds = wallet.allCredentials();
   List<VerifiableCredential> creds = [];
   allCreds.forEach((key, value) {
-    if (value.w3cCredential != '') {
-      var vc = VerifiableCredential.fromJson(value.w3cCredential);
+    if (value.verifiableCredential != '') {
+      var vc = VerifiableCredential.fromJson(value.verifiableCredential);
       var type = getTypeToShow(vc.type);
       if (type != 'PaymentReceipt') {
-        var id = getHolderDidFromCredential(vc.toJson());
+        var id = vc.credentialSubject['id'];
         var status = wallet.revocationState[id];
         if (status == RevocationState.valid.index ||
             status == RevocationState.unknown.index) {
@@ -162,9 +163,15 @@ Future<bool> handleRequestPresentation(
 
     if (initialWebview != null && authorizedApps.contains(initialWebview)) {
       logger.d('send with no interaction');
-      var vp = await buildPresentation(filtered, wallet.wallet,
-          message.presentationDefinition.first.challenge,
-          loadDocumentFunction: loadDocumentFast);
+      var vp = VerifiablePresentation.fromFilterResults(filtered);
+      for (var vc in vp.verifiableCredential!) {
+        var did = vc.credentialSubject['id'];
+        if (did == null || did == '') continue;
+        var (signer, proofType) = await getCredentialSigningStuff(wallet, did);
+        await vp.addProof(signer, proofType,
+            challenge: message.presentationDefinition.first.challenge,
+            loadDocument: loadDocumentFast);
+      }
       var presentationMessage = Presentation(
           replyUrl: '$relay/buffer/$myDid',
           returnRoute: ReturnRouteValue.thread,
@@ -178,25 +185,22 @@ Future<bool> handleRequestPresentation(
           silent: true);
     } else {
       var target = PresentationRequestDialog(
-            definition: definition,
-            definitionHash: definitionHash.toString(),
-            name: definition.name,
-            purpose: definition.purpose,
-            message: message,
-            otherEndpoint: requester,
-            receiverDid: message.from!,
-            myDid: myDid,
-            results: filtered,
-            lnInvoice: invoice,
-            paymentCards: paymentCards,
-            lnInvoiceRequest: invoiceReq,
-          );
-      Navigator.of(navigatorKey.currentContext!)
-          .push(
-            Platform.isIOS
-            ? CupertinoPageRoute(builder: (context) => target)
-            : MaterialPageRoute(builder: (context) => target)
-          );
+        definition: definition,
+        definitionHash: definitionHash.toString(),
+        name: definition.name,
+        purpose: definition.purpose,
+        message: message,
+        otherEndpoint: requester,
+        receiverDid: message.from!,
+        myDid: myDid,
+        results: filtered,
+        lnInvoice: invoice,
+        paymentCards: paymentCards,
+        lnInvoiceRequest: invoiceReq,
+      );
+      Navigator.of(navigatorKey.currentContext!).push(Platform.isIOS
+          ? CupertinoPageRoute(builder: (context) => target)
+          : MaterialPageRoute(builder: (context) => target));
     }
   } catch (e) {
     logger.e(e);
@@ -218,8 +222,8 @@ Future<bool> handlePresentation(
       RequestPresentation.fromJson(conversation.lastMessage);
   var challenge = requestPresentation.presentationDefinition.first.challenge;
 
-  var verified =
-      await verifyPresentation(message.verifiablePresentation.first, challenge);
+  var verified = await message.verifiablePresentation.first
+      .verify(expectedChallenge: challenge);
   if (verified) {
     await showDialog(
         context: navigatorKey.currentContext!,

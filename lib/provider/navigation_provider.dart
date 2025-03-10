@@ -9,7 +9,6 @@ import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/oidc_handler.dart';
-import 'package:id_ideal_wallet/functions/payment_utils.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
@@ -26,6 +25,7 @@ class NavigationProvider extends ChangeNotifier {
   bool canPop = true;
   bool showWelcome;
   String? bufferedLink;
+  PageRoute? storedRoute;
 
   static const platform = MethodChannel('app.channel.deeplink');
   static const stream = EventChannel('app.channel.deeplink/events');
@@ -34,6 +34,13 @@ class NavigationProvider extends ChangeNotifier {
     getInitialUri().then((l) => handleLink(l));
     stream.receiveBroadcastStream().listen((link) => handleLink(link));
     logger.d('listen link stream');
+  }
+
+  void removeStoredRoute() {
+    if (storedRoute != null) {
+      logger.d('storedRoute removed');
+      Navigator.of(navigatorKey.currentContext!).removeRoute(storedRoute!);
+    }
   }
 
   void finishOnboard() {
@@ -109,24 +116,25 @@ class NavigationProvider extends ChangeNotifier {
       return;
     }
     // Handle Custom Schemes
-    if (link.startsWith('lightning:')) {
-      handleLink(link.replaceAll('lightning:', ''));
-    } else if (link.startsWith('LNURL') || link.startsWith('lnurl')) {
-      handleLnurl(link);
-    } else if (link.startsWith('lnbc') || link.startsWith('LNBC')) {
-      logger.d('LN-Invoice found');
-      payInvoiceInteraction(
-        link,
-      );
-    } else if (link.startsWith('eudi-openid4ci://authorize')) {
+    // if (link.startsWith('lightning:')) {
+    //   handleLink(link.replaceAll('lightning:', ''));
+    // } else if (link.startsWith('LNURL') || link.startsWith('lnurl')) {
+    //   handleLnurl(link);
+    // } else if (link.startsWith('lnbc') || link.startsWith('LNBC')) {
+    //   logger.d('LN-Invoice found');
+    //   payInvoiceInteraction(
+    //     link,
+    //   );
+    // } else
+    if (link.startsWith('eudi-openid4ci://authorize')) {
       handleRedirect(link);
     } else if (link.startsWith('openid-credential-offer') ||
         link.startsWith('eudi-openid4vci')) {
-      handleOfferOidc(link);
+      handleOfferOid(link);
     } else if (link.startsWith('openid-presentation-request') ||
         link.startsWith('eudi-openid4vp') ||
         link.startsWith('openid4vp')) {
-      handlePresentationRequestOidc(link);
+      handlePresentationRequestOid(link);
     } else if (link.startsWith('eid')) {
       logger.d(link);
       var asUri = Uri.parse(link);
@@ -142,7 +150,7 @@ class NavigationProvider extends ChangeNotifier {
       var asUri = Uri.parse(link);
       // Known Query Parameter
       if (link.contains('credential_offer')) {
-        handleOfferOidc(link);
+        handleOfferOid(link);
       } else if (link.contains('ooburl=')) {
         handleOobUrl(link);
       } else if (link.contains('oobid=')) {
@@ -169,17 +177,19 @@ class NavigationProvider extends ChangeNotifier {
                 title: '')));
       } else if (link.contains('redirect')) {
         handleRedirect(link);
-      } else if (link.contains('/invoice')) {
-        var uri = Uri.parse(link);
-        var invoice = uri.queryParameters['invoice'];
-        if (invoice != null) {
-          payInvoiceInteraction(
-            invoice,
-          );
-        } else if (uri.queryParameters.containsKey('lnurl')) {
-          handleLnurl(uri.queryParameters['lnurl']!);
-        }
-      } else {
+      }
+      // else if (link.contains('/invoice')) {
+      //   var uri = Uri.parse(link);
+      //   var invoice = uri.queryParameters['invoice'];
+      //   if (invoice != null) {
+      //     payInvoiceInteraction(
+      //       invoice,
+      //     );
+      //   } else if (uri.queryParameters.containsKey('lnurl')) {
+      //     handleLnurl(uri.queryParameters['lnurl']!);
+      //   }
+      // }
+      else {
         showErrorMessage(
             AppLocalizations.of(navigatorKey.currentContext!)!.unknownQrCode,
             AppLocalizations.of(navigatorKey.currentContext!)!

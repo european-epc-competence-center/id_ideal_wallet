@@ -6,7 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:crypto_keys/crypto_keys.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/did.dart';
-import 'package:dart_ssi/oidc.dart';
+import 'package:dart_ssi/oid.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/cupertino.dart';
@@ -17,7 +17,6 @@ import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
-import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/ausweis_view.dart';
 import 'package:id_ideal_wallet/views/credential_offer_new.dart';
@@ -25,7 +24,7 @@ import 'package:id_ideal_wallet/views/presentation_request.dart';
 import 'package:id_ideal_wallet/views/web_view.dart';
 import 'package:iso_mdoc/iso_mdoc.dart';
 import 'package:provider/provider.dart';
-import 'package:sd_jwt/sd_jwt.dart' as sdJwt;
+import 'package:sd_jwt/sd_jwt.dart' as sd_jwt;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 import 'package:x509b/x509.dart' as x509;
@@ -44,7 +43,7 @@ Map<String, dynamic> findClaims(Map? claimsDescription) {
   for (var key in claimsDescription.keys) {
     var value = claimsDescription[key];
     if (value is CredentialSubjectMetadata) {
-      var displayList = value.display ?? <OidcDisplayObject>[];
+      var displayList = value.display ?? <OidDisplayObject>[];
       var locale =
           AppLocalizations.of(navigatorKey.currentContext!)!.localeName;
       String? defaultName, localName, localeDes, defaultDes;
@@ -72,8 +71,8 @@ Map<String, dynamic> findClaims(Map? claimsDescription) {
   return claims;
 }
 
-Future<void> handleOfferOidc(String offerUri) async {
-  var offer = OidcCredentialOffer.fromUri(offerUri);
+Future<void> handleOfferOid(String offerUri) async {
+  var offer = OidCredentialOffer.fromUri(offerUri);
 
   var issuerString = removeTrailingSlash(offer.credentialIssuer);
   logger.d('$issuerString/.well-known/openid-credential-issuer');
@@ -91,8 +90,10 @@ Future<void> handleOfferOidc(String offerUri) async {
   if (issuerMetaReq.statusCode != 200) {
     logger.d(
         'Bad Status code: ${issuerMetaReq.statusCode} /${issuerMetaReq.body}');
-    showErrorMessage('Keine Issuer-Metadaten',
-        'Issuer-Metadaten können nicht heruntergeladen werden.');
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+        AppLocalizations.of(navigatorKey.currentContext!)!
+            .oidMetadataErrorNote);
     return;
   }
 
@@ -100,7 +101,11 @@ Future<void> handleOfferOidc(String offerUri) async {
   try {
     issuerMetadata = CredentialIssuerMetaData.fromJson(issuerMetaReq.body);
   } catch (e) {
-    showErrorMessage('Fehlerhafte Metadaten');
+    logger.d('Failed parsing issuer metadata');
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+        AppLocalizations.of(navigatorKey.currentContext!)!
+            .oidMetadataErrorNote);
     return;
   }
 
@@ -123,7 +128,11 @@ Future<void> handleOfferOidc(String offerUri) async {
   for (String t in credentialToRequest) {
     var credConfig = issuerMetadata.credentialsSupported[t];
     if (credConfig == null) {
-      showErrorMessage('Credential ohne Konfiguration');
+      logger.d('credential without config');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .oidMetadataErrorNote);
       return;
     }
     offeredCredentials.add(credConfig);
@@ -148,7 +157,7 @@ Future<void> handleOfferOidc(String offerUri) async {
               .map((e) => VerifiableCredential(
                   context: [credentialsV1Iri],
                   type: e.credentialType ?? [],
-                  issuer: {'oidcEndpoint': issuerString, 'id': issuerString},
+                  issuer: {'OidEndpoint': issuerString, 'id': issuerString},
                   credentialSubject: findClaims(e.claims),
                   issuanceDate: DateTime.now()))
               .toList()),
@@ -182,7 +191,9 @@ Future<void> handleOfferOidc(String offerUri) async {
       Map? clientMetaData = knownAuthServer[authserver.trim()];
       logger.d('authServer: ${knownAuthServer.keys}');
       if (clientMetaData == null) {
-        showErrorMessage('Unbekannter Authorization Server');
+        logger.d('no client metadata for $authserver');
+        showErrorMessage(AppLocalizations.of(navigatorKey.currentContext!)!
+            .unknownAuthServer);
         return;
       }
 
@@ -207,11 +218,17 @@ Future<void> handleOfferOidc(String offerUri) async {
       String redirectUri =
           clientMetaData['redirect_uri'] ?? 'https://wallet.bccm.dev/redirect';
 
+      String authServerQuery = 'response_type=code&client_id=$clientId';
+      authServerQuery +=
+          '&redirect_uri=${Uri.encodeQueryComponent(redirectUri)}';
+      authServerQuery += '&state=$state';
+      authServerQuery += '&code_challenge=$pkceCodeChallenge';
+      authServerQuery += '&code_challenge_method=S256';
+
       authServerMetaData = await getAuthServerMetaData(authserver);
       if (authServerMetaData == null) {
         // without config we assume standard endpoint
-        launchUrl(Uri.parse(
-            '$authserver/authorize?response_type=code&client_id=$clientId&redirect_uri=${Uri.encodeQueryComponent(redirectUri)}&state=$state&code_challenge=$pkceCodeChallenge&code_challenge_method=S256'));
+        launchUrl(Uri.parse('$authserver/authorize?$authServerQuery'));
         logger.d('$authserver without config');
         return;
       }
@@ -219,7 +236,10 @@ Future<void> handleOfferOidc(String offerUri) async {
       String authIssuer = authServerMetaData['issuer'];
       if (authIssuer != authserver) {
         logger.d('$authIssuer != $authserver');
-        showErrorMessage('Falsche Metadaten erhalten');
+        showErrorMessage(
+            AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+            AppLocalizations.of(navigatorKey.currentContext!)!
+                .oidMetadataErrorNote);
         return;
       }
 
@@ -227,13 +247,9 @@ Future<void> handleOfferOidc(String offerUri) async {
       var parEndpoint =
           authServerMetaData['pushed_authorization_request_endpoint'];
       if (parEndpoint != null) {
-        String body =
-            'client_id=$clientId&redirect_uri=${Uri.encodeQueryComponent(redirectUri)}&response_type=code&state=$state';
-        body += '&code_challenge_method=S256';
-        body += '&code_challenge=$pkceCodeChallenge';
         if (offeredCredentials.length == 1 &&
             offeredCredentials.first.scope != null) {
-          body += '&scope=${offeredCredentials.first.scope}';
+          authServerQuery += '&scope=${offeredCredentials.first.scope}';
         } else {
           List<Map> authDetails = [];
           for (var entry in offeredCredentials) {
@@ -243,14 +259,14 @@ Future<void> handleOfferOidc(String offerUri) async {
                 credentialType: entry.credentialType);
             authDetails.add(details.toJson());
           }
-          body +=
+          authServerQuery +=
               '&authorization_details=${Uri.encodeQueryComponent(jsonEncode(authDetails))}';
         }
-        logger.d(body);
+        logger.d(authServerQuery);
 
         var parResponse = await post(Uri.parse(parEndpoint),
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: body);
+            body: authServerQuery);
 
         if (parResponse.statusCode == 201 || parResponse.statusCode == 200) {
           logger.d(parResponse.body);
@@ -273,15 +289,20 @@ Future<void> handleOfferOidc(String offerUri) async {
             navigateClassic(const AusweisView());
             Provider.of<AusweisProvider>(navigatorKey.currentContext!,
                     listen: false)
-                .startProgress(authRequest);
+                .startProgress(authRequest, true);
           } else {
-            navigateClassic(
-                WebViewWindow(initialUrl: authRequest, title: 'Autorisierung'));
+            navigateClassic(WebViewWindow(
+                initialUrl: authRequest,
+                title: AppLocalizations.of(navigatorKey.currentContext!)!
+                    .authorization));
           }
           //launchUrl(Uri.parse(authRequest));
           return;
         } else {
-          showErrorMessage('Authorization Request fehlgeschlagen');
+          showErrorMessage(
+              AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+              AppLocalizations.of(navigatorKey.currentContext!)!
+                  .oidAuthFailedNote);
           logger.d(
               'Par request failed: ${parResponse.statusCode} / ${parResponse.body}');
           return;
@@ -290,12 +311,13 @@ Future<void> handleOfferOidc(String offerUri) async {
         // if not, use redirect and authorization endpoint
         var authEndpoint = authServerMetaData['authorization_endpoint'];
         if (authEndpoint != null) {
-          launchUrl(Uri.parse(
-              '$authEndpoint?response_type=code&state$state&client_id=$clientId&redirect_uri=${Uri.encodeQueryComponent(redirectUri)}&code_challenge=$pkceCodeChallenge&code_challenge_method=S256'));
+          launchUrl(Uri.parse('$authEndpoint?$authServerQuery'));
           return;
         } else {
-          showErrorMessage('Authentifizierung nicht durchführbar',
-              'Keinen Endpunkt gefunden');
+          showErrorMessage(
+              AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+              AppLocalizations.of(navigatorKey.currentContext!)!
+                  .oidAuthFailedNote);
         }
       }
     } else if (offer.grants != null &&
@@ -324,37 +346,43 @@ Future<void> handleOfferOidc(String offerUri) async {
       });
       if (tokenRes.statusCode == 200) {
         logger.d(jsonDecode(tokenRes.body));
-        OidcTokenResponse tokenResponse =
-            OidcTokenResponse.fromJson(tokenRes.body);
+        OidTokenResponse tokenResponse =
+            OidTokenResponse.fromJson(tokenRes.body);
 
         logger.d('Access-Token : ${tokenResponse.accessToken}');
 
         for (var credMetadata in offeredCredentials) {
-          getCredential(
-              issuerString, issuerMetadata, credMetadata, tokenResponse);
+          getCredential(issuerString, issuerMetadata, credMetadata,
+              tokenResponse, null, null, null, null);
         }
       } else {
         logger.d(tokenRes.statusCode);
         logger.d(tokenRes.body);
 
-        showErrorMessage('Authentifizierung fehlgeschlagen');
+        showErrorMessage(
+            AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+            AppLocalizations.of(navigatorKey.currentContext!)!
+                .oidAuthFailedNote);
         return;
       }
     } else {
-      showErrorMessage('Unbekannte Authentifizierungsmethode');
+      logger.d('Unbekannte Authentifizierungsmethode');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+          AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailedNote);
       return;
     }
   }
 }
 
 Future<Map?> getAuthServerMetaData(String authServer) async {
-  var oidConfigRes =
+  var OidonfigRes =
       await get(Uri.parse('$authServer/.well-known/openid-configuration'));
-  if (oidConfigRes.statusCode == 200) {
-    return jsonDecode(oidConfigRes.body);
+  if (OidonfigRes.statusCode == 200) {
+    return jsonDecode(OidonfigRes.body);
   } else {
     logger.d(
-        'status oidConfig $authServer: ${oidConfigRes.statusCode} / ${oidConfigRes.body}');
+        'status Oidonfig $authServer: ${OidonfigRes.statusCode} / ${OidonfigRes.body}');
     var oauthConfigRes = await get(
         Uri.parse('$authServer/.well-known/oauth-authorization-server'));
     if (oauthConfigRes.statusCode == 200) {
@@ -365,20 +393,27 @@ Future<Map?> getAuthServerMetaData(String authServer) async {
   }
 }
 
-Future<void> handleRedirect(String uri) async {
-  Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false)
-      .goBack();
+Future<void> handleRedirect(String uri, [String? dpopNonce]) async {
+  // Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false)
+  //     .goBack();
+  Navigator.of(navigatorKey.currentContext!).popUntil((route) => route.isFirst);
   logger.d('redirected uri: $uri');
   var asUri = Uri.parse(uri);
   var state = asUri.queryParameters['state'];
   var code = asUri.queryParameters['code'];
   logger.d('state: $state');
   if (state == null) {
-    showErrorMessage('Prozess nicht auffindbar');
+    logger.d('Prozess nicht auffindbar');
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailedNote);
     return;
   }
   if (code == null) {
-    showErrorMessage('Keinen Auth-Code empfangen');
+    logger.d('Keinen Auth-Code empfangen');
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailedNote);
     return;
   }
 
@@ -387,14 +422,17 @@ Future<void> handleRedirect(String uri) async {
           .getConfig(state);
 
   if (storedData == null) {
-    showErrorMessage('Prozess nicht auffindbar');
+    logger.d('Prozess nicht auffindbar');
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailedNote);
     return;
   }
 
   var parsed = jsonDecode(storedData);
   String authServer = parsed['authServer'];
   String codeVerifier = parsed['codeVerifier'];
-  OidcCredentialOffer offer = OidcCredentialOffer.fromJson(parsed['offer']);
+  OidCredentialOffer offer = OidCredentialOffer.fromJson(parsed['offer']);
   List<CredentialsSupportedObject> credentialMetadata =
       (parsed['credentials'] as List)
           .map((e) => CredentialsSupportedObject.fromJson(e))
@@ -403,7 +441,9 @@ Future<void> handleRedirect(String uri) async {
 
   Map? clientMetaData = knownAuthServer[authServer];
   if (clientMetaData == null) {
-    showErrorMessage('Unbekannter Authorization Server');
+    showErrorMessage(
+      AppLocalizations.of(navigatorKey.currentContext!)!.unknownAuthServer,
+    );
     return;
   }
 
@@ -423,43 +463,95 @@ Future<void> handleRedirect(String uri) async {
   parameter += '&state=$state';
   parameter += '&code_verifier=$codeVerifier';
 
-  var tokenRes = await post(Uri.parse(tokenEndpoint),
-          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-          body: parameter)
-      .timeout(const Duration(seconds: 20), onTimeout: () {
+  var headers = <String, String>{
+    'Content-Type': 'application/x-www-form-urlencoded'
+  };
+
+  String? dpopDid, dpopJti;
+  if (clientMetaData['dpop'] ?? false) {
+    // generate Dpop header
+    var wallet = Provider.of<WalletProvider>(navigatorKey.currentContext!,
+        listen: false);
+    dpopDid = await wallet.newCredentialDid(KeyType.p256);
+    var dpopJwk = multibaseKeyToJwk(dpopDid.replaceAll('did:key:', ''));
+    dpopJti = const Uuid().v4();
+
+    var dpopPayload = {
+      'jti': dpopJti,
+      'htm': 'POST',
+      'htu': tokenEndpoint,
+      'nonce': dpopNonce
+    };
+    var jwt =
+        sd_jwt.Jwt(additionalClaims: dpopPayload, issuedAt: DateTime.now());
+    var dpopJws = await jwt.sign(
+        signer: WalletCryptoProviderForSdJwt(wallet.wallet, dpopDid),
+        header: sd_jwt.JwsJoseHeader(
+            algorithm: sd_jwt.SigningAlgorithm.ecdsaSha256Prime,
+            jsonWebKey: sd_jwt.Jwk.fromJson(dpopJwk),
+            type: 'dpop+jwt'));
+    logger.d(dpopPayload);
+
+    headers['DPoP'] = dpopJws.toCompactSerialization();
+  }
+
+  var tokenRes =
+      await post(Uri.parse(tokenEndpoint), headers: headers, body: parameter)
+          .timeout(const Duration(seconds: 20), onTimeout: () {
     return Response('Timeout', 400);
   });
 
   if (tokenRes.statusCode == 200) {
     logger.d(
         'successful token request: ${jsonDecode(tokenRes.body).keys.toList()}');
-    var decoded = OidcTokenResponse.fromJson(tokenRes.body);
-    var payload = decoded.accessToken!.split('.')[1];
-    logger.d(
-        'decodedPayload: ${jsonDecode(utf8.decode((base64Decode(addPaddingToBase64(payload)))))}');
-    getCredential(removeTrailingSlash(offer.credentialIssuer), null,
-        credentialMetadata.first, decoded);
+    var decoded = OidTokenResponse.fromJson(tokenRes.body);
+    logger.d(tokenRes.headers);
+    // var payload = decoded.accessToken!.split('.')[1];
+    // logger.d(
+    //     'decodedPayload: ${jsonDecode(utf8.decode((base64Decode(addPaddingToBase64(payload)))))}');
+    getCredential(
+        removeTrailingSlash(offer.credentialIssuer),
+        null,
+        credentialMetadata.first,
+        decoded,
+        clientId,
+        dpopDid,
+        dpopJti,
+        tokenRes.headers['dpop-nonce']);
   } else {
     logger.d('Error token request: ${tokenRes.statusCode} / ${tokenRes.body}');
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailed,
+        AppLocalizations.of(navigatorKey.currentContext!)!.oidAuthFailedNote);
   }
 }
 
-Future<(String, dynamic, KeyType)> buildJwt(List<String> algValues,
-    WalletProvider wallet, String? cNonce, String credentialIssuer) async {
+Future<(String, dynamic, KeyType)> buildJwt(
+    List<String> algValues,
+    List<String> bindingMethods,
+    WalletProvider wallet,
+    String? cNonce,
+    String credentialIssuer,
+    String? clientId,
+    [KeyStore keystore = KeyStore.software]) async {
   String credentialDid, alg, crv;
   KeyType keyType;
   if (algValues.contains('ES256')) {
-    credentialDid = await wallet.newCredentialDid(KeyType.p256);
+    credentialDid =
+        await wallet.newCredentialDid(KeyType.p256, keystore, <String, dynamic>{
+      'attestationChallenge': 'abc',
+      //'userAuthenticationRequired': true
+    });
     alg = 'ES256';
     crv = 'P-256';
     keyType = KeyType.p256;
   } else if (algValues.contains('ES384')) {
-    credentialDid = await wallet.newCredentialDid(KeyType.p384);
+    credentialDid = await wallet.newCredentialDid(KeyType.p384, keystore);
     alg = 'ES384';
     crv = 'P-384';
     keyType = KeyType.p384;
   } else if (algValues.contains('ES512')) {
-    credentialDid = await wallet.newCredentialDid(KeyType.p521);
+    credentialDid = await wallet.newCredentialDid(KeyType.p521, keystore);
     alg = 'ES512';
     crv = 'P-521';
     keyType = KeyType.p521;
@@ -473,44 +565,61 @@ Future<(String, dynamic, KeyType)> buildJwt(List<String> algValues,
   var ddo = resolveDidKey(credentialDid).convertAllKeysToJwk().resolveKeyIds();
   var jwk = ddo.verificationMethod!.first.publicKeyJwk!;
   jwk.remove('kid');
-  var header = {
+  var header = <String, dynamic>{
     'typ': 'openid4vci-proof+jwt',
     'alg': alg,
     'crv': crv,
-    'kid': credentialDid,
+    // 'kid': credentialDid,
     // 'kid':
     //     'did:jwk:${removePaddingFromBase64(base64UrlEncode(utf8.encode(jsonEncode(jwk))))}#0',
     //'jwk': ddo.verificationMethod!.first.publicKeyJwk
     //#${credentialDid.split(':').last
   };
 
-  var payload = {
-    'aud': credentialIssuer,
-    'iss': credentialDid,
-    // 'iss':
-    //     'did:jwk:${removePaddingFromBase64(base64UrlEncode(utf8.encode(jsonEncode(jwk))))}',
-    'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-  };
-  if (cNonce != null) {
-    payload['nonce'] = cNonce;
-  }
-  logger.d(credentialDid);
-  var jwt = await signStringOrJson(
-      wallet: wallet.wallet,
-      didToSignWith: credentialDid,
-      toSign: payload,
-      jwsHeader: header,
-      detached: false);
-  //end JWT creation
+  logger.d('binding methods: $bindingMethods');
 
-  return (credentialDid, jwt, keyType);
+  if (bindingMethods.isEmpty || bindingMethods.contains('did:key')) {
+    header['kid'] = credentialDid;
+  } else if (bindingMethods.contains('jwk') ||
+      bindingMethods.contains('cose_key')) {
+    header['jwk'] = ddo.verificationMethod!.first.publicKeyJwk;
+  } else if (bindingMethods.contains('did:jwk')) {
+    header['kid'] =
+        'did:jwk:${removePaddingFromBase64(base64UrlEncode(utf8.encode(jsonEncode(jwk))))}#0';
+  } else {
+    showErrorMessage(
+      AppLocalizations.of(navigatorKey.currentContext!)!
+          .credentialDownloadFailed,
+    );
+    throw Exception('unsupported binding method');
+  }
+  logger.d(header);
+  logger.d(credentialDid);
+  var headerParsed = sd_jwt.JoseHeader.fromJson(header);
+  var jwt = sd_jwt.Jwt(
+      audience: credentialIssuer,
+      issuedAt: DateTime.now(),
+      issuer: clientId,
+      additionalClaims: cNonce != null ? {'nonce': cNonce} : null);
+  var keyId = keystore == KeyStore.software
+      ? credentialDid
+      : wallet.getOsKeyStoreIdForDid(credentialDid);
+  var jws = await jwt.sign(
+      signer: WalletCryptoProviderForSdJwt(wallet.wallet, keyId!),
+      header: headerParsed as sd_jwt.JwsJoseHeader);
+
+  return (credentialDid, jws.toCompactSerialization(), keyType);
 }
 
 Future<void> getCredential(
     String credentialIssuer,
     CredentialIssuerMetaData? metadata,
     CredentialsSupportedObject credentialMetadata,
-    OidcTokenResponse tokenResponse) async {
+    OidTokenResponse tokenResponse,
+    String? clientId,
+    String? dpopDid,
+    String? dpopJti,
+    String? dpopNonce) async {
   if (metadata == null) {
     // get metadata
     var issuerMetaReq = await get(
@@ -523,7 +632,10 @@ Future<void> getCredential(
     });
 
     if (issuerMetaReq.statusCode != 200) {
-      showErrorMessage('Keine Issuer Metadaten');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .oidMetadataErrorNote);
       return;
     }
 
@@ -532,29 +644,55 @@ Future<void> getCredential(
 
   if (tokenResponse.cNonce == null) {
     logger.d('need new c_nonce');
-    // send false cred request to get cNonce
-    var credentialRequest = OidcCredentialRequest(
-      format: credentialMetadata.format,
-      credentialType: credentialMetadata.credentialType,
-    );
-
-    var credentialResponse = await post(Uri.parse(metadata.credentialEndpoint),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ${tokenResponse.accessToken}'
-            },
-            body: credentialRequest.toString())
-        .timeout(const Duration(seconds: 20), onTimeout: () {
-      return Response('Timeout', 400);
-    });
-
-    if (credentialResponse.statusCode != 200) {
-      try {
-        tokenResponse.cNonce = jsonDecode(credentialResponse.body)['c_nonce'];
-      } catch (e) {
-        logger.d(e);
-        showErrorMessage('Kaine nonce');
+    if (metadata.nonceEndpoint != null) {
+      var nonceResponse = await post(Uri.parse(metadata.nonceEndpoint!));
+      if (nonceResponse.statusCode == 200 || nonceResponse.statusCode == 201) {
+        try {
+          tokenResponse.cNonce = jsonDecode(nonceResponse.body)['c_nonce'];
+        } catch (e) {
+          logger.d('Keine nonce: $e');
+          showErrorMessage(
+            AppLocalizations.of(navigatorKey.currentContext!)!
+                .credentialDownloadFailed,
+          );
+          return;
+        }
+      } else {
+        showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .credentialDownloadFailed,
+        );
         return;
+      }
+    } else {
+      // send false cred request to get cNonce
+      var credentialRequest = OidCredentialRequest(
+        format: credentialMetadata.format,
+        credentialType: credentialMetadata.credentialType,
+      );
+
+      var credentialResponse =
+          await post(Uri.parse(metadata.credentialEndpoint),
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ${tokenResponse.accessToken}'
+                  },
+                  body: credentialRequest.toString())
+              .timeout(const Duration(seconds: 20), onTimeout: () {
+        return Response('Timeout', 400);
+      });
+
+      if (credentialResponse.statusCode != 200) {
+        try {
+          tokenResponse.cNonce = jsonDecode(credentialResponse.body)['c_nonce'];
+        } catch (e) {
+          logger.d('Keine nonce: $e');
+          showErrorMessage(
+            AppLocalizations.of(navigatorKey.currentContext!)!
+                .credentialDownloadFailed,
+          );
+          return;
+        }
       }
     }
   }
@@ -567,42 +705,59 @@ Future<void> getCredential(
   String credentialDid;
   dynamic proofValue;
   KeyType keyType;
+  KeyStore k = KeyStore.software;
+
+  if (credentialMetadata.format == OidCredentialFormat.msoMdoc &&
+      credentialMetadata.credentialType != null &&
+      credentialMetadata.credentialType!
+          .contains(MobileDriversLicense.docType)) {
+    k = KeyStore.system;
+    logger.d('other keystore');
+  }
 
   if (credentialMetadata.proofTypesSupported == null) {
     proofType = 'jwt';
-    (credentialDid, proofValue, keyType) =
-        await buildJwt([], wallet, tokenResponse.cNonce, credentialIssuer);
+    (credentialDid, proofValue, keyType) = await buildJwt([],
+        credentialMetadata.cryptographicBindingMethods ?? [],
+        wallet,
+        tokenResponse.cNonce,
+        credentialIssuer,
+        clientId,
+        k);
   } else if (credentialMetadata.proofTypesSupported!.containsKey('ldp_vp')) {
     proofType = 'ldp_vp';
     credentialDid = await wallet.newCredentialDid();
     // create VP
-    var presentation = VerifiablePresentation(
-        context: [credentialsV1Iri, ed25519ContextIri],
-        type: ['VerifiablePresentation'],
-        holder: credentialDid);
-    var signer = EdDsaSigner(loadDocumentFast);
-    var p = await signer.buildProof(
-        presentation.toJson(), wallet.wallet, credentialDid,
-        challenge: tokenResponse.cNonce,
-        domain: credentialIssuer,
-        proofPurpose: 'authentication');
-    presentation.proof = [LinkedDataProof.fromJson(p)];
+    var presentation = VerifiablePresentation(holder: credentialDid);
+    var (signer, type) = await getCredentialSigningStuff(wallet, credentialDid);
+    presentation.addProof(signer, type,
+        challenge: tokenResponse.cNonce, domain: credentialIssuer);
     // end VP creation
     proofValue = presentation.toJson();
     keyType = KeyType.ed25519;
   } else if (credentialMetadata.proofTypesSupported!.containsKey('jwt')) {
     proofType = 'jwt';
     (credentialDid, proofValue, keyType) = await buildJwt(
-        credentialMetadata.proofTypesSupported?['jwt']?.cast<String>() ?? [],
+        credentialMetadata
+                .proofTypesSupported?['jwt']?.signingAlgValuesSupported
+                .cast<String>() ??
+            [],
+        credentialMetadata.cryptographicBindingMethods ?? [],
         wallet,
         tokenResponse.cNonce,
-        credentialIssuer);
+        credentialIssuer,
+        clientId,
+        k);
   } else {
-    showErrorMessage('Proof type nicht unterstützt');
+    logger.d('Proof type nicht unterstützt');
+    showErrorMessage(
+      AppLocalizations.of(navigatorKey.currentContext!)!
+          .credentialDownloadFailed,
+    );
     return;
   }
 
-  var credentialRequest = OidcCredentialRequest(
+  var credentialRequest = OidCredentialRequest(
       format: credentialMetadata.format,
       credentialType: credentialMetadata.credentialType,
       context: credentialMetadata.context,
@@ -640,30 +795,61 @@ Future<void> getCredential(
 
   logger.d('credential Endpoint: ${metadata.credentialEndpoint}');
 
+  var headers = <String, String>{
+    'Content-Type': 'application/json',
+  };
+  if (dpopDid != null && dpopJti != null) {
+    headers['Authorization'] = 'DPoP ${tokenResponse.accessToken}';
+    var dpopPayload = {
+      'jti': dpopJti,
+      'htm': 'POST',
+      'htu': metadata.credentialEndpoint,
+      'nonce': dpopNonce,
+      'ath': removePaddingFromBase64(base64UrlEncode(
+          sha256.convert(ascii.encode(tokenResponse.accessToken!)).bytes))
+    };
+    var jwt =
+        sd_jwt.Jwt(additionalClaims: dpopPayload, issuedAt: DateTime.now());
+    var dpopJwk = multibaseKeyToJwk(dpopDid.replaceAll('did:key:', ''));
+    var dpopJws = await jwt.sign(
+        signer: WalletCryptoProviderForSdJwt(wallet.wallet, dpopDid),
+        header: sd_jwt.JwsJoseHeader(
+            algorithm: sd_jwt.SigningAlgorithm.ecdsaSha256Prime,
+            jsonWebKey: sd_jwt.Jwk.fromJson(dpopJwk),
+            type: 'dpop+jwt'));
+    logger.d(dpopPayload);
+
+    headers['DPoP'] = dpopJws.toCompactSerialization();
+
+    logger.d(dpopPayload);
+  } else {
+    headers['Authorization'] = 'Bearer ${tokenResponse.accessToken}';
+  }
+
   var credentialResponse = await post(Uri.parse(metadata.credentialEndpoint),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${tokenResponse.accessToken}'
-          },
-          body: credentialRequest.toString())
+          headers: headers, body: credentialRequest.toString())
       .timeout(const Duration(seconds: 20), onTimeout: () {
     return Response('Timeout', 400);
   });
 
   if (credentialResponse.statusCode == 200) {
-    OidcCredentialResponse decodedCredentialResponse;
+    OidCredentialResponse decodedCredentialResponse;
     logger.d(credentialResponse.body);
     if (decryptionKey != null) {
       try {
         decodedCredentialResponse =
             decryptResponse(decryptionKey, credentialResponse.body);
       } catch (e) {
-        showErrorMessage('Fehler beim Entschlüsseln');
+        logger.d('Fehler beim Entschlüsseln');
+        showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .credentialDownloadFailed,
+        );
         return;
       }
     } else {
       decodedCredentialResponse =
-          OidcCredentialResponse.fromJson(credentialResponse.body);
+          OidCredentialResponse.fromJson(credentialResponse.body);
     }
     var format = credentialMetadata.format;
 
@@ -690,7 +876,7 @@ Future<void> getCredential(
               decryptionKey));
     } else {
       storeCredential(format, decodedCredentialResponse.credential,
-          credentialDid, wallet, keyType, credentialIssuer);
+          credentialDid, wallet, credentialIssuer);
     }
   } else {
     logger.d(credentialResponse.statusCode);
@@ -702,7 +888,7 @@ Future<void> getCredential(
   }
 }
 
-OidcCredentialResponse decryptResponse(KeyPair decryptionKey, String data) {
+OidCredentialResponse decryptResponse(KeyPair decryptionKey, String data) {
   logger.d('decryption');
   var split = data.split('.');
   logger.d('length: ${split.length}');
@@ -742,7 +928,7 @@ OidcCredentialResponse decryptResponse(KeyPair decryptionKey, String data) {
       authenticationTag: tag,
       additionalAuthenticatedData: ascii.encode(split.first)));
   logger.d(utf8.decode(decrypted2));
-  return OidcCredentialResponse.fromJson(utf8.decode(decrypted2));
+  return OidCredentialResponse.fromJson(utf8.decode(decrypted2));
 }
 
 sendDeferredRequest(
@@ -766,22 +952,23 @@ sendDeferredRequest(
   });
 
   if (credentialResponse.statusCode == 200) {
-    OidcCredentialResponse decodedCredentialResponse;
+    OidCredentialResponse decodedCredentialResponse;
 
     if (decryptionKey != null) {
       try {
         decodedCredentialResponse =
             decryptResponse(decryptionKey, credentialResponse.body);
       } catch (e) {
-        showErrorMessage('Fehler beim Entschlüsseln');
+        showErrorMessage(AppLocalizations.of(navigatorKey.currentContext!)!
+            .credentialDownloadFailed);
         return;
       }
     } else {
       decodedCredentialResponse =
-          OidcCredentialResponse.fromJson(credentialResponse.body);
+          OidCredentialResponse.fromJson(credentialResponse.body);
     }
     storeCredential(format, decodedCredentialResponse.credential, credentialDid,
-        wallet, keyType, credentialIssuer);
+        wallet, credentialIssuer);
   } else {
     logger.d('${credentialResponse.statusCode} / ${credentialResponse.body}');
     var parsedBody = jsonDecode(credentialResponse.body);
@@ -808,10 +995,12 @@ sendDeferredRequest(
 }
 
 storeCredential(String format, dynamic credential, String credentialDid,
-    WalletProvider wallet, KeyType keyType, String credentialIssuer) async {
-  if (format == OidcCredentialFormat.msoMdoc) {
-    logger.d(cborDecode(base64Decode(credential)));
-    var data = IssuerSignedObject.fromCbor(base64Decode(credential));
+    WalletProvider wallet, String credentialIssuer) async {
+  if (format == OidCredentialFormat.msoMdoc) {
+    printWrapped(credential);
+    logger.d(cborDecode(base64Decode(addPaddingToBase64(credential))));
+    var data = IssuerSignedObject.fromCbor(
+        base64Decode(addPaddingToBase64(credential)));
     var doc = data;
     var verified = await verifyMso(doc);
     if (verified) {
@@ -820,13 +1009,17 @@ storeCredential(String format, dynamic credential, String credentialDid,
       var did = coseKeyToDid(signedData.deviceKeyInfo.deviceKey);
       logger.d('$did == $credentialDid');
       if (did != credentialDid) {
-        showErrorMessage('Credential wurde für jemand anderen ausgestellt');
+        showErrorMessage(
+            AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+            AppLocalizations.of(navigatorKey.currentContext!)!
+                .wrongCredentialNote2);
         return;
       }
+      logger.d(wallet.getOsKeyStoreIdForDid(did));
       var credSubject = <String, dynamic>{'id': credentialDid};
       doc.items.forEach((key, value) {
         for (var i in value) {
-          credSubject[i.dataElementIdentifier] = i.dataElementValue;
+          credSubject[i.dataElementIdentifier] = i.dataElementValue.toString();
         }
       });
 
@@ -842,24 +1035,28 @@ storeCredential(String format, dynamic credential, String credentialDid,
           issuer: {
             'name': 'IsoMdlIssuer',
             'certificate':
-                base64UrlEncode(doc.issuerAuth.unprotected.x509chain!)
+                base64UrlEncode(doc.issuerAuth.unprotected.x509chain!.first)
           },
           credentialSubject: credSubject,
           issuanceDate: signedData.validityInfo.validFrom,
           expirationDate: signedData.validityInfo.validUntil);
 
-      var storageCred = wallet.getCredential(credentialDid);
+      logger.d(vc.toJson());
 
-      if (storageCred == null) {
-        showErrorMessage(
-            AppLocalizations.of(navigatorKey.currentContext!)!.saveError,
-            AppLocalizations.of(navigatorKey.currentContext!)!.saveErrorNote);
-        return;
-      }
+      // var storageCred = wallet.getCredential(credentialDid);
+      //
+      // if (storageCred == null) {
+      //   showErrorMessage(
+      //       AppLocalizations.of(navigatorKey.currentContext!)!.saveError,
+      //       AppLocalizations.of(navigatorKey.currentContext!)!.saveErrorNote);
+      //   return;
+      // }
 
-      wallet.storeCredential(vc.toString(), storageCred.hdPath,
-          isoMdlData: '$isoPrefix:${base64Encode(doc.toEncodedCbor())}',
-          keyType: keyType);
+      wallet.storeCredential(
+        vc,
+        credentialDid,
+        isoMdlData: '$isoPrefix:${base64Encode(doc.toEncodedCbor())}',
+      );
       wallet.storeExchangeHistoryEntry(
           credentialDid, DateTime.now(), 'issue', credentialIssuer);
 
@@ -867,9 +1064,9 @@ storeCredential(String format, dynamic credential, String credentialDid,
           AppLocalizations.of(navigatorKey.currentContext!)!.credentialReceived,
           signedData.docType);
     }
-  } else if (format == OidcCredentialFormat.sdJwt) {
+  } else if (format == OidCredentialFormat.sdJwt) {
     printWrapped(credential);
-    var parsed = sdJwt.SdJws.fromCompactSerialization(credential);
+    var parsed = sd_jwt.SdJws.fromCompactSerialization(credential);
     logger.d(parsed.jsonContent());
     var iss = parsed.jsonContent()['payload']['iss'];
     var issMetaUrl = '$iss/.well-known/jwt-vc-issuer';
@@ -878,16 +1075,31 @@ storeCredential(String format, dynamic credential, String credentialDid,
 
     var metaRes = await get(Uri.parse(issMetaUrl));
     if (metaRes.statusCode != 200) {
-      showErrorMessage('Kein Public Key', 'Verifikation nicht möglich');
+      logger.d('Kein Public Key, Verifikation nicht möglich');
+      showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+      );
+      return;
     }
 
     var data = jsonDecode(metaRes.body);
-    List keys = data['jwks ']['keys'];
+    var jwks = data['jwks'];
+    logger.d(jwks);
+    List keys = jwks['keys'];
     logger.d(keys);
     Map k = keys.first;
-    var jwk = sdJwt.Jwk.fromJson(
+    var jwk = sd_jwt.Jwk.fromJson(
         k.map((key, value) => MapEntry(key as String, value)));
-    var sd = sdJwt.SdJwt.verified(parsed, jwk);
+    var sd = sd_jwt.SdJwt.fromSdJws(parsed);
+    var verified = await sd.verify(parsed,
+        sd_jwt.PointyCastleCryptoProvider(jwk.key as sd_jwt.EcPublicKey));
+
+    if (!verified) {
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .wrongCredentialNote);
+    }
 
     var cnf = sd.confirmation!.toJson();
     logger.d(cnf['jwk']);
@@ -895,10 +1107,13 @@ storeCredential(String format, dynamic credential, String credentialDid,
     logger.d('$credentialDid, did:key:$multibase');
     var restoredDid = 'did:key:$multibase';
     if (restoredDid != credentialDid) {
-      showErrorMessage('Credential für jemand anderen');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .wrongCredentialNote2);
     }
 
-    var claims = sd.claims;
+    var claims = sd.additionalClaims ?? {};
     var type = claims.remove('vct');
     claims['id'] = restoredDid;
 
@@ -912,19 +1127,19 @@ storeCredential(String format, dynamic credential, String credentialDid,
             'certificate': jwk.x509CertificateChain!.first
         },
         credentialSubject: claims,
-        issuanceDate: sd.issuedAt ?? DateTime.now(),
+        issuanceDate: sd.issuedAt,
         expirationDate: sd.expirationTime);
 
-    var storageCred = wallet.getCredential(restoredDid);
-    if (storageCred == null) {
-      showErrorMessage(
-          AppLocalizations.of(navigatorKey.currentContext!)!.saveError,
-          AppLocalizations.of(navigatorKey.currentContext!)!.saveErrorNote);
-      return;
-    }
+    // var storageCred = wallet.getCredential(restoredDid);
+    // if (storageCred == null) {
+    //   showErrorMessage(
+    //       AppLocalizations.of(navigatorKey.currentContext!)!.saveError,
+    //       AppLocalizations.of(navigatorKey.currentContext!)!.saveErrorNote);
+    //   return;
+    // }
 
-    wallet.storeCredential(vc.toString(), storageCred.hdPath,
-        isoMdlData: '$sdPrefix:$credential', keyType: keyType);
+    wallet.storeCredential(vc, restoredDid,
+        isoMdlData: '$sdPrefix:$credential');
     wallet.storeExchangeHistoryEntry(
         credentialDid, DateTime.now(), 'issue', credentialIssuer);
 
@@ -934,11 +1149,11 @@ storeCredential(String format, dynamic credential, String credentialDid,
     return;
   } else {
     logger.d(credential);
+    var asVc = VerifiableCredential.fromJson(credential);
 
     var verified = false;
     try {
-      verified = await verifyCredential(credential,
-          loadDocumentFunction: loadDocumentFast);
+      verified = await asVc.verify(loadDocument: loadDocumentFast);
     } catch (e) {
       showErrorMessage(
         AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
@@ -949,30 +1164,28 @@ storeCredential(String format, dynamic credential, String credentialDid,
 
     logger.d(verified);
     if (verified) {
-      var credDid = getHolderDidFromCredential(credential);
+      var credDid = asVc.credentialSubject['id'];
       logger.d(credDid);
-      var storageCred = wallet.getCredential(credDid.split('#').first);
-      if (storageCred == null) {
-        showErrorMessage(
-            AppLocalizations.of(navigatorKey.currentContext!)!.saveError,
-            AppLocalizations.of(navigatorKey.currentContext!)!.saveErrorNote);
-        return;
-      }
+      // var storageCred = wallet.getCredential(credDid.split('#').first);
+      // if (storageCred == null) {
+      //   showErrorMessage(
+      //       AppLocalizations.of(navigatorKey.currentContext!)!.saveError,
+      //       AppLocalizations.of(navigatorKey.currentContext!)!.saveErrorNote);
+      //   return;
+      // }
 
-      wallet.storeCredential(jsonEncode(credential), storageCred.hdPath);
+      wallet.storeCredential(asVc, credDid);
       wallet.storeExchangeHistoryEntry(
           credDid, DateTime.now(), 'issue', credentialIssuer);
 
-      var asVC = VerifiableCredential.fromJson(credential);
-
       showSuccessMessage(
           AppLocalizations.of(navigatorKey.currentContext!)!.credentialReceived,
-          getTypeToShow(asVC.type));
+          getTypeToShow(asVc.type));
     }
   }
 }
 
-Future<void> handlePresentationRequestOidc(String request) async {
+Future<void> handlePresentationRequestOid(String request) async {
   var asUri = Uri.parse(request);
   PresentationDefinition? definition;
   String? nonce, responseUri;
@@ -1037,7 +1250,11 @@ Future<void> handlePresentationRequestOidc(String request) async {
     });
     logger.d(requestRaw.statusCode);
     if (requestRaw.statusCode != 200) {
-      showErrorMessage('Request nicht gefunden');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.downloadFailed,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .downloadFailedExplanation);
+      logger.d('Request nicht gefunden');
       return;
     }
     logger.d(requestRaw.headers);
@@ -1096,10 +1313,10 @@ Future<void> handlePresentationRequestOidc(String request) async {
   var isoCreds = wallet.isoMdocCredentials;
   List<VerifiableCredential> creds = [];
   List<IssuerSignedObject> isoCredsParsed = [];
-  List<sdJwt.SdJws> sdJwtCredentials = [];
+  List<sd_jwt.SdJws> sdJwtCredentials = [];
   allCreds.forEach((key, value) {
-    if (value.w3cCredential != '') {
-      var vc = VerifiableCredential.fromJson(value.w3cCredential);
+    if (value.verifiableCredential != '') {
+      var vc = VerifiableCredential.fromJson(value.verifiableCredential);
       var type = getTypeToShow(vc.type);
       if (type != 'PaymentReceipt') {
         creds.add(vc);
@@ -1109,12 +1326,12 @@ Future<void> handlePresentationRequestOidc(String request) async {
 
   for (var cred in isoCreds) {
     isoCredsParsed.add(IssuerSignedObject.fromCbor(
-        base64Decode(cred.plaintextCredential.replaceAll('$isoPrefix:', ''))));
+        base64Decode(cred.metadata.replaceAll('$isoPrefix:', ''))));
   }
 
   for (var c in wallet.sdJwtCredentials) {
-    sdJwtCredentials.add(sdJwt.SdJws.fromCompactSerialization(
-        c.plaintextCredential.replaceAll('$sdPrefix:', '')));
+    sdJwtCredentials.add(sd_jwt.SdJws.fromCompactSerialization(
+        c.metadata.replaceAll('$sdPrefix:', '')));
   }
 
   if (definition == null) {
@@ -1156,47 +1373,4 @@ Future<void> handlePresentationRequestOidc(String request) async {
         AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsTitle,
         AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsNote);
   }
-}
-
-bool isRawJson(String json) {
-  try {
-    jsonDecode(json);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-String coseKeyToDid(CoseKey coseKey) {
-  var crvInt = coseKey.crv;
-
-  Map<String, dynamic> jwk;
-  if (crvInt == 6) {
-    jwk = {
-      'crv': 'Ed25519',
-      'x': removePaddingFromBase64(base64UrlEncode(coseKey.x!))
-    };
-  } else if (crvInt == 1) {
-    jwk = {
-      'crv': 'P-256',
-      'x': removePaddingFromBase64(base64UrlEncode(coseKey.x!)),
-      'y': removePaddingFromBase64(base64UrlEncode(coseKey.y!))
-    };
-  } else if (crvInt == 2) {
-    jwk = {
-      'crv': 'P-384',
-      'x': removePaddingFromBase64(base64UrlEncode(coseKey.x!)),
-      'y': removePaddingFromBase64(base64UrlEncode(coseKey.y!))
-    };
-  } else if (crvInt == 3) {
-    jwk = {
-      'crv': 'P-521',
-      'x': removePaddingFromBase64(base64UrlEncode(coseKey.x!)),
-      'y': removePaddingFromBase64(base64UrlEncode(coseKey.y!))
-    };
-  } else {
-    throw Exception('Unknown KeyType');
-  }
-
-  return 'did:key:${jwkToMultiBase(jwk)}';
 }

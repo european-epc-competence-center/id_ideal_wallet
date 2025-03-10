@@ -3,11 +3,10 @@ import 'dart:io' as io
     show HttpClient, Platform, SecurityContext, TlsProtocolVersion;
 import 'dart:typed_data';
 
-import 'package:base_codecs/base_codecs.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/did.dart';
 import 'package:dart_ssi/didcomm.dart';
-import 'package:dart_ssi/oidc.dart';
+import 'package:dart_ssi/oid.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +21,6 @@ import 'package:id_ideal_wallet/basicUi/standard/requester_info.dart';
 import 'package:id_ideal_wallet/basicUi/standard/secured_widget.dart';
 import 'package:id_ideal_wallet/constants/kaprion_context.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
-import 'package:id_ideal_wallet/functions/oidc_handler.dart';
 import 'package:id_ideal_wallet/functions/payment_utils.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
@@ -261,14 +259,16 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
                         issuer: did,
                         credentialSubject: credSubject,
                         issuanceDate: DateTime.now());
-                    var signed = await signCredential(wallet.wallet, cred);
-                    logger.d(signed);
+                    var (signer, proofType) =
+                        await getCredentialSigningStuff(wallet, did);
+                    await cred.sign(signer, proofType);
+                    logger.d(cred.toJson());
                     widget.results[index].selfIssuable!.remove(i);
                     if (widget.results[index].selfIssuable!.isEmpty) {
                       widget.results[index].selfIssuable = null;
                     }
                     var cList = widget.results[index].credentials ?? [];
-                    cList.add(VerifiableCredential.fromJson(signed));
+                    cList.add(cred);
                     widget.results[index].credentials = cList;
                     logger.d(widget.results);
                     selectedCredsPerResult[
@@ -366,8 +366,8 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
 
       // sd Jwt
       for (var v in result.sdJwtCredentials ?? <sd_jwt.SdJws>[]) {
-        var sd = v.unverified();
-        Map<String, dynamic> subject = sd.claims;
+        var sd = v.toSdJwt();
+        Map<String, dynamic> subject = sd.additionalClaims ?? {};
 
         var type = subject.remove('vct');
         var key = 'o${outerPos}i$innerPos';
@@ -403,7 +403,8 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
 
       var minCount = result.submissionRequirement?.min ??
           result.submissionRequirement?.count ??
-          1;
+          (result.submissionRequirement?.max == null ? 1 : 0);
+
       if (credCount < minCount) {
         logger.d('less creds: $credCount < $minCount');
         fulfillable = false;
@@ -599,11 +600,12 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
         innerPos++;
       }
 
-      for (var cred in result.credentials ?? []) {
+      for (var cred in result.credentials ?? <VerifiableCredential>[]) {
         if (selectedCredsPerResult['o${outerPos}i$innerPos']!) {
           credList.add(cred);
 
-          issuerDids.add(getIssuerDidFromCredential(cred.toJson()));
+          issuerDids
+              .add(cred.issuer is String ? cred.issuer : cred.issuer['id']);
         }
         innerPos++;
       }
@@ -655,18 +657,14 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
           for (var cred in entry.isoMdocCredentials!) {
             var mso = MobileSecurityObject.fromCbor(cred.issuerAuth.payload);
             var did = coseKeyToDid(mso.deviceKeyInfo.deviceKey);
-
-            var private = await wallet.getPrivateKeyForCredentialDid(did);
-            if (private == null) {
-              logger.d('Kein privater schlüssel');
-              throw Exception();
+            int? alg = getCoseAlgorithmForDid(did);
+            if (alg == null) {
+              throw Exception('no algorithm');
             }
-            var privateKey = await didToCosePublicKey(did);
-            privateKey.d = hexDecode(private);
 
             var transcript = SessionTranscript(handover: handover);
             var ds = await generateDeviceSignature({}, mso.docType, transcript,
-                signer: SignatureGenerator.get(privateKey));
+                signer: WalletSigner(wallet, did, alg));
             docs.add(Document(
                 docType: mso.docType, issuerSigned: cred, deviceSigned: ds));
           }
@@ -675,7 +673,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
 
           descriptorMap.add(InputDescriptorMappingObject(
               id: entry.matchingDescriptorIds.first,
-              format: OidcCredentialFormat.msoMdoc,
+              format: OidCredentialFormat.msoMdoc,
               path: JsonPath(r'$')));
 
           vp.add(removePaddingFromBase64(base64UrlEncode(res.toEncodedCbor())));
@@ -691,62 +689,67 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             entry.sdJwtCredentials!.isNotEmpty) {
           logger.d('handle sd jwt');
           for (var s in entry.sdJwtCredentials!) {
-            var sd = s.unverified();
+            var sd = s.toSdJwt();
 
             var cnf = sd.confirmation!.toJson();
             logger.d(cnf['jwk']);
             var multibase = jwkToMultiBase(cnf['jwk']);
             var restoredDid = 'did:key:$multibase';
 
-            var private = await wallet.wallet
-                .getPrivateKeyForCredentialDidAsJwk(restoredDid);
-            if (private == null) {
-              logger.d('no private key found for $restoredDid');
-              throw Exception();
-            }
-            private['x'] = cnf['jwk']['x'];
-            private['y'] = cnf['jwk']['y'];
-            logger.d(private);
-
-            var jwk = sd_jwt.Jwk.fromJson(private);
-            logger.d(jwk.toJson());
             sd_jwt.SigningAlgorithm? algorithm;
-            if (private['crv'] == 'P-256') {
+            if (restoredDid.startsWith('did:key:zQ3s')) {
+              algorithm = sd_jwt.SigningAlgorithm.ecdsaSha256Koblitz;
+            } else if (restoredDid.startsWith('did:key:zDn')) {
               algorithm = sd_jwt.SigningAlgorithm.ecdsaSha256Prime;
-            } else if (private['crv'] == 'P-384') {
+            } else if (restoredDid.startsWith('did:key:z82')) {
               algorithm = sd_jwt.SigningAlgorithm.ecdsaSha384Prime;
-            } else if (private['crv'] == 'P-221') {
+            } else if (restoredDid.startsWith('did:key:z2J9')) {
               algorithm = sd_jwt.SigningAlgorithm.ecdsaSha512Prime;
+            } else if (restoredDid.startsWith('did:key:z6Mk')) {
+              algorithm = sd_jwt.SigningAlgorithm.eddsa25519Sha512;
             }
 
-            var signed = s.bind(
-                jsonWebKey: jwk,
+            var signed = await s.bind(
+                signer:
+                    WalletCryptoProviderForSdJwt(wallet.wallet, restoredDid),
                 audience: widget.otherEndpoint,
                 issuedAt: DateTime.now(),
                 nonce: widget.nonce!,
-                signingAlgorithm: algorithm);
+                signingAlgorithm: algorithm!);
 
             logger.d(signed);
+            printWrapped(signed.toCompactSerialization());
+            var kbJwtParsed = signed.keyBindingJws!.toKbJwt();
+            logger.d(base64.encode(signed.digest) ==
+                base64.encode(kbJwtParsed.sdHash));
 
             vp.add(signed.toCompactSerialization());
 
             descriptorMap.add(InputDescriptorMappingObject(
                 id: entry.matchingDescriptorIds.first,
-                format: OidcCredentialFormat.sdJwt,
+                format: OidCredentialFormat.sdJwt,
                 path: JsonPath(
-                    '\$${vp.isEmpty && entry.sdJwtCredentials!.length == 1 ? '' : '[${arrayIndex + vp.length}]'}')));
+                    '\$${vp.isEmpty && entry.sdJwtCredentials!.length == 1 ? '' : '[${arrayIndex + vp.length - 1}]'}')));
             arrayIndex++;
           }
         }
       }
 
       if (hasW3cCreds) {
-        vp.add(await buildPresentation(finalSend, wallet.wallet, widget.nonce!,
-            loadDocumentFunction: loadDocumentFast));
+        var vpW3C = VerifiablePresentation.fromFilterResults(finalSend);
+        for (var vc in vpW3C.verifiableCredential!) {
+          var did = vc.credentialSubject['id'];
+          if (did == null || did == '') continue;
+          var (signer, proofType) =
+              await getCredentialSigningStuff(wallet, did);
+          await vpW3C.addProof(signer, proofType,
+              challenge: widget.nonce, loadDocument: loadDocumentFast);
+        }
+        vp.add(vpW3C.toJson());
         casted = VerifiablePresentation.fromJson(vp.last);
         descriptorMap = casted.presentationSubmission!.descriptorMap;
-        logger.d(await verifyPresentation(vp.last, widget.nonce!,
-            loadDocumentFunction: loadDocumentFast));
+        logger.d(await vpW3C.verify(
+            expectedChallenge: widget.nonce, loadDocument: loadDocumentFast));
 
         logger.d(vp);
       }
@@ -809,9 +812,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             walletKeyType = KeyType.secp256k1;
           }
           var cDid = await wallet.newConnectionDid(walletKeyType);
-          var myJwk =
-              await wallet.wallet.getPrivateKeyForConnectionDidAsJwk(cDid);
-          logger.d(myJwk);
+
           var myJwkPub = resolveDidKey(cDid)
               .convertAllKeysToJwk()
               .resolveKeyIds()
@@ -833,8 +834,13 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
           logger.d(header);
 
           if (header['alg'] == 'ECDH-ES') {
-            var sharedSecret = ecdhES(myJwk, readerKey, header['alg'], enc,
-                apu: header['apu'], apv: header['apv']);
+            var sharedSecret = await ecdhES(
+                WalletKeyAgreementGenerator(wallet.wallet, cDid),
+                readerKey,
+                header['alg'],
+                enc,
+                apu: header['apu'],
+                apv: header['apv']);
 
             logger.d('$sharedSecret, ${sharedSecret.length}');
             // direct mode
@@ -926,11 +932,8 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
 
         for (var entry in finalSend) {
           for (var cred in entry.credentials ?? <VerifiableCredential>[]) {
-            wallet.storeExchangeHistoryEntry(
-                getHolderDidFromCredential(cred.toJson()),
-                DateTime.now(),
-                'present',
-                widget.otherEndpoint);
+            wallet.storeExchangeHistoryEntry(cred.credentialSubject['id'],
+                DateTime.now(), 'present', widget.otherEndpoint);
 
             type += '${getTypeToShow(cred.type)}, \n';
           }
@@ -948,7 +951,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
           logger.d(type);
 
           for (var cred in entry.sdJwtCredentials ?? <sd_jwt.SdJws>[]) {
-            var sdJwt = cred.unverified();
+            var sdJwt = cred.toSdJwt();
 
             var cnf = sdJwt.confirmation!.toJson();
             logger.d(cnf['jwk']);
@@ -957,7 +960,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             wallet.storeExchangeHistoryEntry(
                 restoredDid, DateTime.now(), 'present', widget.otherEndpoint);
 
-            var vct = sdJwt.claims['vct'];
+            var vct = sdJwt.additionalClaims?['vct'] ?? '';
             type += '$vct, \n';
           }
         }
@@ -1002,11 +1005,8 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
       } else {
         if (casted != null) {
           for (var cred in casted.verifiableCredential!) {
-            wallet.storeExchangeHistoryEntry(
-                getHolderDidFromCredential(cred.toJson()),
-                DateTime.now(),
-                'present failed',
-                widget.otherEndpoint);
+            wallet.storeExchangeHistoryEntry(cred.credentialSubject['id'],
+                DateTime.now(), 'present failed', widget.otherEndpoint);
           }
         }
 
@@ -1036,13 +1036,17 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
       }
       return casted;
     } else {
-      var vp = await buildPresentation(
-          finalSend,
-          wallet.wallet,
-          widget.message?.presentationDefinition.first.challenge ??
-              widget.nonce ??
-              '',
-          loadDocumentFunction: loadDocumentKaprion);
+      var vp = VerifiablePresentation.fromFilterResults(finalSend);
+      for (var vc in vp.verifiableCredential!) {
+        var did = vc.credentialSubject['id'];
+        if (did == null || did == '') continue;
+        var (signer, proofType) = await getCredentialSigningStuff(wallet, did);
+        await vp.addProof(signer, proofType,
+            challenge: widget.message?.presentationDefinition.first.challenge ??
+                widget.nonce ??
+                '',
+            loadDocument: loadDocumentKaprion);
+      }
       if (widget.message != null) {
         var presentationMessage = Presentation(
             replyUrl: '$relay/buffer/${widget.myDid}',
@@ -1088,12 +1092,10 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
       }
 
       for (var cred
-          in VerifiablePresentation.fromJson(vp).verifiableCredential ?? []) {
-        wallet.storeExchangeHistoryEntry(
-            getHolderDidFromCredential(cred.toJson()),
-            DateTime.now(),
-            'present',
-            widget.otherEndpoint);
+          in VerifiablePresentation.fromJson(vp).verifiableCredential ??
+              <VerifiableCredential>[]) {
+        wallet.storeExchangeHistoryEntry(cred.credentialSubject['id'],
+            DateTime.now(), 'present', widget.otherEndpoint);
       }
 
       // Navigator.of(context).pop();

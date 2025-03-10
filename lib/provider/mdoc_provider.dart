@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'dart:io';
 
 import 'package:base_codecs/base_codecs.dart';
@@ -10,13 +9,11 @@ import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/did.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
-import 'package:id_ideal_wallet/functions/oidc_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/presentation_request.dart';
@@ -30,7 +27,30 @@ enum BleMdocTransmissionState {
   advertising,
   connected,
   disconnected,
-  send
+  send,
+  error
+}
+
+class WalletSigner extends SignatureGenerator {
+  final WalletProvider wallet;
+  // It is easier to restore a did from the cose key inside the credential because there is no guaranty that the cose key has a kid.
+  // If Keystore of android or ios is used we need to store which did belongs to the alias/keyId in this system keystore.
+  final String did;
+
+  WalletSigner(this.wallet, this.did, super.supportedCoseAlgorithm);
+
+  @override
+  FutureOr<List<int>> generate(List<int> data) {
+    var keyId = wallet.getOsKeyStoreIdForDid(did) ?? did;
+    logger.d(keyId);
+    return wallet.sign(keyId, Uint8List.fromList(data));
+  }
+
+  @override
+  FutureOr<bool> verify(List<int> data, List<int> toVerify) {
+    // TODO: implement verify
+    throw UnimplementedError();
+  }
 }
 
 class MdocProvider extends ChangeNotifier {
@@ -64,6 +84,7 @@ class MdocProvider extends ChangeNotifier {
   PeripheralManager? peripheralManager;
   List<int> readBuffer = [];
   Central? connectedDevice;
+  int errorCount = 0;
 
   MdocProvider();
 
@@ -113,37 +134,55 @@ class MdocProvider extends ChangeNotifier {
         logger.d('${characteristic.uuid} : (${value.length}) $value ');
         // connectedDevice = central;
         if (characteristic.uuid == mdocPeripheralClient2Server.uuid) {
-          readBuffer.addAll(value.sublist(1));
+          var data = value.sublist(1);
+          if (readBuffer.isNotEmpty && readBuffer.length >= data.length) {
+            var lastRec = readBuffer.sublist(readBuffer.length - data.length);
+            if (!listEquals(lastRec, data)) {
+              readBuffer.addAll(data);
+            }
+          } else {
+            readBuffer.addAll(data);
+          }
+          //readBuffer.addAll(value.sublist(1));
           if (value.first == 0) {
+            logger.d('received length: ${readBuffer.length}');
             sendResponse();
           }
         }
         if (characteristic.uuid == mdocPeripheralState.uuid) {
           if (value.first == 1) {
-            logger.d('Start Signal recieved');
+            logger.d('Start Signal received');
           } else if (value.first == 2) {
             logger.d('End Signal received');
             transmissionState = BleMdocTransmissionState.disconnected;
+            notifyListeners();
           }
         }
       },
     );
 
-    characteristicNotifyStateChangedSubscription =
-        peripheralManager!.characteristicNotifyStateChanged.listen(
-      (eventArgs) async {
-        final central = eventArgs.central;
-        final characteristic = eventArgs.characteristic;
-        final state = eventArgs.state;
-        logger.d('${characteristic.uuid} : $state');
-        if (state) {
-          connectedDevice = central;
-          stopAdvertising();
-        }
-      },
-    );
+    characteristicNotifyStateChangedSubscription = peripheralManager!
+        .characteristicNotifyStateChanged
+        .listen((eventArgs) async {
+      final central = eventArgs.central;
+      final characteristic = eventArgs.characteristic;
+      final state = eventArgs.state;
+      logger.d('${characteristic.uuid} : $state');
+      if (state) {
+        connectedDevice = central;
+        stopAdvertising();
+      }
+    }, onError: (e) {
+      logger.d('error: $e');
+    });
 
-    notifyListeners();
+    logger.d(bleState);
+    //notifyListeners();
+  }
+
+  void restartBle() async {
+    await stopAdvertising(true);
+    startBle();
   }
 
   setBleState() async {
@@ -152,18 +191,12 @@ class MdocProvider extends ChangeNotifier {
     bleState = s ?? BluetoothLowEnergyState.unknown;
   }
 
-  generateDeviceEngagement() async {
-    var wallet = Provider.of<WalletProvider>(navigatorKey.currentContext!,
-        listen: false);
-    var mdocDid = await wallet.newConnectionDid(KeyType.p256);
-    var deviceEphemeralCosePub = await didToCosePublicKey(mdocDid);
-    myPrivateKey = deviceEphemeralCosePub;
-    myPrivateKey!.d = base64Decode(addPaddingToBase64((await wallet.wallet
-        .getPrivateKeyForConnectionDidAsJwk(mdocDid))!['d']));
+  generateDeviceEngagement() {
+    myPrivateKey = CoseKey.generate(CoseCurve.p256);
     engagement = DeviceEngagement(
         security: Security(
             cipherSuiteIdentifier: 1,
-            deviceKeyBytes: deviceEphemeralCosePub.toCoseKeyBytes().bytes),
+            deviceKeyBytes: myPrivateKey!.toPublicKey().toCoseKeyBytes().bytes),
         deviceRetrievalMethods: [
           DeviceRetrievalMethod(
               type: 2,
@@ -182,20 +215,43 @@ class MdocProvider extends ChangeNotifier {
   }
 
   Future<void> startAdvertising() async {
-    await peripheralManager?.removeAllServices();
-    await peripheralManager?.addService(mdocService!);
-    final advertisement = Advertisement(
-      //name: 'mdoc',
-      serviceUUIDs: [serviceUuid!],
-    );
-    await peripheralManager?.startAdvertising(advertisement);
-    transmissionState =
-        BleMdocTransmissionState.advertising; // advertising mode
+    try {
+      if (peripheralManager == null) {
+        transmissionState = BleMdocTransmissionState.error;
+        notifyListeners();
+        return;
+      }
+      await peripheralManager?.removeAllServices();
+      await peripheralManager?.addService(mdocService!);
+      final advertisement = Advertisement(
+        name: 'Hidy Mdoc Service',
+        serviceUUIDs: [serviceUuid!],
+      );
+      await peripheralManager?.startAdvertising(advertisement);
+      transmissionState =
+          BleMdocTransmissionState.advertising; // advertising mode
+      logger.d('advertising');
+      errorCount = 0;
+      notifyListeners();
+    } catch (e) {
+      if (errorCount >= 20) {
+        transmissionState = BleMdocTransmissionState.error;
+        errorCount = 0;
+        notifyListeners();
+      } else {
+        logger.d('start advertising failed');
+        await stopAdvertising(true);
+        startBle();
+        errorCount++;
+      }
+    }
   }
 
-  Future<void> stopAdvertising() async {
+  Future<void> stopAdvertising([bool dispose = false]) async {
     await peripheralManager?.stopAdvertising();
-    transmissionState = BleMdocTransmissionState.connected;
+    transmissionState = dispose
+        ? BleMdocTransmissionState.uninitialized
+        : BleMdocTransmissionState.connected;
     notifyListeners();
   }
 
@@ -204,7 +260,7 @@ class MdocProvider extends ChangeNotifier {
     String? type;
 
     (responseToSend, type) = await handleMdocRequest(readBuffer);
-
+    readBuffer = [];
     if (responseToSend != null) {
       var fragmentSize =
           await peripheralManager!.getMaximumNotifyLength(connectedDevice!) - 3;
@@ -223,6 +279,10 @@ class MdocProvider extends ChangeNotifier {
 
       transmissionState = BleMdocTransmissionState.send;
     }
+    showSuccessMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!
+            .presentationSuccessful,
+        type?.substring(0, type.length - 1) ?? '');
     notifyListeners();
   }
 
@@ -508,11 +568,10 @@ class MdocProvider extends ChangeNotifier {
     }
 
     var certIt = parsePem(
-        '-----BEGIN CERTIFICATE-----\n${base64Encode(decodedRequest.docRequests.first.readerAuthSignature!.unprotected.x509chain!)}\n-----END CERTIFICATE-----');
+        '-----BEGIN CERTIFICATE-----\n${base64Encode(decodedRequest.docRequests.first.readerAuthSignature!.unprotected.x509chain!.first)}\n-----END CERTIFICATE-----');
     var requesterCert = certIt.first as X509Certificate;
 
     List<IssuerSignedObject> toShow = [];
-    List<IsoRequestedItem> filterResult = [];
 
     var isoCreds =
         Provider.of<WalletProvider>(navigatorKey.currentContext!, listen: false)
@@ -522,7 +581,7 @@ class MdocProvider extends ChangeNotifier {
 
     for (var cred in isoCreds) {
       var data = IssuerSignedObject.fromCbor(
-          base64Decode(cred.plaintextCredential.replaceAll('$isoPrefix:', '')));
+          base64Decode(cred.metadata.replaceAll('$isoPrefix:', '')));
       var m = MobileSecurityObject.fromCbor(data.issuerAuth.payload);
       var coseKey = m.deviceKeyInfo.deviceKey;
       KeyType keyType;
@@ -559,20 +618,9 @@ class MdocProvider extends ChangeNotifier {
             });
 
             data.items = revealedData;
-            var vc = VerifiableCredential.fromJson(cred.w3cCredential);
+            var vc = VerifiableCredential.fromJson(cred.verifiableCredential);
             vc.credentialSubject = contentToShow;
             toShow.add(data);
-            var key = await Provider.of<WalletProvider>(
-                    navigatorKey.currentContext!,
-                    listen: false)
-                .wallet
-                .getPrivateKey(cred.hdPath, keyType);
-            filterResult.add(IsoRequestedItem(
-                m.docType,
-                {},
-                data,
-                CoseKey(
-                    kty: coseKey.kty, crv: coseKey.crv, d: hex.decode(key))));
           }
         }
       }
@@ -604,21 +652,20 @@ class MdocProvider extends ChangeNotifier {
         for (var doc in entry.isoMdocCredentials ?? <IssuerSignedObject>[]) {
           var mso = MobileSecurityObject.fromCbor(doc.issuerAuth.payload);
           var did = coseKeyToDid(mso.deviceKeyInfo.deviceKey);
-
-          var private = await Provider.of<WalletProvider>(
-                  navigatorKey.currentContext!,
-                  listen: false)
-              .getPrivateKeyForCredentialDid(did);
-          if (private == null) {
-            showErrorMessage('Kein privater schlüssel');
+          int? alg = getCoseAlgorithmForDid(did);
+          if (alg == null) {
+            showErrorMessage('Unbekannte did', 'Das sollte nicht passieren');
             return (null, null);
           }
-          var privateKey = await didToCosePublicKey(did);
-          privateKey.d = hexDecode(private);
 
           var ds = await generateDeviceSignature(
               {}, mso.docType, transcriptHolder,
-              signer: SignatureGenerator.get(privateKey));
+              signer: WalletSigner(
+                  Provider.of(navigatorKey.currentContext!, listen: false),
+                  did,
+                  alg));
+
+          logger.d(ds.deviceSignature?.signature);
 
           var docToSend = Document(
               docType: mso.docType, issuerSigned: doc, deviceSigned: ds);

@@ -1,4 +1,4 @@
-import 'package:dart_ssi/x509.dart';
+import 'package:dart_ssi/util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/constants/root_certificates.dart';

@@ -67,7 +67,7 @@ class CredentialPageState extends State<CredentialPage> {
                 ? [
                     InkWell(
                         onTap: () =>
-                            navigateClassic(const IsoCredentialRequest()),
+                            navigateClassic(const IsoCredentialRequest(), true),
                         child: const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 10),
                             child: Icon(Icons.qr_code_2, size: 30)))
@@ -83,7 +83,7 @@ class CredentialPageState extends State<CredentialPage> {
                     itemBuilder: (context, index) {
                       var cred = credentialList[index];
                       var type = getTypeToShow(cred.type);
-                      var id = getHolderDidFromCredential(cred.toJson());
+                      var id = cred.credentialSubject['id'] ?? '';
                       if (id == '') {
                         id = '${cred.issuanceDate.toIso8601String()}$type';
                       }
@@ -293,7 +293,8 @@ class ContextCardState extends State<ContextCard> {
           TextButton(
               onPressed: () async {
                 var credId = widget.context.id ??
-                    getHolderDidFromCredential(widget.context.toJson());
+                    widget.context.credentialSubject['id'] ??
+                    '';
                 if (credId == '') {
                   var type = getTypeToShow(widget.context.type);
                   credId =
@@ -462,7 +463,7 @@ class CredentialCard extends StatelessWidget {
                         credential: credential, track: false)
             : null,
         child: Consumer<WalletProvider>(builder: (context, wallet, child) {
-          var id = getHolderDidFromCredential(credential.toJson());
+          var id = credential.credentialSubject['id'] ?? '';
           var revState = wallet.revocationState[id];
           if (revState == RevocationState.expired.index ||
               revState == RevocationState.revoked.index ||

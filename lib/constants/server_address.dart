@@ -35,21 +35,28 @@ Map knownAuthServer = {
     'client_id': 'wallet-dev',
     'redirect_uri': 'eudi-openid4ci://authorize'
   },
+  // 'https://id.staging.authada.de/eudi/issuer/pid': {
+  //   'client_id': 'eEWA Wallet',
+  //   'redirect_uri': 'eudi-issuance://authorization'
+  // },
   'https://localhost:4443/idp/realms/pid-issuer-realm': {
     'client_id': 'wallet-dev',
     'redirect_uri': 'eudi-openid4ci://authorize'
   },
   'https://demo.pid-issuer.bundesdruckerei.de/c': {
     'client_id': 'fed79862-af36-4fee-8e64-89e3c91091ed',
-    'pidIssuer': true
+    'pidIssuer': true,
+    'dpop': true
   },
   'https://demo.pid-issuer.bundesdruckerei.de/c2': {
     'client_id': 'fed79862-af36-4fee-8e64-89e3c91091ed',
-    'pidIssuer': true
+    'pidIssuer': true,
+    'dpop': true
   },
   'https://demo.pid-issuer.bundesdruckerei.de/c1': {
     'client_id': 'fed79862-af36-4fee-8e64-89e3c91091ed',
-    'pidIssuer': true
+    'pidIssuer': true,
+    'dpop': true
   }
 };
 
@@ -73,9 +80,9 @@ var applicationEndpoint =
     'https://test.hidy.app/walletcontext/apps?plattform=${Platform.isIOS ? '1' : '2'}';
 var stylingEndpoint = 'https://test.hidy.app/walletcontext/layouts';
 var termsVersionEndpoint = 'https://test.hidy.app/walletcontext/terms';
-String versionNumber = '3.5.3-test';
+String versionNumber = '4.0.0-test';
 String baseUrl = 'https://test.hidy.app';
-bool testBuild = false;
+bool testBuild = true;
 
 bool inOidcTest = false;
 

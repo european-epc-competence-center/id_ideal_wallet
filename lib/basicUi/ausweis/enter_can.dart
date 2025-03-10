@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/footer_buttons.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
 import 'package:provider/provider.dart';
@@ -22,11 +23,10 @@ class EnterCanState extends State<EnterCan> {
         child: Column(
           children: [
             Text(
-              'CAN-Eingabe',
+              AppLocalizations.of(context)!.enterCan,
               style: Theme.of(context).primaryTextTheme.headlineLarge,
             ),
-            const Text(
-                'Bitte gib die 6-stellige CAN von der Vorderseite deines Ausweises ein:'),
+            Text(AppLocalizations.of(context)!.enterCanNote),
             const SizedBox(
               height: 10,
             ),
@@ -41,7 +41,7 @@ class EnterCanState extends State<EnterCan> {
                   maxLength: 6,
                   validator: (input) {
                     if (input == null || input.length != 6) {
-                      return 'Die CAN muss genau 6 Stellen haben';
+                      return AppLocalizations.of(context)!.canLengthNote;
                     }
                     return null;
                   },

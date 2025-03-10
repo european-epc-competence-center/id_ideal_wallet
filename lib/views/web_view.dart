@@ -12,8 +12,10 @@ import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/oidc_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
+import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
+import 'package:id_ideal_wallet/views/iso_credential_request.dart';
 import 'package:id_ideal_wallet/views/presentation_request.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -35,6 +37,7 @@ class WebViewWindowState extends State<WebViewWindow> {
   bool isInAbo = false;
   String imageUrl = '';
   List<String>? trustedSites;
+  bool mdocRunning = false;
 
   InAppWebViewController? webViewController;
   InAppWebViewSettings settings = InAppWebViewSettings(
@@ -278,6 +281,13 @@ class WebViewWindowState extends State<WebViewWindow> {
                               return res.status == ShareResultStatus.success;
                             });
                         webViewController?.addJavaScriptHandler(
+                            handlerName: 'initiateProximitySharing',
+                            callback: (args) async {
+                              navigateClassic(
+                                  const IsoCredentialRequest(), true);
+                              return true;
+                            });
+                        webViewController?.addJavaScriptHandler(
                             handlerName: 'shareImageHandler',
                             callback: (args) async {
                               var d = UriData.fromUri(Uri.parse(args.first));
@@ -418,11 +428,11 @@ class WebViewWindowState extends State<WebViewWindow> {
     var allCreds = wallet.allCredentials();
     List<VerifiableCredential> creds = [];
     allCreds.forEach((key, value) {
-      if (value.w3cCredential != '') {
-        var vc = VerifiableCredential.fromJson(value.w3cCredential);
+      if (value.verifiableCredential != '') {
+        var vc = VerifiableCredential.fromJson(value.verifiableCredential);
         var type = getTypeToShow(vc.type);
         if (type != 'PaymentReceipt') {
-          var id = getHolderDidFromCredential(vc.toJson());
+          var id = vc.credentialSubject['id'];
           var status = wallet.revocationState[id];
           if (status == RevocationState.valid.index ||
               status == RevocationState.unknown.index) {
@@ -498,11 +508,11 @@ class WebViewWindowState extends State<WebViewWindow> {
     var allCreds = wallet.allCredentials();
     List<VerifiableCredential> creds = [];
     allCreds.forEach((key, value) {
-      if (value.w3cCredential != '') {
-        var vc = VerifiableCredential.fromJson(value.w3cCredential);
+      if (value.verifiableCredential != '') {
+        var vc = VerifiableCredential.fromJson(value.verifiableCredential);
         var type = getTypeToShow(vc.type);
         if (type != 'PaymentReceipt') {
-          var id = getHolderDidFromCredential(vc.toJson());
+          var id = vc.credentialSubject['id'];
           var status = wallet.revocationState[id];
           if (status == RevocationState.valid.index ||
               status == RevocationState.unknown.index) {
@@ -525,9 +535,15 @@ class WebViewWindowState extends State<WebViewWindow> {
       if (authorizedApps.contains(initialUrl) &&
           authorizedHashes.contains(definitionHash.toString())) {
         logger.d('send with no interaction');
-        var tmp = await buildPresentation(filtered, wallet.wallet, nonce,
-            loadDocumentFunction: loadDocumentFast);
-        vp = VerifiablePresentation.fromJson(tmp);
+        var vp = VerifiablePresentation.fromFilterResults(filtered);
+        for (var vc in vp.verifiableCredential!) {
+          var did = vc.credentialSubject['id'];
+          if (did == null || did == '') continue;
+          var (signer, proofType) =
+              await getCredentialSigningStuff(wallet, did);
+          await vp.addProof(signer, proofType,
+              challenge: nonce, loadDocument: loadDocumentFast);
+        }
       } else {
         var target = PresentationRequestDialog(
           definition: definition,
@@ -552,5 +568,14 @@ class WebViewWindowState extends State<WebViewWindow> {
           AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsNote);
       return null;
     }
+  }
+
+  @override
+  void dispose() {
+    if (mdocRunning) {
+      Provider.of<MdocProvider>(navigatorKey.currentContext!, listen: false)
+          .stopAdvertising(true);
+    }
+    super.dispose();
   }
 }
