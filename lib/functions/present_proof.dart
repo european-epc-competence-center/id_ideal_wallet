@@ -177,7 +177,7 @@ Future<bool> handleRequestPresentation(
           returnRoute: ReturnRouteValue.thread,
           to: [message.from!],
           from: myDid,
-          verifiablePresentation: [VerifiablePresentation.fromJson(vp)],
+          verifiablePresentation: [vp],
           threadId: message.threadId ?? message.id,
           parentThreadId: message.parentThreadId);
 

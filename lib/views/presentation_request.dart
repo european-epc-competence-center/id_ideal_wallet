@@ -1,6 +1,5 @@
 import 'dart:convert';
-import 'dart:io' as io
-    show HttpClient, Platform, SecurityContext, TlsProtocolVersion;
+import 'dart:io' as io show HttpClient;
 import 'dart:typed_data';
 
 import 'package:dart_ssi/credentials.dart';
@@ -1053,7 +1052,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             returnRoute: ReturnRouteValue.thread,
             to: [widget.receiverDid],
             from: widget.myDid,
-            verifiablePresentation: [VerifiablePresentation.fromJson(vp)],
+            verifiablePresentation: [vp],
             threadId: widget.message!.threadId ?? widget.message!.id,
             parentThreadId: widget.message!.parentThreadId);
         logger.d(widget.lnInvoiceRequest);
@@ -1091,15 +1090,13 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             lnInvoice: widget.lnInvoice, paymentCards: widget.paymentCards);
       }
 
-      for (var cred
-          in VerifiablePresentation.fromJson(vp).verifiableCredential ??
-              <VerifiableCredential>[]) {
+      for (var cred in vp.verifiableCredential ?? <VerifiableCredential>[]) {
         wallet.storeExchangeHistoryEntry(cred.credentialSubject['id'],
             DateTime.now(), 'present', widget.otherEndpoint);
       }
 
       // Navigator.of(context).pop();
-      return VerifiablePresentation.fromJson(vp);
+      return vp;
     }
   }
 
