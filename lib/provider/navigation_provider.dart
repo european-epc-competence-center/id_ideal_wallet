@@ -9,7 +9,6 @@ import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/oidc_handler.dart';
-import 'package:id_ideal_wallet/functions/payment_utils.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
@@ -117,16 +116,17 @@ class NavigationProvider extends ChangeNotifier {
       return;
     }
     // Handle Custom Schemes
-    if (link.startsWith('lightning:')) {
-      handleLink(link.replaceAll('lightning:', ''));
-    } else if (link.startsWith('LNURL') || link.startsWith('lnurl')) {
-      handleLnurl(link);
-    } else if (link.startsWith('lnbc') || link.startsWith('LNBC')) {
-      logger.d('LN-Invoice found');
-      payInvoiceInteraction(
-        link,
-      );
-    } else if (link.startsWith('eudi-openid4ci://authorize')) {
+    // if (link.startsWith('lightning:')) {
+    //   handleLink(link.replaceAll('lightning:', ''));
+    // } else if (link.startsWith('LNURL') || link.startsWith('lnurl')) {
+    //   handleLnurl(link);
+    // } else if (link.startsWith('lnbc') || link.startsWith('LNBC')) {
+    //   logger.d('LN-Invoice found');
+    //   payInvoiceInteraction(
+    //     link,
+    //   );
+    // } else
+    if (link.startsWith('eudi-openid4ci://authorize')) {
       handleRedirect(link);
     } else if (link.startsWith('openid-credential-offer') ||
         link.startsWith('eudi-openid4vci')) {
@@ -177,17 +177,19 @@ class NavigationProvider extends ChangeNotifier {
                 title: '')));
       } else if (link.contains('redirect')) {
         handleRedirect(link);
-      } else if (link.contains('/invoice')) {
-        var uri = Uri.parse(link);
-        var invoice = uri.queryParameters['invoice'];
-        if (invoice != null) {
-          payInvoiceInteraction(
-            invoice,
-          );
-        } else if (uri.queryParameters.containsKey('lnurl')) {
-          handleLnurl(uri.queryParameters['lnurl']!);
-        }
-      } else {
+      }
+      // else if (link.contains('/invoice')) {
+      //   var uri = Uri.parse(link);
+      //   var invoice = uri.queryParameters['invoice'];
+      //   if (invoice != null) {
+      //     payInvoiceInteraction(
+      //       invoice,
+      //     );
+      //   } else if (uri.queryParameters.containsKey('lnurl')) {
+      //     handleLnurl(uri.queryParameters['lnurl']!);
+      //   }
+      // }
+      else {
         showErrorMessage(
             AppLocalizations.of(navigatorKey.currentContext!)!.unknownQrCode,
             AppLocalizations.of(navigatorKey.currentContext!)!

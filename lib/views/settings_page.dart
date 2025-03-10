@@ -4,13 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/styled_scaffold_title.dart';
 import 'package:id_ideal_wallet/constants/navigation_pages.dart';
-import 'package:id_ideal_wallet/constants/server_address.dart';
-import 'package:id_ideal_wallet/functions/backup_functions.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/ausweis_view.dart';
-import 'package:id_ideal_wallet/views/backup_view.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -50,28 +47,15 @@ class SettingsPageState extends State<SettingsPage> {
                   mode: LaunchMode.externalApplication);
             },
           ),
-          ListTile(
-            title: const Text('Vertrauenswürdige Anwendungen'),
-            onTap: () => Provider.of<NavigationProvider>(context, listen: false)
-                .changePage([NavigationPage.authorizedApps]),
-          ),
           if (Platform.isAndroid || Platform.isIOS)
             ListTile(
               title: Text('Ausweis'),
               onTap: () => navigateClassic(const AusweisView()),
             ),
-          ListTile(
-            title: Text('Wallet Attestation'),
-            onTap: () => getWalletAttestation(),
-          ),
-          ListTile(
-            title: Text(AppLocalizations.of(context)!.backup),
-            onTap: () => Navigator.of(navigatorKey.currentContext!)
-                .push(MaterialPageRoute(builder: (context) => BackupWidget())),
-          ),
-          ListTile(
-              title: Text(AppLocalizations.of(context)!.restoreMenu),
-              onTap: () => showConfirmationDialog(context, applyBackup)),
+          // ListTile(
+          //   title: Text('Wallet Attestation'),
+          //   onTap: () => getWalletAttestation(),
+          // ),
         ],
       ),
     );

@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:id_ideal_wallet/constants/server_address.dart';
+import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 
 const String localhost =
     "http://78.47.219.104"; //http://ec2-18-199-147-148.eu-central-1.compute.amazonaws.com";//"http://10.0.2.2";
@@ -10,7 +12,7 @@ const String apiKey = 'supersecretapikey123';
 
 // ######### Backup functions #############
 
-Future<void> sendStringAndFile(
+Future<bool> sendStringAndFile(
     String apiUrl, String apiKey, String textData, File file) async {
   try {
     // Create the Multipart request
@@ -44,11 +46,22 @@ Future<void> sendStringAndFile(
       logger.d('File and data uploaded successfully');
       var responseData = await http.Response.fromStream(response);
       logger.d('Response: ${responseData.body}');
+      return true;
+      showSuccessMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.backupSuccess);
     } else {
       logger.d('Failed to upload. Status code: ${response.statusCode}');
+      return false;
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.backupFailed,
+          AppLocalizations.of(navigatorKey.currentContext!)!.backupFailedNote);
     }
   } catch (e) {
     logger.d('Error uploading file: $e');
+    return false;
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.backupFailed,
+        AppLocalizations.of(navigatorKey.currentContext!)!.backupFailedNote);
   }
 }
 

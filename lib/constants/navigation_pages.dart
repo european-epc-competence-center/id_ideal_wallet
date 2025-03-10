@@ -13,5 +13,8 @@ enum NavigationPage {
   topUp,
   paymentOverview,
   ausweis,
-  aboDetail
+  aboDetail,
+  backupOverview,
+  backupCreate,
+  backupRestore
 }

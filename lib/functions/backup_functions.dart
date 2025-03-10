@@ -1,14 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/src/wallet/hive_model.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
+import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/encryption_provider.dart';
 import 'package:id_ideal_wallet/provider/server_provider.dart';
@@ -21,17 +23,13 @@ const String localhost =
     "http://78.47.219.104:3000"; //"http://ec2-18-199-147-148.eu-central-1.compute.amazonaws.com:3000";//"http://10.0.2.2";
 const String apiKey = 'supersecretapikey123';
 
-// Function to perform backup
-Future<void> performBackup(BuildContext context, String memonic) async {
-  final encryptionService = EncryptionService();
-
-  Uint8List password =
-      utf8.encode(encryptionService.getPasswordFromMemonic(memonic));
-
-  var wallet = Provider.of<WalletProvider>(context, listen: false);
+Future<(Map<String, Map<String, dynamic>>, String)> getBackupableData() async {
+  var wallet =
+      Provider.of<WalletProvider>(navigatorKey.currentContext!, listen: false);
   var walletData = await wallet.wallet.export();
   var osKeyStoreDids = wallet.getDidsInOsKeyStore();
   String notInBackup = '';
+  logger.d(walletData['credentials']?.length);
   for (var d in osKeyStoreDids ?? <String>[]) {
     logger.d(d);
     var c = walletData['credentials']?.remove(d);
@@ -40,67 +38,66 @@ Future<void> performBackup(BuildContext context, String memonic) async {
       notInBackup += getTypeToShow(VerifiableCredential.fromJson(
               Credential.fromJson(c).verifiableCredential)
           .type);
-      notInBackup += ' ,';
+      notInBackup += ', ';
     }
   }
-  logger.d(walletData['credentials']?.keys.toList());
-  bool doBackup = true;
-  if (notInBackup.isNotEmpty) {
-    notInBackup = notInBackup.substring(0, notInBackup.length - 2);
-    doBackup = await showDialog(
-        barrierDismissible: false,
-        context: navigatorKey.currentContext!,
-        builder: (c) {
-          return AlertDialog(
-            title: Text(AppLocalizations.of(context)!.note),
-            content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(AppLocalizations.of(context)!.noteNotInBackup),
-                  const SizedBox(
-                    height: 5,
-                  ),
-                  Text(notInBackup,
-                      style: Theme.of(context).primaryTextTheme.titleMedium),
-                  const SizedBox(
-                    height: 5,
-                  ),
-                  Text(AppLocalizations.of(context)!.askContinue)
-                ]),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.of(c).pop(false),
-                  child: Text(AppLocalizations.of(context)!.no)),
-              TextButton(
-                  onPressed: () => Navigator.of(c).pop(true),
-                  child: Text(AppLocalizations.of(context)!.yes))
-            ],
-          );
-        });
-  }
+  logger.d(walletData['credentials']?.length);
+  return (walletData, notInBackup);
+}
 
-  // Filter out null boxes
-  // Map<String, Box<dynamic>> nonNullableBoxes = Map.fromEntries(
-  //   boxes.entries
-  //       .where((entry) => entry.value != null)
-  //       .map((entry) => MapEntry(entry.key, entry.value!)),
-  // );
-  if (doBackup) {
-    var encodedBoxes = jsonEncode(walletData);
+// Function to perform backup in background task
+Future<bool> performBackup(Map<String, dynamic> input) async {
+  BackgroundIsolateBinaryMessenger.ensureInitialized(input['token']);
+  logger.d('backup start');
+  final encryptionService = EncryptionService();
+  Map<String, Map<String, dynamic>> data = input['data'];
+  String memonic = input['mnemonic'];
+  logger.d(memonic);
+  logger.d(data['credentials']?.length);
+  Uint8List password =
+      utf8.encode(encryptionService.getPasswordFromMemonic(memonic));
 
-    // Encrypt boxes
-    final encryptedData = encryptionService.encryptData(encodedBoxes, password);
+  var encodedBoxes = jsonEncode(data);
 
-    // Save the file locally first
-    File file = await saveFileLocally(
-        sha256.convert(password).toString(), encryptedData);
+  // Encrypt boxes
+  final encryptedData = encryptionService.encryptData(encodedBoxes, password);
 
-    String apiUrl =
-        '${localhost}/data'; // Replace with your server URL      // Replace with your API key
-    String textData = sha256.convert(password).toString();
+  // Save the file locally first
+  File file =
+      await saveFileLocally(sha256.convert(password).toString(), encryptedData);
+  logger.d('local file saved');
 
-    await sendStringAndFile(apiUrl, apiKey, textData, file);
+  String apiUrl =
+      '${localhost}/data'; // Replace with your server URL      // Replace with your API key
+  String textData = sha256.convert(password).toString();
+
+  await sendStringAndFile(apiUrl, apiKey, textData, file);
+
+  return true;
+}
+
+Future<Map<String, Map<String, dynamic>>?> loadAndDecryptBackup(
+    String mnemonic) async {
+  final encryptionService = EncryptionService();
+
+  String password = encryptionService.getPasswordFromMemonic(mnemonic);
+  String encryptedData;
+
+  try {
+    encryptedData = await fetchFileInMemory(
+        sha256.convert(utf8.encode(password)).toString());
+
+    // Decrypt the data using the password
+    String encodedBoxes =
+        await encryptionService.decryptData(password, encryptedData);
+
+    var walletData = (jsonDecode(encodedBoxes) as Map).map((k, v) => MapEntry(
+        k as String, (v as Map).map((k1, v1) => MapEntry(k1 as String, v1))));
+    return walletData;
+  } catch (e) {
+    // if we catch here we did not get a 200
+
+    return null;
   }
 }
 
@@ -108,32 +105,20 @@ Future<void> performBackup(BuildContext context, String memonic) async {
 Future<void> applyBackup(BuildContext context, String memonic) async {
   var wallet = Provider.of<WalletProvider>(context, listen: false);
 
-  final encryptionService = EncryptionService();
-
-  String password = encryptionService.getPasswordFromMemonic(memonic);
-  String encryptedData;
-
-  try {
-    encryptedData = await fetchFileInMemory(
-        sha256.convert(utf8.encode(password!)).toString());
-  } catch (e) {
-    // if we catch here we did not get a 200
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.backupNotFound)));
+  var walletData = await compute(loadAndDecryptBackup, memonic);
+  if (walletData == null) {
+    showErrorMessage(
+      AppLocalizations.of(navigatorKey.currentContext!)!.backupRestoreError,
+      AppLocalizations.of(navigatorKey.currentContext!)!.backupRestoreErrorNote,
+    );
     return;
   }
 
-  // Decrypt the data using the password
-  String encodedBoxes =
-      await encryptionService.decryptData(password!, encryptedData);
-
-  // Map<String, Box<dynamic>> boxes =
-  //     wallet.wallet.getBoxes().cast<String, Box<dynamic>>();
-  //
-  // // Decode and restore boxes
-  // await decodeAndSetBoxes(encodedBoxes, boxes);
-  var walletData = (jsonDecode(encodedBoxes) as Map).map((k, v) => MapEntry(
-      k as String, (v as Map).map((k1, v1) => MapEntry(k1 as String, v1))));
+  var cKeys = wallet.wallet.getAllCredentials().keys;
+  for (var k in cKeys) {
+    await wallet.wallet.deleteCredential(k);
+  }
+  logger.d(wallet.wallet.getAllCredentials().length);
 
   await wallet.wallet.import(walletData);
 

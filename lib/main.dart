@@ -16,6 +16,7 @@ import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/abo_overview.dart';
 import 'package:id_ideal_wallet/views/ausweis_view.dart';
 import 'package:id_ideal_wallet/views/authorized_apps.dart';
+import 'package:id_ideal_wallet/views/backup_view.dart';
 import 'package:id_ideal_wallet/views/credential_detail.dart';
 import 'package:id_ideal_wallet/views/credential_page.dart';
 import 'package:id_ideal_wallet/views/payment_card_overview.dart';
@@ -146,14 +147,13 @@ class HomeScreen extends StatelessWidget {
                   width: 20,
                 ),
                 CustomNavigationItem(
-                    text: AppLocalizations.of(context)!.payments(0),
-                    activeIcon: Icons.credit_card,
-                    inactiveIcon: Icons.credit_card_outlined,
+                    text: AppLocalizations.of(context)!.backup,
+                    activeIcon: Icons.backup,
+                    inactiveIcon: Icons.backup_outlined,
                     activeIndices: const [
-                      NavigationPage.paymentCard,
-                      NavigationPage.sendSatoshi,
-                      NavigationPage.topUp,
-                      NavigationPage.paymentOverview
+                      NavigationPage.backupOverview,
+                      NavigationPage.backupCreate,
+                      NavigationPage.backupRestore
                     ],
                     navigator: navigator),
                 CustomNavigationItem(
@@ -240,6 +240,12 @@ class HomeScreen extends StatelessWidget {
         return PaymentOverview(paymentContext: navigator.credential!);
       case NavigationPage.ausweis:
         return const AusweisView();
+      case NavigationPage.backupOverview:
+        return const BackupOverview();
+      case NavigationPage.backupCreate:
+        return const BackupWidget();
+      case NavigationPage.backupRestore:
+        return const RestoreWidget();
       default:
         return const AboOverview();
     }
