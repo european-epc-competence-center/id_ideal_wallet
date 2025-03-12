@@ -264,11 +264,6 @@ class WalletProvider extends ChangeNotifier {
         return;
       }
 
-      // if (!_wallet.isInitialized()) {
-      //   await _wallet.initialize();
-      //   await _wallet.initializeIssuer(KeyType.ed25519);
-      // }
-      var s = DateTime.now();
       await _buildCredentialList();
 
       var e = _wallet.getConfigEntry('aboList');
@@ -293,15 +288,23 @@ class WalletProvider extends ChangeNotifier {
       //Checking broadcast stream, if deep link was clicked in opened application
       stream.receiveBroadcastStream().listen((d) => getSharedText(d));
 
-      var s2 = DateTime.now();
-      logger.d('rest: ${s2.difference(s).inMilliseconds}');
-
       Provider.of<NavigationProvider>(navigatorKey.currentContext!,
               listen: false)
           .finishOpen();
 
       notifyListeners();
     }
+  }
+
+  Future<void> restart() async {
+    await _buildCredentialList();
+
+    var e = _wallet.getConfigEntry('aboList');
+    if (e != null) {
+      List dec = jsonDecode(e);
+      aboList = dec.map((e) => my_util.AboData.fromJson(e)).toList();
+    }
+    _checkInitialStuff();
   }
 
   Future<void> _checkInitialStuff() async {
