@@ -76,7 +76,7 @@
   "stored": "Nachweis gespeichert",
   "selfIssuance": "Selbstausstellung",
   "noCredentialsTitle": "Fehlerhafte Anfrage",
-  "noCredentialsNote": " Sie haben soeben eine Anfrage erhalten, die nicht verarbeitet werden kann. Entweder werden Funktionen verlangt, die Ihre Anwendung aktuell noch nicht unterstützt oder Ihr Gegenüber hat bei der Erstellung einen Fehler begangen.",
+  "noCredentialsNote": "Die Anfrage kann nicht verarbeitet werden. Entweder fehlt der erforderliche Nachweis in Ihrer Wallet, es werden nicht unterstützte Funktionen verlangt, oder es liegt ein Fehler bei der Erstellung vor.",
   "paymentSuccessful": "Zahlung erfolgreich",
   "paymentReceived": "Zahlung eingegangen",
   "paymentFailed": "Zahlung fehlgeschlagen",

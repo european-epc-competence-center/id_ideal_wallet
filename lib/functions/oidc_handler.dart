@@ -1120,6 +1120,7 @@ Future<void> handlePresentationRequestOidc(String request) async {
   if (definition == null) {
     logger.d('No presentation definition');
     showErrorMessage(
+      // TODO: print that the requested credential is not in the wallet yet
         AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsTitle,
         AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsNote);
     return;
