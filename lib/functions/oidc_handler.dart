@@ -71,6 +71,16 @@ Map<String, dynamic> findClaims(Map? claimsDescription) {
   return claims;
 }
 
+Map<String, dynamic> getClaimsFromDescriptionObject(
+    List<ClaimsDescriptionObject> description) {
+  var claims = <String, dynamic>{};
+  for (var d in description) {
+    d.path.setValueAtPath(d.display?.first.description ?? [], claims);
+  }
+
+  return claims;
+}
+
 Future<void> handleOfferOid(String offerUri) async {
   var offer = OidCredentialOffer.fromUri(offerUri);
 
@@ -158,7 +168,9 @@ Future<void> handleOfferOid(String offerUri) async {
                   context: [credentialsV1Iri],
                   type: e.credentialType ?? [],
                   issuer: {'OidEndpoint': issuerString, 'id': issuerString},
-                  credentialSubject: findClaims(e.claims),
+                  credentialSubject: e.claimDescriptions != null
+                      ? getClaimsFromDescriptionObject(e.claimDescriptions!)
+                      : findClaims(e.claims),
                   issuanceDate: DateTime.now()))
               .toList()),
     );
