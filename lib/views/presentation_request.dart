@@ -18,7 +18,6 @@ import 'package:id_ideal_wallet/basicUi/standard/modal_dismiss_wrapper.dart';
 import 'package:id_ideal_wallet/basicUi/standard/payment_finished.dart';
 import 'package:id_ideal_wallet/basicUi/standard/requester_info.dart';
 import 'package:id_ideal_wallet/basicUi/standard/secured_widget.dart';
-import 'package:id_ideal_wallet/constants/kaprion_context.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/payment_utils.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
@@ -749,7 +748,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
         descriptorMap = casted.presentationSubmission!.descriptorMap;
         logger.d(await vpW3C.verify(
             expectedChallenge: widget.nonce, loadDocument: loadDocumentFast));
-
+        logger.d(vpW3C.toJson());
         logger.d(vp);
       }
 
@@ -1044,7 +1043,8 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             challenge: widget.message?.presentationDefinition.first.challenge ??
                 widget.nonce ??
                 '',
-            loadDocument: loadDocumentKaprion);
+            loadDocument: loadDocumentFast);
+        logger.d(await vp.verify());
       }
       if (widget.message != null) {
         var presentationMessage = Presentation(

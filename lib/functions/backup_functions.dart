@@ -13,6 +13,7 @@ import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/encryption_provider.dart';
+import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/server_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:path_provider/path_provider.dart';
@@ -89,6 +90,7 @@ Future<Map<String, Map<String, dynamic>>?> loadAndDecryptBackup(
     // Decrypt the data using the password
     String encodedBoxes =
         await encryptionService.decryptData(password, encryptedData);
+    logger.d('decrypted');
 
     var walletData = (jsonDecode(encodedBoxes) as Map).map((k, v) => MapEntry(
         k as String, (v as Map).map((k1, v1) => MapEntry(k1 as String, v1))));
@@ -122,6 +124,8 @@ Future<void> applyBackup(BuildContext context, String mnemonic) async {
   await wallet.wallet.import(walletData);
 
   await wallet.restart();
+  Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false)
+      .goBack();
 }
 
 // Function to encode boxes

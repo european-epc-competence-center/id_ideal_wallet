@@ -74,6 +74,7 @@ Future<String> fetchFileInMemory(String fileId) async {
     // Check if the request was successful
     if (response.statusCode == 200) {
       // File is fetched, you can read the content here
+      logger.d('file fetched');
       return utf8.decode(response.bodyBytes);
     } else {
       throw ('Failed to fetch file. Status code: ${response.statusCode}');
