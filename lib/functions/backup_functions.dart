@@ -8,7 +8,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:hive/hive.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
@@ -97,13 +96,13 @@ Future<Map<String, Map<String, dynamic>>?> loadAndDecryptBackup(
     return walletData;
   } catch (e) {
     // if we catch here we did not get a 200
-
+    logger.d(e);
     return null;
   }
 }
 
 // Function to apply backup
-Future<void> applyBackup(BuildContext context, String mnemonic) async {
+Future<bool> applyBackup(BuildContext context, String mnemonic) async {
   var wallet = Provider.of<WalletProvider>(context, listen: false);
 
   var walletData = await compute(loadAndDecryptBackup, mnemonic);
@@ -112,7 +111,7 @@ Future<void> applyBackup(BuildContext context, String mnemonic) async {
       AppLocalizations.of(navigatorKey.currentContext!)!.backupRestoreError,
       AppLocalizations.of(navigatorKey.currentContext!)!.backupRestoreErrorNote,
     );
-    return;
+    return false;
   }
 
   var cKeys = wallet.wallet.getAllCredentials().keys;
@@ -121,70 +120,21 @@ Future<void> applyBackup(BuildContext context, String mnemonic) async {
   }
   logger.d(wallet.wallet.getAllCredentials().length);
 
-  await wallet.wallet.import(walletData);
+  try {
+    await wallet.wallet.import(walletData);
+  } catch (e) {
+    logger.d(e);
+    showErrorMessage(
+      AppLocalizations.of(navigatorKey.currentContext!)!.backupRestoreError,
+      AppLocalizations.of(navigatorKey.currentContext!)!.backupRestoreErrorNote,
+    );
+    return false;
+  }
 
   await wallet.restart();
   Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false)
       .goBack();
-}
-
-// Function to encode boxes
-String encodeBoxes(Map<String, Box<dynamic>> boxes) {
-  Map<String, Map<dynamic, dynamic>> encodedBoxes = {};
-
-  boxes.forEach((key, box) {
-    encodedBoxes[key] = box.toMap().map((k, v) {
-      if (v is Credential) {
-        return MapEntry(k, v.toJson());
-      } else if (v is Connection) {
-        return MapEntry(k, v.toJson());
-      } else if (v is DidcommConversation) {
-        return MapEntry(k, v.toJson());
-      } else {
-        return MapEntry(k, v); // For basic types (int, String, etc.)
-      }
-    });
-  });
-
-  return jsonEncode(encodedBoxes);
-}
-
-// Function to decode and set boxes
-Future<void> decodeAndSetBoxes(
-    String encodedData, Map<String, Box<dynamic>> boxes) async {
-  Map<String, dynamic> decodedData = jsonDecode(encodedData);
-
-  for (var entry in decodedData.entries) {
-    String boxKey = entry.key;
-    Map<dynamic, dynamic> boxData = entry.value;
-
-    if (boxes.containsKey(boxKey)) {
-      Box<dynamic> box = boxes[boxKey]!;
-      await box.clear(); // Clear existing data in the box
-
-      for (var dataEntry in boxData.entries) {
-        dynamic key = dataEntry.key;
-        dynamic value = dataEntry.value;
-        /**
-            The boxes are handled by the dart_ssi library. To see the boxes types with their keys
-            check dart_ssi/lib/src/wallet/wallet_store.dart -> openBoxes()
-         */
-        if (boxKey == 'credentialBox' || boxKey == "issuingHistory") {
-          box.put(key, Credential.fromJson(value));
-        } else if (boxKey == 'connection') {
-          box.put(key, Connection.fromJson(value));
-        } else if (boxKey == 'didcommConversations') {
-          box.put(key, DidcommConversation.fromJson(value));
-        } else {
-          if (boxKey == 'keyBox' && key == 'seed') {
-            box.put(key, Uint8List.fromList((value as List).cast<int>()));
-          } else {
-            box.put(key, value); // For basic types (int, String, etc.)
-          }
-        }
-      }
-    }
-  }
+  return true;
 }
 
 // Function to save the file on disk

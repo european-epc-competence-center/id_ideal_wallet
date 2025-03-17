@@ -21,6 +21,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:local_auth_android/local_auth_android.dart';
 import 'package:local_auth_darwin/local_auth_darwin.dart';
 import 'package:os_keystore_backend/os_keystore_backend.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:random_password_generator/random_password_generator.dart';
 import 'package:sd_jwt/sd_jwt.dart' as sd_jwt;
@@ -91,8 +92,10 @@ Future<bool> openWallet(WalletStore wallet) async {
             password: pw,
             keyStorage: Platform.isAndroid
                 ? {
-                    'software': SoftwareKeyStoreBackend(),
-                    'system': OsKeyStore()
+                    'software':
+                        SoftwareKeyStoreBackend(pw, await getNameExpansion()),
+                    'system': OsKeyStore(),
+                    'software2': SoftwareKeyStoreBackend(),
                   }
                 : null);
         var s2 = DateTime.now();
@@ -108,6 +111,19 @@ Future<bool> openWallet(WalletStore wallet) async {
     logger.d(e);
     return false;
   }
+}
+
+Future<String> getNameExpansion() async {
+  var dir = await getApplicationDocumentsDirectory();
+  var path = dir.path;
+  var nameExpansion = path.replaceAll('/', '_').replaceAll(r'\', '_');
+  var split = nameExpansion.split('_');
+  if (split.length > 3) {
+    nameExpansion =
+        '${split[split.length - 3]}${split[split.length - 2]}${split[split.length - 1]}';
+  }
+  logger.d(nameExpansion);
+  return Platform.isIOS ? 'hidy' : nameExpansion;
 }
 
 Future<bool> verifyIssuerCert(x509.X509Certificate issuerCert) async {

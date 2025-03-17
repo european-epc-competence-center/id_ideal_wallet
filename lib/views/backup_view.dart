@@ -269,7 +269,7 @@ class RestoreWidgetState extends State<RestoreWidget> {
                 ),
                 FooterButtons(
                   positiveText: AppLocalizations.of(context)!.restore,
-                  positiveFunction: () {
+                  positiveFunction: () async {
                     setState(() {
                       processing = true;
                     });
@@ -278,7 +278,12 @@ class RestoreWidgetState extends State<RestoreWidget> {
                         .map((controller) => controller.text.trim())
                         .join(' ');
                     logger.d(mnemonic);
-                    applyBackup(context, mnemonic);
+                    var success = await applyBackup(context, mnemonic);
+                    if (!success && mounted) {
+                      setState(() {
+                        processing = false;
+                      });
+                    }
                   },
                   negativeFunction: () =>
                       Provider.of<NavigationProvider>(context, listen: false)

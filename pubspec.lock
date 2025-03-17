@@ -605,7 +605,7 @@ packages:
     source: hosted
     version: "0.2.0"
   hive:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: hive
       sha256: "8dcf6db979d7933da8217edcec84e9df1bdb4e4edc7fc77dbd5aa74356d6d941"
@@ -1195,14 +1195,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.0"
-  sss256:
-    dependency: "direct main"
-    description:
-      name: sss256
-      sha256: "3fd7a7a1d609f2f960daa58b73b5fe86c5c726c72fff10b625ca348b0355da6d"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.0"
   stack_trace:
     dependency: transitive
     description:
