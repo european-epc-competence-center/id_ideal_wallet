@@ -226,6 +226,7 @@ class OsKeyStore extends KeyStoreBackend {
   FutureOr<Map<String, dynamic>> getKeyInformation(String keyId) async {
     var p = (await _instance.getKeyInfo(keyId))
         .map((k, v) => MapEntry(k as String, v));
+    p['kid'] = keyId;
     if (p.containsKey('x5c') && (p['x5c'] as List).isNotEmpty) {
       String? x, y, crv;
       (x, y, crv) = _parseCert((p['x5c'] as List).first);

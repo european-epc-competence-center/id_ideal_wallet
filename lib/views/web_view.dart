@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:dart_ssi/credentials.dart';
+import 'package:dart_ssi/util.dart';
+import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -318,6 +320,17 @@ class WebViewWindowState extends State<WebViewWindow> {
                               return await requestPresentationNoSign(
                                   args.first, widget.initialUrl, trustedSites);
                             });
+                        webViewController?.addJavaScriptHandler(
+                            handlerName: 'initializeSigningKey',
+                            callback: (args) async {
+                              return await getSigningKey();
+                            });
+                        webViewController?.addJavaScriptHandler(
+                            handlerName: 'signData',
+                            callback: (args) async {
+                              logger.d(args);
+                              return await signData(args.first, args.last);
+                            });
                       },
                       onLoadStart: (controller, url) {
                         setState(() {});
@@ -399,6 +412,25 @@ class WebViewWindowState extends State<WebViewWindow> {
         );
       }),
     );
+  }
+
+  Future<Map<String, dynamic>> getSigningKey() async {
+    var wallet = Provider.of<WalletProvider>(context, listen: false);
+    var keyId = await wallet.newCredentialDid(KeyType.p256, KeyStore.system, {
+      'userAuthenticationRequired': true,
+      'attestationChallenge': 'webview'
+    });
+    logger.d(keyId);
+    var keyInfo = await wallet.wallet
+        .getKeyInformation(wallet.getOsKeyStoreIdForDid(keyId)!);
+    return keyInfo;
+  }
+
+  Future<String> signData(String keyId, String data) async {
+    var wallet = Provider.of<WalletProvider>(context, listen: false);
+    var signature =
+        await wallet.wallet.sign(keyId, base64Decode(addPaddingToBase64(data)));
+    return removePaddingFromBase64(base64UrlEncode(signature));
   }
 
   Future<Map<String, dynamic>> requestPresentationNoSign(
