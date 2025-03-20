@@ -497,39 +497,7 @@ class AusweisProvider extends ChangeNotifier {
           var response = await get(Uri.parse(message.url!),
               headers: {'Accept': 'application/json'});
           if (response.statusCode == 200) {
-            readData = {};
-            String utf8body = utf8.decode(response.bodyBytes);
-            var jsonResponse = jsonDecode(utf8body);
-            var personalData = jsonResponse['PersonalData'];
-            personalData.forEach((key, value) {
-              String translatedKey = idCardTranslations[key] ?? key;
-              if (key == 'PlaceOfBirth' && value is Map) {
-                readData![translatedKey] = value['FreetextPlace'];
-              } else if (key == 'PlaceOfResidence' && value is Map) {
-                var structuredPlace = value['StructuredPlace'];
-                if (structuredPlace is Map) {
-                  readData![translatedKey] =
-                      'Land: ${structuredPlace['Country']}, '
-                          'Stadt: ${structuredPlace['ZipCode']} ${structuredPlace['City']}, Straße: ${structuredPlace['Street'].replaceAll('ẞ', 'ß')}';
-                  logger.d('Street: ${structuredPlace['Street']}');
-                }
-              } else if (value is Map) {
-                value.forEach((subKey, subValue) {
-                  readData!['$translatedKey.$subKey'] = subValue;
-                });
-              } else {
-                if (key == 'DateOfBirth' || key == 'DateOfExpiry') {
-                  value = value.split("+")[0];
-                  DateTime parsedDate = DateTime.parse(value);
-                  String formattedDate =
-                      DateFormat('dd.MM.yyyy').format(parsedDate);
-                  readData![translatedKey] = formattedDate;
-                } else {
-                  readData![translatedKey] = value;
-                }
-              }
-            });
-            logger.d(readData);
+            readData = parsePersonalData(response);
 
             screen = AusweisScreen.finish;
             requestedAttributes = [];
@@ -562,6 +530,65 @@ class AusweisProvider extends ChangeNotifier {
       logger.d("Incorrect type for handleAuthMessage");
     }
     notifyListeners();
+  }
+
+  Map<String, String> parsePersonalData(Response response) {
+    String utf8body = utf8.decode(response.bodyBytes);
+    var jsonResponse = jsonDecode(utf8body);
+    var personalData = jsonResponse['PersonalData'];
+
+    Map<String, String> result = {};
+
+    personalData.forEach((key, value) {
+      processDataField(result, key, value);
+    });
+
+    logger.d(result);
+    return result;
+  }
+
+  void processDataField(Map<String, String> result, String key, dynamic value) {
+    String translatedKey = idCardTranslations[key] ?? key;
+
+    if (key == 'PlaceOfBirth' && value is Map) {
+      result[translatedKey] = value['FreetextPlace'];
+    } else if (key == 'PlaceOfResidence' && value is Map) {
+      processResidenceField(result, translatedKey, value);
+    } else if (value is Map) {
+      processNestedData(result, translatedKey, value);
+    } else {
+      processSimpleData(result, key, translatedKey, value);
+    }
+  }
+
+  void processResidenceField(Map<String, String> result, String translatedKey, Map value) {
+    var structuredPlace = value['StructuredPlace'];
+    if (structuredPlace is Map) {
+      result[translatedKey] = 'Land: ${structuredPlace['Country']}, '
+          'Stadt: ${structuredPlace['ZipCode']} ${structuredPlace['City']}, '
+          'Straße: ${structuredPlace['Street'].replaceAll('ẞ', 'ß')}';
+      logger.d('Street: ${structuredPlace['Street']}');
+    }
+  }
+
+  void processNestedData(Map<String, String> result, String translatedKey, Map value) {
+    value.forEach((subKey, subValue) {
+      result['$translatedKey.$subKey'] = subValue;
+    });
+  }
+
+  void processSimpleData(Map<String, String> result, String key, String translatedKey, dynamic value) {
+    if (key == 'DateOfBirth' || key == 'DateOfExpiry') {
+      result[translatedKey] = formatDate(value);
+    } else {
+      result[translatedKey] = value;
+    }
+  }
+
+  String formatDate(String value) {
+    value = value.split("+")[0];
+    DateTime parsedDate = DateTime.parse(value);
+    return DateFormat('dd.MM.yyyy').format(parsedDate);
   }
 
   void handleStatusMessage(dynamic message) {
