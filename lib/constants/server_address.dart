@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logger/logger.dart';
+import 'package:pointycastle/digests/sha256.dart';
 
 var relay = 'https://167.235.195.132:8888';
 //var relay = 'http://localhost:8888';
@@ -104,3 +105,5 @@ class DevHttpOverrides extends HttpOverrides {
           (X509Certificate cert, String host, int port) => true;
   }
 }
+
+final sha256 = SHA256Digest();

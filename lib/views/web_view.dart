@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:crypto/crypto.dart';
+import 'package:base_codecs/base_codecs.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
@@ -45,6 +45,7 @@ class WebViewWindowState extends State<WebViewWindow> {
   InAppWebViewSettings settings = InAppWebViewSettings(
       useShouldOverrideUrlLoading: true,
       allowFileAccess: false,
+      allowFileAccessFromFileURLs: false,
       allowBackgroundAudioPlaying: false,
       mediaPlaybackRequiresUserGesture: true,
       allowsInlineMediaPlayback: false,
@@ -532,7 +533,7 @@ class WebViewWindowState extends State<WebViewWindow> {
             .toList(),
         id: '');
     var definitionHash =
-        sha256.convert(utf8.encode(definitionToHash.toString()));
+        sha256.process(utf8.encode(definitionToHash.toString()));
 
     var wallet = Provider.of<WalletProvider>(navigatorKey.currentContext!,
         listen: false);
@@ -563,9 +564,9 @@ class WebViewWindowState extends State<WebViewWindow> {
       var authorizedApps = wallet.getAuthorizedApps();
       var authorizedHashes = wallet.getHashesForAuthorizedApp(initialUrl);
       logger.d(authorizedHashes);
-      logger.d(definitionHash.toString());
+      logger.d(hexEncode(definitionHash));
       if (authorizedApps.contains(initialUrl) &&
-          authorizedHashes.contains(definitionHash.toString())) {
+          authorizedHashes.contains(hexEncode(definitionHash))) {
         logger.d('send with no interaction');
         var vp = VerifiablePresentation.fromFilterResults(filtered);
         for (var vc in vp.verifiableCredential!) {
@@ -579,7 +580,7 @@ class WebViewWindowState extends State<WebViewWindow> {
       } else {
         var target = PresentationRequestDialog(
           definition: definition,
-          definitionHash: definitionHash.toString(),
+          definitionHash: hexEncode(definitionHash),
           askForBackground: askForBackground,
           name: definition.name,
           purpose: definition.purpose,

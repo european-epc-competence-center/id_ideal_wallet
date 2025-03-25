@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:base_codecs/base_codecs.dart';
 import 'package:cbor/cbor.dart';
-import 'package:crypto/crypto.dart';
-import 'package:crypto_keys/crypto_keys.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/did.dart';
 import 'package:dart_ssi/oid.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart';
@@ -23,6 +23,7 @@ import 'package:id_ideal_wallet/views/credential_offer_new.dart';
 import 'package:id_ideal_wallet/views/presentation_request.dart';
 import 'package:id_ideal_wallet/views/web_view.dart';
 import 'package:iso_mdoc/iso_mdoc.dart';
+import 'package:pointycastle/export.dart' as pc;
 import 'package:provider/provider.dart';
 import 'package:sd_jwt/sd_jwt.dart' as sd_jwt;
 import 'package:url_launcher/url_launcher.dart';
@@ -213,7 +214,7 @@ Future<void> handleOfferOid(String offerUri) async {
       String pkceCodeVerifier =
           '${const Uuid().v4().toString()}-${const Uuid().v4().toString()}';
       String pkceCodeChallenge = removePaddingFromBase64(
-          base64UrlEncode(sha256.convert(utf8.encode(pkceCodeVerifier)).bytes));
+          base64UrlEncode(sha256.process(utf8.encode(pkceCodeVerifier))));
       logger.d(offeredCredentials.map((e) => e.toJson()).toList());
       Provider.of<WalletProvider>(navigatorKey.currentContext!, listen: false)
           .storeConfig(
@@ -777,23 +778,28 @@ Future<void> getCredential(
         CredentialRequestProof(proofType: proofType, proofValue: proofValue)
       ]);
 
-  KeyPair? decryptionKey;
+  pc.AsymmetricKeyPair<pc.RSAPublicKey, pc.RSAPrivateKey>? decryptionKey;
   if (metadata.credentialResponseEncryptionRequired ?? false) {
     var alg = metadata.credentialResponseEncryptionAlgSupported!;
     if (alg.contains('RSA-OAEP-256')) {
+      var rsaKeyGen = pc.RSAKeyGenerator();
+      final rsaParams =
+          pc.RSAKeyGeneratorParameters(BigInt.parse('65537'), 2048, 64);
+      final paramsWithRnd =
+          pc.ParametersWithRandom(rsaParams, getSecureRandom());
+      rsaKeyGen.init(paramsWithRnd);
+      decryptionKey = rsaKeyGen.generateKeyPair();
       credentialRequest.responseEncryptionAlg = 'RSA-OAEP-256';
-      decryptionKey = KeyPair.generateRsa();
       var jwk = {
         'alg': 'RSA-OAEP-256',
         'kty': 'RSA',
         'use': 'enc',
         'e': removePaddingFromBase64(base64UrlEncode(x509
-            .bigIntToByteData(
-                (decryptionKey.publicKey as RsaPublicKey).exponent)
+            .bigIntToByteData(decryptionKey.publicKey.exponent!)
             .buffer
             .asUint8List())),
         'n': removePaddingFromBase64(base64UrlEncode(x509
-            .bigIntToByteData((decryptionKey.publicKey as RsaPublicKey).modulus)
+            .bigIntToByteData(decryptionKey.publicKey.modulus!)
             .buffer
             .asUint8List()))
       };
@@ -818,7 +824,7 @@ Future<void> getCredential(
       'htu': metadata.credentialEndpoint,
       'nonce': dpopNonce,
       'ath': removePaddingFromBase64(base64UrlEncode(
-          sha256.convert(ascii.encode(tokenResponse.accessToken!)).bytes))
+          sha256.process(ascii.encode(tokenResponse.accessToken!))))
     };
     var jwt =
         sd_jwt.Jwt(additionalClaims: dpopPayload, issuedAt: DateTime.now());
@@ -852,6 +858,7 @@ Future<void> getCredential(
         decodedCredentialResponse =
             decryptResponse(decryptionKey, credentialResponse.body);
       } catch (e) {
+        logger.d(e);
         logger.d('Fehler beim Entschlüsseln');
         showErrorMessage(
           AppLocalizations.of(navigatorKey.currentContext!)!
@@ -900,7 +907,9 @@ Future<void> getCredential(
   }
 }
 
-OidCredentialResponse decryptResponse(KeyPair decryptionKey, String data) {
+OidCredentialResponse decryptResponse(
+    pc.AsymmetricKeyPair<pc.RSAPublicKey, pc.RSAPrivateKey> decryptionKey,
+    String data) {
   logger.d('decryption');
   var split = data.split('.');
   logger.d('length: ${split.length}');
@@ -912,33 +921,73 @@ OidCredentialResponse decryptResponse(KeyPair decryptionKey, String data) {
   var cipher = base64Decode(addPaddingToBase64(split[3]));
   var tag = base64Decode(addPaddingToBase64(split[4]));
 
-  var encryptor = decryptionKey.privateKey!
-      .createEncrypter(algorithms.encryption.rsa.oaep256);
-  var decrypted = encryptor.decrypt(EncryptionResult(encryptedKey));
+  var decrypt = pc.OAEPEncoding.withSHA256(pc.RSAEngine());
+  decrypt.init(false,
+      pc.PrivateKeyParameter<pc.RSAPrivateKey>(decryptionKey.privateKey));
+  var decrypted = decrypt.process(encryptedKey);
+  // var encryptor = decryptionKey.privateKey!
+  //     .createEncrypter(algorithms.encryption.rsa.oaep256);
+  // var decrypted = encryptor.decrypt(EncryptionResult(encryptedKey));
 
   logger.d(iv);
 
-  var symmetric = SymmetricKey(keyValue: decrypted);
-  Encrypter symmetricDecrypt;
+  // var symmetric = SymmetricKey(keyValue: decrypted);
+  // Encrypter symmetricDecrypt;
+  Uint8List decrypted2;
   var enc = header['enc'];
-  if (enc == 'A128CBC-HS256') {
-    symmetricDecrypt =
-        symmetric.createEncrypter(algorithms.encryption.aes.cbcWithHmac.sha256);
-  } else if (enc == 'A192CBC-HS384') {
-    symmetricDecrypt =
-        symmetric.createEncrypter(algorithms.encryption.aes.cbcWithHmac.sha384);
-  } else if (enc == 'A256CBC-HS512') {
-    symmetricDecrypt =
-        symmetric.createEncrypter(algorithms.encryption.aes.cbcWithHmac.sha512);
-  } else if (enc == 'A128GCM' || enc == 'A192GCM' || enc == 'A256GCM') {
-    symmetricDecrypt = symmetric.createEncrypter(algorithms.encryption.aes.gcm);
+  if (enc == 'A128GCM' || enc == 'A192GCM' || enc == 'A256GCM') {
+    var algorithm = pc.GCMBlockCipher(pc.AESEngine());
+    algorithm.init(
+        false,
+        pc.AEADParameters(
+          pc.KeyParameter(decrypted),
+          128,
+          iv,
+          ascii.encode(split.first),
+        ));
+    decrypted2 = algorithm.process(Uint8List.fromList(cipher + tag));
+    // symmetricDecrypt = symmetric.createEncrypter(algorithms.encryption.aes.gcm);
   } else {
-    throw Exception('Unknown encryption');
+    int macLength, blockLength;
+    pc.Digest digest;
+    if (enc == 'A128CBC-HS256') {
+      macLength = 16;
+      blockLength = 64;
+      digest = pc.SHA256Digest();
+    } else if (enc == 'A192CBC-HS384') {
+      macLength = 24;
+      blockLength = 64;
+      digest = pc.SHA384Digest();
+    } else if (enc == 'A256CBC-HS512') {
+      digest = pc.SHA512Digest();
+      blockLength = 128;
+      macLength = 32;
+    } else {
+      throw Exception('Unknown algorithm $enc');
+    }
+
+    var mac = pc.HMac(digest, blockLength);
+    var al = ascii.encode(split.first).length * 8;
+    var alHex = al.toRadixString(16).padLeft(16, '0');
+    mac.init(pc.KeyParameter(decrypted.sublist(0, macLength)));
+    var computedMac = mac.process(Uint8List.fromList(
+        ascii.encode(split.first) + iv + cipher + hexDecode(alHex)));
+
+    logger.d('tag: $tag');
+    logger.d('computed: $computedMac');
+    if (!listEquals(computedMac.sublist(0, macLength), tag)) {
+      throw Exception('Invalid tag');
+    }
+
+    var algorithm = pc.PaddedBlockCipher('AES/CBC/PKCS7');
+    algorithm.init(
+        false,
+        pc.PaddedBlockCipherParameters(
+            pc.ParametersWithIV(
+                pc.KeyParameter(decrypted.sublist(macLength)), iv),
+            null));
+    decrypted2 = algorithm.process(Uint8List.fromList(cipher));
   }
-  var decrypted2 = symmetricDecrypt.decrypt(EncryptionResult(cipher,
-      initializationVector: iv,
-      authenticationTag: tag,
-      additionalAuthenticatedData: ascii.encode(split.first)));
   logger.d(utf8.decode(decrypted2));
   return OidCredentialResponse.fromJson(utf8.decode(decrypted2));
 }
@@ -952,7 +1001,8 @@ sendDeferredRequest(
     String authToken,
     String endpoint,
     String transactionId,
-    KeyPair? decryptionKey) async {
+    pc.AsymmetricKeyPair<pc.RSAPublicKey, pc.RSAPrivateKey>?
+        decryptionKey) async {
   var credentialResponse = await post(Uri.parse(endpoint),
           headers: {
             'Content-Type': 'application/json',

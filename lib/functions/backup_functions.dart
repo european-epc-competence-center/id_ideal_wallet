@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:crypto/crypto.dart';
+import 'package:base_codecs/base_codecs.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/foundation.dart';
@@ -48,27 +48,25 @@ Future<(Map<String, Map<String, dynamic>>, String)> getBackupableData() async {
 Future<bool> performBackup(Map<String, dynamic> input) async {
   BackgroundIsolateBinaryMessenger.ensureInitialized(input['token']);
   logger.d('backup start');
-  final encryptionService = EncryptionService();
   Map<String, Map<String, dynamic>> data = input['data'];
   String memonic = input['mnemonic'];
   logger.d(memonic);
   logger.d(data['credentials']?.length);
-  Uint8List password =
-      utf8.encode(encryptionService.getPasswordFromMemonic(memonic));
+  Uint8List password = EncryptionService.getPasswordFromMnemonic(memonic);
 
   var encodedBoxes = jsonEncode(data);
 
   // Encrypt boxes
-  final encryptedData = encryptionService.encryptData(encodedBoxes, password);
+  final encryptedData = EncryptionService.encryptData(encodedBoxes, password);
 
   // Save the file locally first
   File file =
-      await saveFileLocally(sha256.convert(password).toString(), encryptedData);
+      await saveFileLocally(hexEncode(sha256.process(password)), encryptedData);
   logger.d('local file saved');
 
   String apiUrl =
       '$localhost/data'; // Replace with your server URL      // Replace with your API key
-  String textData = sha256.convert(password).toString();
+  String textData = hexEncode(sha256.process(password));
 
   await sendStringAndFile(apiUrl, apiKey, textData, file);
 
@@ -77,18 +75,15 @@ Future<bool> performBackup(Map<String, dynamic> input) async {
 
 Future<Map<String, Map<String, dynamic>>?> loadAndDecryptBackup(
     String mnemonic) async {
-  final encryptionService = EncryptionService();
-
-  String password = encryptionService.getPasswordFromMemonic(mnemonic);
-  String encryptedData;
+  Uint8List password = EncryptionService.getPasswordFromMnemonic(mnemonic);
 
   try {
-    encryptedData = await fetchFileInMemory(
-        sha256.convert(utf8.encode(password)).toString());
+    var encryptedData =
+        await fetchFileInMemory(hexEncode(sha256.process(password)));
 
     // Decrypt the data using the password
     String encodedBoxes =
-        await encryptionService.decryptData(password, encryptedData);
+        EncryptionService.decryptData(password, encryptedData);
     logger.d('decrypted');
 
     var walletData = (jsonDecode(encodedBoxes) as Map).map((k, v) => MapEntry(
@@ -134,6 +129,9 @@ Future<bool> applyBackup(BuildContext context, String mnemonic) async {
   await wallet.restart();
   Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false)
       .goBack();
+
+  showSuccessMessage(
+      AppLocalizations.of(navigatorKey.currentContext!)!.restoreSuccess);
   return true;
 }
 

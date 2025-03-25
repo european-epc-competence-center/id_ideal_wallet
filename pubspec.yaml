@@ -19,7 +19,7 @@ version: 4.0.2-test+76
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
-  flutter: ">=3.24.0 <3.27.0"
+  flutter: ">=3.24.0 <3.29.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -40,18 +40,18 @@ dependencies:
   http: ^1.2.2
 
   # developed by hidy team
-  dart_ssi:
-    git:
-      url: https://github.com/b2cm/dart_ssi
-      ref: flexible_key_store
   #  dart_ssi:
-  #    path: ../flutter_ssi_wallet
+  #    git:
+  #      url: https://github.com/b2cm/dart_ssi
+  #      ref: flexible_key_store
+  dart_ssi:
+    path: ../flutter_ssi_wallet
   #dart_ssi: ^3.0.0
   sd_jwt:
-    git:
-      url: https://github.com/b2cm/sd_jwt
-      ref: development
-    #path: ../sd-jwt
+    #    git:
+    #      url: https://github.com/b2cm/sd_jwt
+    #      ref: development
+    path: ../sd-jwt
   x509b:
     git:
       url: https://github.com/SaOtto/x509/
@@ -59,18 +59,16 @@ dependencies:
   json_schema_form:
     git:
       url: https://github.com/SaOtto/flutter_json_schema_form
-  iso_mdoc: 1.4.1
+  iso_mdoc: ^1.4.1
   #path: ../cbor_test
   json_ld_processor: any
-  os_keystore_backend:
+  keystore_plugin:
     path: ../os_keystore_backend
 
   # ui
   action_slider: any
   card_swiper: ^3.0.1
-  qr_flutter:
-    git:
-      url: https://github.com/theyakka/qr.flutter.git
+  qr_flutter: ^4.1.0
   barcode_widget: any
 
   # plugins
@@ -93,26 +91,17 @@ dependencies:
   json_schema: ^5.1.2
   printing: ^5.11.1
   pdf: ^3.10.3
-  dart_multihash: any
   bech32: ^0.2.2
   xml: ^6.3.0
   archive: ^4.0.4
   cbor:
   base_codecs:
-  file_selector: ^1.0.3
-  path: ^1.9.0
   bip39: ^1.0.6
-
-  # maybe replace
-  crypto: any
-  cryptography: ^2.7.0
-  crypto_keys:
-  encrypt: ^5.0.3
-  random_password_generator:
   pkcs7: any
+  pointycastle: ^4.0.0
 
 dependency_overrides:
-  pointycastle: 3.9.1
+  pointycastle: 4.0.0
 #  pinenacl: ^0.6.0
 
 dev_dependencies:

@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:base_codecs/base_codecs.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
@@ -17,13 +19,13 @@ import 'package:id_ideal_wallet/functions/oidc_handler.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:iso_mdoc/iso_mdoc.dart';
+import 'package:keystore_plugin/keystore_plugin.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth_android/local_auth_android.dart';
 import 'package:local_auth_darwin/local_auth_darwin.dart';
-import 'package:os_keystore_backend/os_keystore_backend.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:provider/provider.dart';
-import 'package:random_password_generator/random_password_generator.dart';
+import 'package:pointycastle/export.dart';
+import 'package:provider/provider.dart'; //import 'package:random_password_generator/random_password_generator.dart';
 import 'package:sd_jwt/sd_jwt.dart' as sd_jwt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:x509b/x509.dart' as x509;
@@ -79,12 +81,7 @@ Future<bool> openWallet(WalletStore wallet) async {
         const storage = FlutterSecureStorage();
         String? pw = await storage.read(key: 'password');
         if (pw == null) {
-          pw = RandomPasswordGenerator().randomPassword(
-              letters: true,
-              uppercase: true,
-              numbers: true,
-              specialChar: true,
-              passwordLength: 20);
+          pw = hexEncode(getSecureRandom().nextBytes(20));
           await storage.write(key: 'password', value: pw);
         }
         var s = DateTime.now();
@@ -426,4 +423,15 @@ String coseKeyToDid(CoseKey coseKey) {
   }
 
   return 'did:key:${jwkToMultiBase(jwk)}';
+}
+
+SecureRandom getSecureRandom() {
+  final secureRandom = FortunaRandom();
+
+  var random = Random.secure();
+  var seed = List.generate(32, (index) => random.nextInt(256));
+
+  secureRandom.seed(KeyParameter(Uint8List.fromList(seed)));
+
+  return secureRandom;
 }

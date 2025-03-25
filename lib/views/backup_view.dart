@@ -96,7 +96,7 @@ class _BackupWidgetState extends State<BackupWidget> {
   }
 
   Future<void> initialize() async {
-    _generateMemonic = EncryptionService().createMemonic();
+    _generateMemonic = EncryptionService.createMnemonic();
     var (data, notInBackUp) = await getBackupableData();
     this.data = data;
     this.notInBackUp = notInBackUp;

@@ -214,6 +214,7 @@
   "restoreMenu": "Backup Wiederherstellen",
   "restoreQuestion": "Beim Wiederherstellen werden alle bisherigen Daten überschrieben. Sind Sie sich sicher, dass Sie ein Backup einlesen wollen?",
   "restoreMnemonic": "Bitte geben Sie die Wortfolge ein, die Ihnen beim Erstellen eines Backups angezeigt wurde:",
+  "restoreSuccess": "Backup erfolgrech wiederhergestellt",
   "backup": "Backup",
   "backupUpload": "Ihr Backup wird erstellt",
   "backupSuccess": "Backup abgeschlossen",

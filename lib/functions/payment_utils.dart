@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:bech32/bech32.dart';
-import 'package:crypto/crypto.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -331,7 +330,7 @@ Future<void> handleLnurl(String lnurl) async {
     int minAmount = parsed['minSendable'];
     int maxAmount = parsed['maxSendable'];
     List metadata = jsonDecode(parsed['metadata']);
-    logger.d(sha256.convert(utf8.encode(parsed['metadata'])));
+    logger.d(sha256.process(utf8.encode(parsed['metadata'])));
     List descriptionEntry = metadata.firstWhere(
         (element) => element is List && element.first == 'text/plain',
         orElse: () => ['', '']);

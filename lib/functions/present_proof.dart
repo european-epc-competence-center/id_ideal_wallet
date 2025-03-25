@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io' show Platform;
 
-import 'package:crypto/crypto.dart';
+import 'package:base_codecs/base_codecs.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/didcomm.dart';
 import 'package:flutter/cupertino.dart';
@@ -115,7 +115,7 @@ Future<bool> handleRequestPresentation(
               min: e.min))
           .toList(),
       id: '');
-  var definitionHash = sha256.convert(utf8.encode(definitionToHash.toString()));
+  var definitionHash = sha256.process(utf8.encode(definitionToHash.toString()));
   logger.d(definitionHash);
 
   List<VerifiableCredential>? paymentCards;
@@ -186,7 +186,7 @@ Future<bool> handleRequestPresentation(
     } else {
       var target = PresentationRequestDialog(
         definition: definition,
-        definitionHash: definitionHash.toString(),
+        definitionHash: hexEncode(definitionHash),
         name: definition.name,
         purpose: definition.purpose,
         message: message,

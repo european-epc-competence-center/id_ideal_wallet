@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
-import 'package:crypto/crypto.dart';
+import 'package:base_codecs/base_codecs.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/didcomm.dart';
 import 'package:dart_ssi/exceptions.dart';
@@ -25,6 +25,7 @@ import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/views/web_view.dart';
 import 'package:pkcs7/pkcs7.dart';
+import 'package:pointycastle/export.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
@@ -123,7 +124,7 @@ class WalletProvider extends ChangeNotifier {
         if (sigFile != null && manifestFile != null) {
           var parsed = Pkcs7.fromDer(sigFile.content);
           var info = parsed.verify([appleRootCert, appleComputerRootCert]);
-          var hash = sha256.convert(manifestFile.content).bytes;
+          var hash = sha256.process(manifestFile.content);
           var manifestAsJson = jsonDecode(utf8.decode(manifestFile.content));
           var givenPassHash = manifestAsJson['pass.json'];
           var valid =
@@ -131,7 +132,7 @@ class WalletProvider extends ChangeNotifier {
           if (givenPassHash == null || passFile == null) {
             valid = false;
           } else {
-            var passHash = sha1.convert(passFile.content).toString();
+            var passHash = hexEncode(SHA1Digest().process(passFile.content));
             logger.d('$passHash ==? $givenPassHash');
             valid = givenPassHash == passHash;
           }

@@ -214,6 +214,7 @@
   "restoreMenu": "Restore Backup",
   "restoreQuestion": "When restoring, all previous data is overwritten. Are you sure you want to load a backup?",
   "restoreMnemonic": "Please enter the word sequence that was displayed when you created a backup:",
+  "restoreSuccess": "Backup successfully restored",
   "backup": "Backup",
   "backupUpload": "Your backup is being created",
   "backupSuccess": "Backup successfully stored",
