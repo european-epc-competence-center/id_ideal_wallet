@@ -13,6 +13,7 @@ import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:xml/xml.dart';
 
 import '../basicUi/ausweis/main_content.dart';
@@ -499,6 +500,15 @@ class AusweisProvider extends ChangeNotifier {
           if (response.statusCode == 200) {
             readData = parsePersonalData(response);
 
+            // TODO: got the id_card data in readData, how to continue?
+            // send readData to our backend -> "https://eathfresh.ssi.eecc.de"
+            // backend validates age and returns a link, which contains the over16/18 credential
+            // handleLink(url) method needs to be used?
+
+            logger.d('readData: $readData');
+            await validateAge(readData!);
+
+
             screen = AusweisScreen.finish;
             requestedAttributes = [];
             requesterCert = null;
@@ -589,6 +599,28 @@ class AusweisProvider extends ChangeNotifier {
     value = value.split("+")[0];
     DateTime parsedDate = DateTime.parse(value);
     return DateFormat('dd.MM.yyyy').format(parsedDate);
+  }
+
+  Future<void> validateAge(Map<String, dynamic> data) async {
+    const String backendUrl = 'https://eatfresh.ssi.eecc.de/verify-age';
+    try {
+      final response = await post(
+        Uri.parse(backendUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(data),
+      );
+
+      if (response.statusCode == 200) {
+        logger.d('Data sent successfully: ${response.body}');
+        final navigationProvider = Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false);
+        navigationProvider.handleLink(response.body); // Call handleLink with the URL
+
+      } else {
+        logger.d('Failed to send data: ${response.statusCode}');
+      }
+    } catch (e) {
+      logger.d('Error while validating age: $e');
+    }
   }
 
   void handleStatusMessage(dynamic message) {

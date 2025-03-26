@@ -52,7 +52,7 @@ var stylingEndpoint = 'https://ssi-wallet.prod-k8s.eecc.de/styles/layouts.json';
 var termsVersionEndpoint = 'https://ssi-wallet.prod-k8s.eecc.de/walletcontext/terms.json';
 String versionNumber = '1.0.0';
 String baseUrl = 'https://hidy.app';
-bool testBuild = false;
+bool testBuild = true;
 
 // ******Endpoints for Test-Release******
 
