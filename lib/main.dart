@@ -119,13 +119,13 @@ class HomeScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 CustomNavigationItem(
-                    text: 'Home',
+                    text: AppLocalizations.of(context)!.home,
                     activeIcon: Icons.home,
                     inactiveIcon: Icons.home_outlined,
                     activeIndices: const [NavigationPage.abo],
                     navigator: navigator),
                 CustomNavigationItem(
-                    text: 'Credentials',
+                    text: 'Wallet',
                     activeIcon: Icons.co_present,
                     inactiveIcon: Icons.co_present_outlined,
                     activeIndices: const [
@@ -147,7 +147,7 @@ class HomeScreen extends StatelessWidget {
                   width: 20,
                 ),
                 CustomNavigationItem(
-                    text: "ID card",
+                    text: AppLocalizations.of(context)!.idCard,
                     activeIcon: Icons.credit_card,
                     inactiveIcon: Icons.credit_card_outlined,
                     activeIndices: const [
@@ -155,7 +155,7 @@ class HomeScreen extends StatelessWidget {
                     ],
                     navigator: navigator),
                 CustomNavigationItem(
-                    text: AppLocalizations.of(context)!.settings,
+                    text: AppLocalizations.of(context)!.options,
                     activeIcon: Icons.settings,
                     inactiveIcon: Icons.settings_outlined,
                     activeIndices: const [

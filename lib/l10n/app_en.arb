@@ -1,5 +1,11 @@
 {
-  "settings": "About",
+  "openSourceNote": "Open Source on GitHub",
+  "forkedFromNote": "Forked from this project",
+  "readIdCard": "Extract ID Card data",
+  "about": "About",
+  "idCard": "ID Card",
+  "home": "Home",
+  "options": "Options",
   "lastPayments": "Last Payments",
   "showMore": "show more",
   "noPayments": "no payments",

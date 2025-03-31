@@ -21,11 +21,11 @@ class AusweisStartState extends State<AusweisStart> {
   Widget build(BuildContext context) {
     var wallet = Provider.of<WalletProvider>(context, listen: false);
     return StyledScaffoldTitle(
-      title: 'ID card',
+      title: AppLocalizations.of(context)!.idCard,
       child: Column(
         children: [
           ListTile(
-            title: Text('Ausweis auslesen'),
+            title: Text(AppLocalizations.of(context)!.readIdCard),
             onTap: () => Navigator.of(navigatorKey.currentContext!).push(
                 Platform.isIOS
                     ? CupertinoPageRoute(

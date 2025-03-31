@@ -27,7 +27,7 @@ class SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     var wallet = Provider.of<WalletProvider>(context, listen: false);
     return StyledScaffoldTitle(
-      title: AppLocalizations.of(context)!.settings,
+      title: AppLocalizations.of(context)!.options,
       child: Column(
         children: [
           ListTile(
@@ -44,17 +44,12 @@ class SettingsPageState extends State<SettingsPage> {
                 .changePage([NavigationPage.license]),
           ),
           ListTile(
-            title: Text(AppLocalizations.of(context)!.settings),
+            title: Text(AppLocalizations.of(context)!.about),
             subtitle: Text('https://id.eecc.de'), // wallet.aboutUrl
             onTap: () {
               launchUrl(Uri.parse('https://id.eecc.de'),
                   mode: LaunchMode.externalApplication);
             },
-          ),
-          ListTile(
-            title: const Text('Vertrauenswürdige Anwendungen'),
-            onTap: () => Provider.of<NavigationProvider>(context, listen: false)
-                .changePage([NavigationPage.authorizedApps]),
           ),
           ListTile(
             title: Text(AppLocalizations.of(context)!.newAppTitle),
@@ -71,7 +66,14 @@ class SettingsPageState extends State<SettingsPage> {
             onTap: () => showConfirmationDialog(context, applyBackup)
           ),
           ListTile(
-            title: const Text('Originales Projekt'), // Neu test
+            title: Text(AppLocalizations.of(context)!.openSourceNote), // Neu test
+            subtitle: Text('https://github.com/european-epc-competence-center/id_ideal_wallet'),
+            onTap: () {
+              launchUrl(Uri.parse('https://github.com/european-epc-competence-center/id_ideal_wallet'),
+                  mode: LaunchMode.externalApplication);
+            },
+          ),ListTile(
+            title: Text(AppLocalizations.of(context)!.forkedFromNote), // Neu test
             subtitle: Text('https://github.com/b2cm/id_ideal_wallet'),
             onTap: () {
               launchUrl(Uri.parse('https://github.com/b2cm/id_ideal_wallet'),

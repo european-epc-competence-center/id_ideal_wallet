@@ -1,5 +1,11 @@
 {
-  "settings": "Über",
+  "openSourceNote": "Open Source auf GitHub",
+  "forkedFromNote": "Von diesem Projekt geforkt",
+  "readIdCard": "Ausweisdaten auslesen",
+  "about": "Über",
+  "idCard": "Ausweis",
+  "home": "Startseite",
+  "options": "Optionen",
   "lastPayments": "Letzte Zahlungen",
   "showMore": "Weitere Anzeigen",
   "noPayments": "Keine getätigten Zahlungen",
