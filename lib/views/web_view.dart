@@ -19,6 +19,7 @@ import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/iso_credential_request.dart';
 import 'package:id_ideal_wallet/views/presentation_request.dart';
+import 'package:id_ideal_wallet/views/qr_scanner.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -37,7 +38,8 @@ class WebViewWindow extends StatefulWidget {
 class WebViewWindowState extends State<WebViewWindow> {
   final GlobalKey webViewKey = GlobalKey();
   bool isInAbo = false;
-  String imageUrl = '';
+  String? imageUrl;
+  String title = '';
   List<String>? trustedSites;
   bool mdocRunning = false;
 
@@ -58,6 +60,9 @@ class WebViewWindowState extends State<WebViewWindow> {
   @override
   void initState() {
     super.initState();
+
+    imageUrl = widget.iconUrl;
+    title = widget.title;
 
     checkAbo();
 
@@ -88,8 +93,8 @@ class WebViewWindowState extends State<WebViewWindow> {
         currentAbos.map((e) => e.getComparableUrl()).toList();
 
     var asUri = Uri.parse(widget.initialUrl);
-    var toCheck =
-        removeTrailingSlash('${asUri.scheme}://${asUri.host}${asUri.path}');
+    var toCheck = removeTrailingSlash(
+        '${asUri.scheme.isEmpty ? 'https' : asUri.scheme}://${asUri.host}${asUri.path}');
     bool inLocalAboList = allAbos.contains(toCheck);
     logger.d('$allAbos contains? $toCheck');
 
@@ -99,6 +104,11 @@ class WebViewWindowState extends State<WebViewWindow> {
     List<String> originalAbos;
     (trusted, uriToImage, uriToTitle, originalAbos) = await initTrustedSites();
     trustedSites = trusted;
+
+    imageUrl = uriToImage[toCheck];
+    if (title.isEmpty) {
+      title = uriToTitle[toCheck] ?? '';
+    }
 
     if (inLocalAboList) {
       // we have already an abo
@@ -115,8 +125,10 @@ class WebViewWindowState extends State<WebViewWindow> {
       logger.d(imageUrl);
       logger.d('add $urlToAdd as abo');
       Provider.of<WalletProvider>(navigatorKey.currentContext!, listen: false)
-          .addAbo(AboData(uriToTitle[toCheck] ?? '', urlToAdd, imageUrl));
+          .addAbo(AboData(uriToTitle[toCheck] ?? '', urlToAdd, imageUrl!));
     }
+
+    setState(() {});
   }
 
   Future<(List<String>, Map<String, String>, Map<String, String>, List<String>)>
@@ -221,7 +233,7 @@ class WebViewWindowState extends State<WebViewWindow> {
             ],
             centerTitle: true,
             title: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              if (widget.iconUrl != null)
+              if (imageUrl != null)
                 SizedBox(
                   width: MediaQuery.of(context).size.width * 0.07,
                   height: MediaQuery.of(context).size.width * 0.07,
@@ -231,16 +243,16 @@ class WebViewWindowState extends State<WebViewWindow> {
                     ),
                     child: CachedImage(
                       key: UniqueKey(),
-                      imageUrl: widget.iconUrl!,
-                      placeholder: widget.title,
+                      imageUrl: imageUrl!,
+                      placeholder: title,
                     ),
                   ),
                 ),
-              if (widget.iconUrl != null)
+              if (imageUrl != null)
                 const SizedBox(
                   width: 3,
                 ),
-              Text(widget.title)
+              Text(title)
             ]),
           ),
           body: SafeArea(
@@ -331,6 +343,13 @@ class WebViewWindowState extends State<WebViewWindow> {
                             callback: (args) async {
                               logger.d(args);
                               return await signData(args.first, args.last);
+                            });
+                        webViewController?.addJavaScriptHandler(
+                            handlerName: 'scanQrCode',
+                            callback: (args) async {
+                              return await navigateClassic(QrScanner(
+                                inApp: false,
+                              ));
                             });
                       },
                       onLoadStart: (controller, url) {

@@ -45,7 +45,8 @@ class AusweisData extends StatelessWidget {
                         AppLocalizations.of(context)!.storeAsCredential,
                     positiveFunction: () async {
                       if (ausweis.readData != null) {
-                        await ausweis.requestSignedCredential();
+                        ausweis.storeAsCredential();
+                        // await ausweis.requestSignedCredential();
                         Navigator.of(context).pop();
                       }
                     })
