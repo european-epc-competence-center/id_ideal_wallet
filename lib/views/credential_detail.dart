@@ -383,8 +383,7 @@ class CredentialInfo extends StatelessWidget {
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          side: const BorderSide(color: AppColors.borderColor),
-          //side: const BorderSide(color: Colors.black26)
+          side: const BorderSide(color: AppColors.borderCred),
         ),
         clipBehavior: Clip.antiAlias,
         margin: EdgeInsets.zero,

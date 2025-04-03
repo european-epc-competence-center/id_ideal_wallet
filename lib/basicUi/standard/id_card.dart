@@ -25,13 +25,13 @@ class IdCard extends StatelessWidget {
       this.bottomRightText = const SizedBox(
         height: 0,
       ),
-      this.cardColor = AppColors.primary,
+      this.cardColor = AppColors.topCred,
       this.cardTitleColor = Colors.white,
-      this.backgroundColor = AppColors.secondary,
+      this.backgroundColor = AppColors.backgroundCred,
       this.subjectImage,
       this.backgroundImage,
       this.issuerIcon,
-      this.borderColor = AppColors.borderColor,
+      this.borderColor = AppColors.borderCred,
       this.noAspectRatio = false,
       this.borderWidth = 2,
       this.edgeRadius = 20});
@@ -56,7 +56,7 @@ class IdCard extends StatelessWidget {
         );
       } else {
         return ContextCredentialCard(
-            backgroundColor: AppColors.secondary,
+            backgroundColor: AppColors.backgroundCred,
             cardTitleColor: credential.credentialSubject['overlaycolor'] != null
                 ? HexColor.fromHex(credential.credentialSubject['overlaycolor'])
                 : Colors.white,
@@ -112,7 +112,7 @@ class IdCard extends StatelessWidget {
                       .startsWith('#')
               ? HexColor.fromHex(
                   credential.credentialSubject['backgroundColor'])
-              : AppColors.secondary,
+              : AppColors.backgroundCred,
           cardTitleColor:
               credential.credentialSubject['foregroundColor'] != null &&
                       credential.credentialSubject['foregroundColor']
