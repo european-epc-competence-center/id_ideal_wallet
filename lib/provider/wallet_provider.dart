@@ -798,7 +798,7 @@ class WalletProvider extends ChangeNotifier {
       if (!allAbos.contains('https://test.hidy.app/kigallery')) {
         addAbo(
             my_util.AboData('KI-Galerie', 'https://test.hidy.app/kigallery',
-                'https://hidy.app/styles/kigalerie_contextbg.jpg'),
+                'https://hidy.app/styles/kigalerie_contextbg.jpg', '', ''),
             true,
             false);
       }

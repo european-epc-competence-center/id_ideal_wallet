@@ -43,6 +43,7 @@ class WebViewWindowState extends State<WebViewWindow> {
   String title = '';
   List<String>? trustedSites;
   bool mdocRunning = false;
+  Color? titleBgColor, titleFontColor;
 
   InAppWebViewController? webViewController;
   InAppWebViewSettings settings = InAppWebViewSettings(
@@ -99,67 +100,62 @@ class WebViewWindowState extends State<WebViewWindow> {
     bool inLocalAboList = allAbos.contains(toCheck);
     logger.d('$allAbos contains? $toCheck');
 
-    Map<String, String> uriToImage = {};
-    Map<String, String> uriToTitle = {};
-    List<String> trusted;
-    List<String> originalAbos;
-    (trusted, uriToImage, uriToTitle, originalAbos) = await initTrustedSites();
-    trustedSites = trusted;
+    var trustedData = await initTrustedSites();
+    trustedSites = trustedData.keys.toList();
 
-    imageUrl = uriToImage[toCheck];
+    imageUrl = trustedData[toCheck]?.pictureUrl;
+    titleBgColor = trustedData[toCheck]?.getTitleBgColor();
+    titleFontColor = trustedData[toCheck]?.getTitleFontColor();
+
     if (title.isEmpty) {
-      title = uriToTitle[toCheck] ?? '';
+      title = trustedData[toCheck]?.name ?? '';
     }
 
     if (inLocalAboList) {
       // we have already an abo
+      setState(() {});
       return;
     }
 
     logger.d('$trustedSites contains? $toCheck');
-    logger.d(originalAbos);
-
     if (trustedSites!.contains(toCheck)) {
-      var urlToAdd = originalAbos.firstWhere((test) => test.startsWith(toCheck),
-          orElse: () => toCheck);
-      imageUrl = uriToImage[toCheck] ?? '';
-      logger.d(imageUrl);
-      logger.d('add $urlToAdd as abo');
       Provider.of<WalletProvider>(navigatorKey.currentContext!, listen: false)
-          .addAbo(AboData(uriToTitle[toCheck] ?? '', urlToAdd, imageUrl!));
+          .addAbo(trustedData[toCheck]!);
     }
 
     setState(() {});
   }
 
-  Future<(List<String>, Map<String, String>, Map<String, String>, List<String>)>
-      initTrustedSites() async {
+  Future<Map<String, AboData>> initTrustedSites() async {
     var res = await get(Uri.parse(applicationEndpoint));
-    List<Map<String, dynamic>> available = [];
+    Map<String, AboData> available = {};
     if (res.statusCode == 200) {
       List dec = jsonDecode(res.body);
-      available = dec.map((e) => (e as Map).cast<String, dynamic>()).toList();
+      for (var entry in dec) {
+        var data = AboData.fromJson(entry);
+        available[data.getComparableUrl()] = data;
+      }
     }
 
-    Map<String, String> uriToImage = {};
-    Map<String, String> uriToTitle = {};
-    List<String> trusted = [];
-    List<String> original = [];
-    if (available.isNotEmpty) {
-      trusted = available.map((e) {
-        var u = Uri.parse(e['url']!);
-        var correctUri =
-            removeTrailingSlash('${u.scheme}://${u.host}${u.path}');
-        uriToImage[correctUri] = e['mainbgimg'];
-        uriToTitle[correctUri] = e['name'] ?? '';
-        return removeTrailingSlash('${u.scheme}://${u.host}${u.path}');
-      }).toList();
-      original = available.map((e) {
-        return e['url']! as String;
-      }).toList();
-    }
+    // Map<String, String> uriToImage = {};
+    // Map<String, String> uriToTitle = {};
+    // List<String> trusted = [];
+    // List<String> original = [];
+    // if (available.isNotEmpty) {
+    //   trusted = available.map((e) {
+    //     var u = Uri.parse(e['url']!);
+    //     var correctUri =
+    //         removeTrailingSlash('${u.scheme}://${u.host}${u.path}');
+    //     uriToImage[correctUri] = e['mainbgimg'];
+    //     uriToTitle[correctUri] = e['name'] ?? '';
+    //     return removeTrailingSlash('${u.scheme}://${u.host}${u.path}');
+    //   }).toList();
+    //   original = available.map((e) {
+    //     return e['url']! as String;
+    //   }).toList();
+    // }
 
-    return (trusted, uriToImage, uriToTitle, original);
+    return available;
   }
 
   @override
@@ -177,9 +173,13 @@ class WebViewWindowState extends State<WebViewWindow> {
         return Scaffold(
           appBar: AppBar(
             automaticallyImplyLeading: false,
+            backgroundColor: titleBgColor,
             leading: IconButton(
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close)),
+                icon: Icon(
+                  Icons.close,
+                  color: titleFontColor,
+                )),
             actions: [
               Directionality(
                 textDirection: TextDirection.rtl,
@@ -226,7 +226,10 @@ class WebViewWindowState extends State<WebViewWindow> {
                           controller.open();
                         }
                       },
-                      icon: const Icon(Icons.more_vert),
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: titleFontColor,
+                      ),
                     );
                   },
                 ),
@@ -253,7 +256,10 @@ class WebViewWindowState extends State<WebViewWindow> {
                 const SizedBox(
                   width: 3,
                 ),
-              Text(title)
+              Text(
+                title,
+                style: TextStyle(color: titleFontColor),
+              )
             ]),
           ),
           body: SafeArea(
@@ -482,7 +488,8 @@ class WebViewWindowState extends State<WebViewWindow> {
         removeTrailingSlash('${asUri.scheme}://${asUri.host}${asUri.path}');
 
     if (trusted == null || trusted.isEmpty) {
-      (trusted, _, _, _) = await initTrustedSites();
+      var trustedData = await initTrustedSites();
+      trusted = trustedData.keys.toList();
     }
 
     if (testBuild) {

@@ -386,15 +386,20 @@ Future navigateClassic(Widget newView, [bool storeRoute = false]) {
 }
 
 class AboData {
-  String name, url, pictureUrl;
+  String name, url, pictureUrl, titleBgColorCode, titleFontColorCode;
 
-  AboData(this.name, this.url, this.pictureUrl);
+  AboData(this.name, this.url, this.pictureUrl, this.titleBgColorCode,
+      this.titleFontColorCode);
 
   factory AboData.fromJson(dynamic jsonData) {
     var data = credentialToMap(jsonData);
 
-    return AboData(data['name'] ?? '', data['url'],
-        data['mainbgimg'] ?? data['mainbgimage']);
+    return AboData(
+        data['name'] ?? '',
+        data['url'],
+        data['mainbgimg'] ?? data['mainbgimage'],
+        data['titleBgColor'] ?? '',
+        data['titleBgColor'] ?? '');
   }
 
   String getComparableUrl() {
@@ -402,8 +407,26 @@ class AboData {
     return removeTrailingSlash('${asUri.scheme}://${asUri.host}${asUri.path}');
   }
 
+  Color getTitleBgColor() {
+    return titleBgColorCode.isEmpty
+        ? Colors.white
+        : HexColor.fromHex(titleBgColorCode);
+  }
+
+  Color getTitleFontColor() {
+    return titleFontColorCode.isEmpty
+        ? Colors.black
+        : HexColor.fromHex(titleFontColorCode);
+  }
+
   Map<String, dynamic> toJson() {
-    return {'name': name, 'url': url, 'mainbgimage': pictureUrl};
+    return {
+      'name': name,
+      'url': url,
+      'mainbgimage': pictureUrl,
+      'titleBgColor': titleBgColorCode,
+      'titleFontColor': titleFontColorCode
+    };
   }
 
   @override
