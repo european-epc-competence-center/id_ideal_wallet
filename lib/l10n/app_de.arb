@@ -280,5 +280,7 @@
   "bleTransmissionSend": "Daten gesendet",
   "bleTransmissionFinished": "Übertragung beendet und Verbindung getrennt",
   "bleButton": "Neustart",
-  "bleError": "Es ist ein Fehler aufgetreten. Bitte starten Sie den Vorgang mittels des Buttons neu.\nSollten Sie diese Meldung zum wiederholten Mal sehen, versuchen Sie Bluetooth aus und wieder an zu schalten oder Hidy neu zu starten"
+  "bleError": "Es ist ein Fehler aufgetreten. Bitte starten Sie den Vorgang mittels des Buttons neu.\nSollten Sie diese Meldung zum wiederholten Mal sehen, versuchen Sie Bluetooth aus und wieder an zu schalten oder Hidy neu zu starten",
+  "biometricPromptTitle": "Signaturerstellung",
+  "biometricPromptSubtitle": "Bitte authentifizieren Sie sich für die Nutzung Ihres Schlüssels"
 }

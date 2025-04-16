@@ -1153,8 +1153,12 @@ storeCredential(String format, dynamic credential, String credentialDid,
     var jwk = sd_jwt.Jwk.fromJson(
         k.map((key, value) => MapEntry(key as String, value)));
     var sd = sd_jwt.SdJwt.fromSdJws(parsed);
-    var verified = await sd.verify(parsed,
-        sd_jwt.PointyCastleCryptoProvider(jwk.key as sd_jwt.EcPublicKey));
+    var verified = await sd.verify(
+        parsed,
+        jwk.key is sd_jwt.EcPublicKey
+            ? sd_jwt.PointyCastleCryptoProvider(jwk.key as sd_jwt.EcPublicKey)
+            : sd_jwt.Ed25519EdwardsCryptoProvider(
+                jwk.key as sd_jwt.EdPublicKey));
 
     if (!verified) {
       showErrorMessage(

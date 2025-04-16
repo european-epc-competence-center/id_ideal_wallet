@@ -36,6 +36,10 @@ Map knownAuthServer = {
     'client_id': 'wallet-dev',
     'redirect_uri': 'eudi-openid4ci://authorize'
   },
+  'https://authenticate.eudiw.dev/realms/pid-issuer-realm': {
+    'client_id': 'wallet-dev',
+    'redirect_uri': 'eudi-openid4ci://authorize'
+  },
   // 'https://id.staging.authada.de/eudi/issuer/pid': {
   //   'client_id': 'eEWA Wallet',
   //   'redirect_uri': 'eudi-issuance://authorization'
@@ -81,7 +85,7 @@ var applicationEndpoint =
     'https://test.hidy.app/walletcontext/apps?plattform=${Platform.isIOS ? '1' : '2'}';
 var stylingEndpoint = 'https://test.hidy.app/walletcontext/layouts';
 var termsVersionEndpoint = 'https://test.hidy.app/walletcontext/terms';
-String versionNumber = '4.0.5-test';
+String versionNumber = '4.0.6-test';
 String baseUrl = 'https://test.hidy.app';
 bool testBuild = true;
 

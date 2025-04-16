@@ -280,5 +280,7 @@
   "bleTransmissionSend": "Data send",
   "bleTransmissionFinished": "Transmission ended and connection disconnected",
   "bleButton": "Restart",
-  "bleError": "An error has occurred. Please restart the process using the button.\nIf you see this message repeatedly, try switching Bluetooth off and on again or restarting Hidy"
+  "bleError": "An error has occurred. Please restart the process using the button.\nIf you see this message repeatedly, try switching Bluetooth off and on again or restarting Hidy",
+  "biometricPromptTitle": "Signature Generation",
+  "biometricPromptSubtitle": "Please authenticate for the usage of your signing key"
 }

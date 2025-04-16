@@ -6,6 +6,7 @@ import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart';
@@ -336,7 +337,16 @@ class WebViewWindowState extends State<WebViewWindow> {
                         webViewController?.addJavaScriptHandler(
                             handlerName: 'initializeSigningKey',
                             callback: (args) async {
-                              return await getSigningKey();
+                              if (args.isEmpty) {
+                                return await getSigningKey(
+                                  true,
+                                  true,
+                                  2,
+                                );
+                              } else {
+                                return await getSigningKey(
+                                    args.first, args[1], args.last);
+                              }
                             });
                         webViewController?.addJavaScriptHandler(
                             handlerName: 'signData',
@@ -434,23 +444,35 @@ class WebViewWindowState extends State<WebViewWindow> {
     );
   }
 
-  Future<Map<String, dynamic>> getSigningKey() async {
+  Future<Map<String, dynamic>> getSigningKey(bool userAuthenticationRequired,
+      bool invalidateByNewBiometrics, int authType) async {
     var wallet = Provider.of<WalletProvider>(context, listen: false);
     var keyId = await wallet.newCredentialDid(KeyType.p256, KeyStore.system, {
-      'userAuthenticationRequired': true,
-      'attestationChallenge': 'webview'
+      'userAuthenticationRequired': userAuthenticationRequired,
+      'attestationChallenge': 'webview',
+      'invalidateByNewBiometric': invalidateByNewBiometrics,
+      'authType': authType
     });
     logger.d(keyId);
-    var keyInfo = await wallet.wallet
-        .getKeyInformation(wallet.getOsKeyStoreIdForDid(keyId)!);
-    return keyInfo;
+    try {
+      var keyInfo = await wallet.wallet
+          .getKeyInformation(wallet.getOsKeyStoreIdForDid(keyId)!);
+      return keyInfo;
+    } on PlatformException catch (e) {
+      return {'errorCode': e.code, 'message': e.message, 'details': e.details};
+    }
   }
 
   Future<String> signData(String keyId, String data) async {
     var wallet = Provider.of<WalletProvider>(context, listen: false);
-    var signature =
-        await wallet.wallet.sign(keyId, base64Decode(addPaddingToBase64(data)));
-    return removePaddingFromBase64(base64UrlEncode(signature));
+    try {
+      var signature = await wallet.wallet
+          .sign(keyId, base64Decode(addPaddingToBase64(data)));
+      return removePaddingFromBase64(base64UrlEncode(signature));
+    } on PlatformException catch (e) {
+      return jsonEncode(
+          {'errorCode': e.code, 'message': e.message, 'details': e.details});
+    }
   }
 
   Future<Map<String, dynamic>> requestPresentationNoSign(

@@ -215,8 +215,29 @@ class OsKeyStore extends KeyStoreBackend {
         additionalProperties?['userAuthenticationRequired'] ?? false;
     String attestationChallenge =
         additionalProperties?['attestationChallenge'] ?? '';
+    bool invalidateByNewBiometric =
+        additionalProperties?['invalidateByNewBiometric'] ?? true;
+    int authType = additionalProperties?['authType'] ?? 2;
 
-    return _instance.generateKey(curve, userAuth, attestationChallenge);
+    AuthType authValue;
+    switch (authType) {
+      case 1:
+        authValue = AuthType.deviceCredential;
+        break;
+      case 2:
+        authValue = AuthType.biometricOnly;
+        break;
+      case 3:
+        authValue = AuthType.deviceCredentialOrBiometric;
+        break;
+      default:
+        authValue = AuthType.biometricOnly;
+    }
+
+    return _instance.generateKey(curve, userAuth,
+        attestationChallenge: attestationChallenge,
+        invalidateByNewBiometric: invalidateByNewBiometric,
+        authType: authValue);
   }
 
   @override
@@ -255,7 +276,16 @@ class OsKeyStore extends KeyStoreBackend {
 
   @override
   FutureOr<Uint8List> signData(Uint8List data, String keyId) {
-    return _instance.sign(keyId, data);
+    return _instance.sign(
+        keyId,
+        data,
+        BiometricPromptData(
+            title: AppLocalizations.of(navigatorKey.currentContext!)!
+                .biometricPromptTitle,
+            subtitle: AppLocalizations.of(navigatorKey.currentContext!)!
+                .biometricPromptSubtitle,
+            negativeButton:
+                AppLocalizations.of(navigatorKey.currentContext!)!.cancel));
   }
 
   @override
