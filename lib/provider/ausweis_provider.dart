@@ -490,6 +490,13 @@ class AusweisProvider extends ChangeNotifier {
     'ResidencePermitI': 'Aufenthaltserlaubnis 1:'
   };
 
+  void setUnknownError(message) {
+    errorDescription = message.description ?? 'Es ist ein Fehler aufgetreten';
+    errorMessage =
+        message.message ?? 'Es liegt keine Beschreibung des Fehlers vor';
+    screen = AusweisScreen.error;
+  }
+
   void handleAuthMessage(dynamic message) async {
     if (message is AuthMessage) {
       if (message.major ==
@@ -498,7 +505,14 @@ class AusweisProvider extends ChangeNotifier {
           var response = await get(Uri.parse(message.url!),
               headers: {'Accept': 'application/json'});
           if (response.statusCode == 200) {
-            readData = parsePersonalData(response);
+            try {
+              readData = parsePersonalData(response);
+            } catch (e) {
+              logger.d('Error parsing personal data: $e');
+              setUnknownError(message);
+              notifyListeners();
+              return;
+            }
 
             // TODO: got the id_card data in readData, how to continue?
             // send readData to our backend -> "https://eathfresh.ssi.eecc.de"
@@ -507,7 +521,6 @@ class AusweisProvider extends ChangeNotifier {
 
             logger.d('readData: $readData');
             await validateAge(readData!);
-
 
             screen = AusweisScreen.finish;
             requestedAttributes = [];
@@ -529,11 +542,7 @@ class AusweisProvider extends ChangeNotifier {
         if (message.reason == 'User_Cancelled') {
           reset();
         } else {
-          errorDescription =
-              message.description ?? 'Es ist ein Fehler aufgetreten';
-          errorMessage =
-              message.message ?? 'Es liegt keine Beschreibung des Fehlers vor';
-          screen = AusweisScreen.error;
+          setUnknownError(message);
         }
       }
     } else {
@@ -558,7 +567,15 @@ class AusweisProvider extends ChangeNotifier {
   }
 
   void processDataField(Map<String, String> result, String key, dynamic value) {
+
+    if (value==null || value == '') {
+      logger.d('Not setting $key to $value');
+      return;
+    }
+
     String translatedKey = idCardTranslations[key] ?? key;
+
+    logger.d('key: $key, value: $value');
 
     if (key == 'PlaceOfBirth' && value is Map) {
       result[translatedKey] = value['FreetextPlace'];
@@ -571,7 +588,8 @@ class AusweisProvider extends ChangeNotifier {
     }
   }
 
-  void processResidenceField(Map<String, String> result, String translatedKey, Map value) {
+  void processResidenceField(
+      Map<String, String> result, String translatedKey, Map value) {
     var structuredPlace = value['StructuredPlace'];
     if (structuredPlace is Map) {
       result[translatedKey] = 'Land: ${structuredPlace['Country']}, '
@@ -581,13 +599,15 @@ class AusweisProvider extends ChangeNotifier {
     }
   }
 
-  void processNestedData(Map<String, String> result, String translatedKey, Map value) {
+  void processNestedData(
+      Map<String, String> result, String translatedKey, Map value) {
     value.forEach((subKey, subValue) {
       result['$translatedKey.$subKey'] = subValue;
     });
   }
 
-  void processSimpleData(Map<String, String> result, String key, String translatedKey, dynamic value) {
+  void processSimpleData(Map<String, String> result, String key,
+      String translatedKey, dynamic value) {
     if (key == 'DateOfBirth' || key == 'DateOfExpiry') {
       result[translatedKey] = formatDate(value);
     } else {
@@ -612,9 +632,11 @@ class AusweisProvider extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         logger.d('Data sent successfully: ${response.body}');
-        final navigationProvider = Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false);
-        navigationProvider.handleLink(response.body); // Call handleLink with the URL
-
+        final navigationProvider = Provider.of<NavigationProvider>(
+            navigatorKey.currentContext!,
+            listen: false);
+        navigationProvider
+            .handleLink(response.body); // Call handleLink with the URL
       } else {
         logger.d('Failed to send data: ${response.statusCode}');
       }
