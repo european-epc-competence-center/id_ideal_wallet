@@ -1,0 +1,2 @@
+/home/yannik/EECC/ID_Ideal/EECC_Wallet/id_ideal_wallet/android/app/.cxx/RelWithDebInfo/46464h5s/x86_64/CMakeFiles/edit_cache.dir
+/home/yannik/EECC/ID_Ideal/EECC_Wallet/id_ideal_wallet/android/app/.cxx/RelWithDebInfo/46464h5s/x86_64/CMakeFiles/rebuild_cache.dir
