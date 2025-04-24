@@ -50,7 +50,7 @@ var applicationEndpoint =
 var pluginEndpoint = "https://wallet.eecc.de/plugins/plugin_list.json";
 var stylingEndpoint = 'https://wallet.eecc.de/styles/layouts.json';
 var termsVersionEndpoint = 'https://wallet.eecc.de/walletcontext/terms.json';
-String versionNumber = '1.0.0';
+String versionNumber = '1.0.1';
 String baseUrl = 'https://hidy.app';
 bool testBuild = false;
 
