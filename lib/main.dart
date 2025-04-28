@@ -13,9 +13,10 @@ import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
 import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
+import 'package:id_ideal_wallet/views/StartScreen.dart';
 import 'package:id_ideal_wallet/views/abo_overview.dart';
-import 'package:id_ideal_wallet/views/ausweis_view.dart';
 import 'package:id_ideal_wallet/views/ausweis_start.dart';
+import 'package:id_ideal_wallet/views/ausweis_view.dart';
 import 'package:id_ideal_wallet/views/authorized_apps.dart';
 import 'package:id_ideal_wallet/views/credential_detail.dart';
 import 'package:id_ideal_wallet/views/credential_page.dart';
@@ -26,7 +27,6 @@ import 'package:id_ideal_wallet/views/search_new_abo.dart';
 import 'package:id_ideal_wallet/views/send_satoshi_screen.dart';
 import 'package:id_ideal_wallet/views/settings_page.dart';
 import 'package:id_ideal_wallet/views/web_view.dart';
-import 'package:id_ideal_wallet/views/welcome_screen.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -91,17 +91,6 @@ class App extends StatelessWidget {
   }
 }
 
-class StartScreen extends StatelessWidget {
-  const StartScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<NavigationProvider>(builder: (context, navigator, child) {
-      return navigator.showWelcome ? const WelcomeScreen() : const HomeScreen();
-    });
-  }
-}
-
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -150,9 +139,7 @@ class HomeScreen extends StatelessWidget {
                     text: AppLocalizations.of(context)!.idCard,
                     activeIcon: Icons.credit_card,
                     inactiveIcon: Icons.credit_card_outlined,
-                    activeIndices: const [
-                      NavigationPage.ausweisStart
-                    ],
+                    activeIndices: const [NavigationPage.ausweisStart],
                     navigator: navigator),
                 CustomNavigationItem(
                     text: AppLocalizations.of(context)!.options,

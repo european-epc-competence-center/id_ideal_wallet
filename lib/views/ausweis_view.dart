@@ -33,6 +33,9 @@ class AusweisViewState extends State<AusweisView> {
     } else if (ausweis.screen == AusweisScreen.insertCard) {
       return const InsertCard();
     } else if (ausweis.screen == AusweisScreen.start) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ausweis.startProgress();
+      });
       return Center(
         child: ElevatedButton(
           onPressed: () {

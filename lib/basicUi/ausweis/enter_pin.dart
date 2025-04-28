@@ -75,7 +75,7 @@ class EnterPinState extends State<EnterPin> {
                 ausweis.setPin(controller.text);
               }
             },
-            negativeFunction: () => ausweis.cancel(),
+            negativeFunction: () => ausweis.cancel(context),
           )
         ],
       );

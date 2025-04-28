@@ -153,7 +153,7 @@ class MainContent extends StatelessWidget {
                           .accept(),
                   negativeFunction: () =>
                       Provider.of<AusweisProvider>(context, listen: false)
-                          .cancel(),
+                          .cancel(context),
                 ),
               ]
             : [],

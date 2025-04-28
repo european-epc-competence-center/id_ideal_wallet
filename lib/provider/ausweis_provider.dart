@@ -2,21 +2,21 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_ssi/credentials.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart';
+import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/ausweis_message.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
+import 'package:id_ideal_wallet/main.dart';
+import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:id_ideal_wallet/provider/navigation_provider.dart';
-import 'package:xml/xml.dart';
-
-import '../basicUi/ausweis/main_content.dart';
 
 enum AusweisScreen {
   enterPin,
@@ -346,12 +346,19 @@ class AusweisProvider extends ChangeNotifier {
     }
   }
 
-  void cancel() {
+  void cancel(context) {
     try {
       method.invokeMethod('sendCommand', jsonEncode({'cmd': 'CANCEL'}));
     } on PlatformException catch (e) {
       logger.d('Failed to connect to sdk: ${e.message}.');
     }
+
+    Navigator.of(context).push(Platform.isIOS
+        ? CupertinoPageRoute(builder: (context) => const HomeScreen())
+        : MaterialPageRoute(builder: (context) => const HomeScreen()));
+
+    Provider.of<NavigationProvider>(context, listen: false)
+        .changePage([NavigationPage.abo]);
   }
 
   void accept() {
@@ -567,8 +574,7 @@ class AusweisProvider extends ChangeNotifier {
   }
 
   void processDataField(Map<String, String> result, String key, dynamic value) {
-
-    if (value==null || value == '') {
+    if (value == null || value == '') {
       logger.d('Not setting $key to $value');
       return;
     }

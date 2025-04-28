@@ -24,7 +24,7 @@ class InsertCard extends StatelessWidget {
       persistentFooterButtons: [
         ElevatedButton(
             onPressed: () =>
-                Provider.of<AusweisProvider>(context, listen: false).cancel(),
+                Provider.of<AusweisProvider>(context, listen: false).cancel(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               foregroundColor: Colors.white,
