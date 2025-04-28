@@ -978,6 +978,10 @@ Future<void> handlePresentationRequestOidc(String request) async {
   String? nonce, responseUri;
   ClientMetaData? clientMetaData;
 
+  // Capture the redirect_uri from the initial link explicitly
+  final String? initialRedirectUriFromLink = asUri.queryParameters['redirect_uri'];
+  logger.d('Initial redirect URI from link: $initialRedirectUriFromLink');
+
   nonce = asUri.queryParameters['nonce'];
   var redirectUri = asUri.queryParameters['redirect_uri'];
   var requestUri = asUri.queryParameters['request_uri'];
@@ -1148,6 +1152,7 @@ Future<void> handlePresentationRequestOidc(String request) async {
       oidcResponseMode: responseMode,
       oidcClientMetadata: clientMetaData,
       oidcRedirectUri: redirectUri,
+      initialRedirectUri: initialRedirectUriFromLink,
     );
 
     navigateClassic(target);
