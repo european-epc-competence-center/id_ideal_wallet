@@ -73,6 +73,8 @@ Map knownAuthServer = {
 //     'https://hidy.app/walletcontext/apps?plattform=${Platform.isIOS ? '1' : '2'}';
 // var stylingEndpoint = 'https://hidy.app/walletcontext/layouts';
 // var termsVersionEndpoint = 'https://hidy.app/walletcontext/terms';
+// var messagingBackend =
+//     'https://test.hidy.app/walletcontext/fbm/registeraccount';
 // String versionNumber = '3.2.5';
 // String baseUrl = 'https://hidy.app';
 // bool testBuild = false;
@@ -85,6 +87,8 @@ var applicationEndpoint =
     'https://test.hidy.app/walletcontext/apps?plattform=${Platform.isIOS ? '1' : '2'}';
 var stylingEndpoint = 'https://test.hidy.app/walletcontext/layouts';
 var termsVersionEndpoint = 'https://test.hidy.app/walletcontext/terms';
+var messagingBackend =
+    'https://test.hidy.app/walletcontext/fbm/registeraccount';
 String versionNumber = '4.0.6-test';
 String baseUrl = 'https://test.hidy.app';
 bool testBuild = true;

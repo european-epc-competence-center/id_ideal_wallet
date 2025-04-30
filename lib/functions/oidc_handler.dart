@@ -1126,7 +1126,8 @@ storeCredential(String format, dynamic credential, String credentialDid,
           AppLocalizations.of(navigatorKey.currentContext!)!.credentialReceived,
           signedData.docType);
     }
-  } else if (format == OidCredentialFormat.sdJwt) {
+  } else if (format == OidCredentialFormat.sdJwt ||
+      format == OidCredentialFormat.sdJwtDc) {
     printWrapped(credential);
     var parsed = sd_jwt.SdJws.fromCompactSerialization(credential);
     logger.d(parsed.jsonContent());

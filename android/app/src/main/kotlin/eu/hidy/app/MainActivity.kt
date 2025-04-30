@@ -193,6 +193,7 @@ class MainActivity : FlutterFragmentActivity() {
 
         } else if (data != null && data.scheme == "content") {
             contentReceiver?.onReceive(this.applicationContext, intent)
+        } else if (action == "SELECT_NOTIFICATION") {
         } else {
             linkReceiver?.onReceive(this.applicationContext, intent)
         }

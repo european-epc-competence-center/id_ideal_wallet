@@ -6,6 +6,7 @@ enum NavigationPage {
   settings,
   webView,
   credentialDetail,
+  identityOverview,
   authorizedApps,
   license,
   searchNewAbo,

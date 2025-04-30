@@ -41,6 +41,7 @@ class WebViewWindowState extends State<WebViewWindow> {
   bool isInAbo = false;
   String? imageUrl;
   String title = '';
+  String baseUrl = '';
   List<String>? trustedSites;
   bool mdocRunning = false;
   Color? titleBgColor, titleFontColor;
@@ -65,6 +66,7 @@ class WebViewWindowState extends State<WebViewWindow> {
 
     imageUrl = widget.iconUrl;
     title = widget.title;
+    baseUrl = widget.initialUrl;
 
     checkAbo();
 
@@ -106,6 +108,7 @@ class WebViewWindowState extends State<WebViewWindow> {
     imageUrl = trustedData[toCheck]?.pictureUrl;
     titleBgColor = trustedData[toCheck]?.getTitleBgColor();
     titleFontColor = trustedData[toCheck]?.getTitleFontColor();
+    baseUrl = toCheck;
 
     if (title.isEmpty) {
       title = trustedData[toCheck]?.name ?? '';
@@ -367,6 +370,24 @@ class WebViewWindowState extends State<WebViewWindow> {
                                 inApp: false,
                               ));
                             });
+                        webViewController?.addJavaScriptHandler(
+                            handlerName: 'addAccount',
+                            callback: (args) async {
+                              var pseudo = await Provider.of<WalletProvider>(
+                                      context,
+                                      listen: false)
+                                  .generatePseudonym(baseUrl);
+                              logger.d(pseudo);
+                              return pseudo.toJson();
+                            });
+                        webViewController?.addJavaScriptHandler(
+                            handlerName: 'loginToAccount',
+                            callback: (args) {
+                              return Provider.of<WalletProvider>(context,
+                                      listen: false)
+                                  .accountVcs[baseUrl]
+                                  ?.toJson();
+                            });
                       },
                       onLoadStart: (controller, url) {
                         setState(() {});
@@ -382,7 +403,7 @@ class WebViewWindowState extends State<WebViewWindow> {
 
                         if ((uri.authority.contains('wallet.id-ideal.de') ||
                             uri.authority.contains('wallet.bccm.dev') ||
-                            uri.scheme == 'eudi-openid4ci')) {
+                            uri.scheme == 'eudi-openid4vci')) {
                           Provider.of<NavigationProvider>(context,
                                   listen: false)
                               .handleLink(
@@ -426,13 +447,13 @@ class WebViewWindowState extends State<WebViewWindow> {
                           this.progress = progress / 100;
                         });
                       },
-                      onUpdateVisitedHistory:
-                          (controller, url, androidIsReload) {
-                        logger.d(
-                            'new Uri: ${removeTrailingSlash(url.toString())}');
-                        Provider.of<NavigationProvider>(context, listen: false)
-                            .setWebViewUrl(removeTrailingSlash(url.toString()));
-                      },
+                      // onUpdateVisitedHistory:
+                      //     (controller, url, androidIsReload) {
+                      //   logger.d(
+                      //       'new Uri: ${removeTrailingSlash(url.toString())}');
+                      //   Provider.of<NavigationProvider>(context, listen: false)
+                      //       .setWebViewUrl(removeTrailingSlash(url.toString()));
+                      // },
                       onConsoleMessage: (controller, consoleMessage) {
                         logger.d(consoleMessage);
                       },

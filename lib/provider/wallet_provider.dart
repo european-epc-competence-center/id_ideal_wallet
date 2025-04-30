@@ -23,10 +23,12 @@ import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/payment_utils.dart';
 import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
+import 'package:id_ideal_wallet/provider/notification_provider.dart';
 import 'package:id_ideal_wallet/views/web_view.dart';
 import 'package:pkcs7/pkcs7.dart';
 import 'package:pointycastle/export.dart';
 import 'package:provider/provider.dart';
+import 'package:sd_jwt/sd_jwt.dart' as sd_jwt;
 import 'package:uuid/uuid.dart';
 
 import '../functions/util.dart' as my_util;
@@ -37,6 +39,7 @@ class WalletProvider extends ChangeNotifier {
   final WalletStore _wallet;
   bool _authRunning = false;
   bool onboard;
+  bool withFirebase;
 
   bool openError = false;
 
@@ -54,6 +57,7 @@ class WalletProvider extends ChangeNotifier {
   List<VerifiableCredential> paymentCredentials = [];
   List<Credential> isoMdocCredentials = [];
   List<Credential> sdJwtCredentials = [];
+  Map<String, VerifiableCredential> accountVcs = {};
 
   Set<String> credentialsTypes = {};
 
@@ -70,7 +74,11 @@ class WalletProvider extends ChangeNotifier {
 
   List<int> dataShared = [];
 
-  WalletProvider(String walletPath, [this.onboard = true])
+  NotificationProvider? notificationProvider;
+  Map<String, List<SimplifiedNotification>> outstandingMessages = {};
+  bool notifyMessageBackend = false;
+
+  WalletProvider(String walletPath, this.withFirebase, [this.onboard = true])
       : _wallet = WalletStore(walletPath, Platform.isIOS ? 'hidy' : null);
 
   Future<List<int>?> startUri() async {
@@ -221,6 +229,76 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
+  addPhotoId(String type, String front, String back) async {
+    var f = File(front);
+    var frontBytes = await f.readAsBytes();
+    String frontImage = 'data:image/png;base64,${base64Encode(frontBytes)}';
+
+    var b = File(back);
+    var backBytes = await b.readAsBytes();
+    String backImage = 'data:image/png;base64,${base64Encode(backBytes)}';
+
+    var did = await newCredentialDid();
+
+    var vc = VerifiableCredential(
+        context: [credentialsV1Iri, schemaOrgIri],
+        type: ['VerifiableCredential', 'PhotoId'],
+        issuer: did,
+        id: did,
+        credentialSubject: {'id': did, 'front': frontImage, 'back': backImage});
+
+    var signer = WalletCredentialSigner(
+        wallet, did, 'EdDSA', '$did#${did.split(':').last}');
+
+    await vc.sign(signer, LdpProofType.ed25519Signature2020);
+    storeCredential(vc, did);
+    storeConfig(type, did);
+  }
+
+  VerifiableCredential? getDriverLicensePhoto() {
+    var did = getConfig('driverLicensePhoto');
+    if (did != null) {
+      var cred = getCredential(did);
+      if (cred != null) {
+        return VerifiableCredential.fromJson(cred.verifiableCredential);
+      }
+    }
+    return null;
+  }
+
+  VerifiableCredential? getIdCardPhoto() {
+    var did = getConfig('idCardPhoto');
+    if (did != null) {
+      var cred = getCredential(did);
+      if (cred != null) {
+        return VerifiableCredential.fromJson(cred.verifiableCredential);
+      }
+    }
+    return null;
+  }
+
+  Future<VerifiableCredential> generatePseudonym(String webViewUrl) async {
+    var did = await newCredentialDid();
+    var vc = VerifiableCredential(
+        context: [credentialsV1Iri, schemaOrgIri],
+        type: ['VerifiableCredential', 'HidyPseudonym'],
+        issuer: did,
+        id: did,
+        credentialSubject: {'id': did, 'webview': webViewUrl});
+
+    await vc.sign(
+        WalletCredentialSigner(
+            wallet, did, 'EdDSA', '$did#${did.split(':').last}'),
+        LdpProofType.ed25519Signature2020);
+
+    notifyMessageBackend = true;
+
+    storeCredential(vc, did);
+    storeExchangeHistoryEntry(did, DateTime.now(), 'issue', did);
+
+    return vc;
+  }
+
   List<String>? getDidsInOsKeyStore() {
     var d = wallet.getConfigEntry('didToOsKeystoreId');
     if (d != null) {
@@ -247,6 +325,16 @@ class WalletProvider extends ChangeNotifier {
       data = jsonDecode(d);
     }
     data[did] = osKeyStoreId;
+    wallet.storeConfigEntry('didToOsKeystoreId', jsonEncode(data));
+  }
+
+  void deleteOsKeyStoreIdForDid(String did) {
+    var d = wallet.getConfigEntry('didToOsKeystoreId');
+    Map data = {};
+    if (d != null) {
+      data = jsonDecode(d);
+    }
+    data.remove(did);
     wallet.storeConfigEntry('didToOsKeystoreId', jsonEncode(data));
   }
 
@@ -289,11 +377,99 @@ class WalletProvider extends ChangeNotifier {
       //Checking broadcast stream, if deep link was clicked in opened application
       stream.receiveBroadcastStream().listen((d) => getSharedText(d));
 
+      if (withFirebase) {
+        startFirebase();
+      }
+
       Provider.of<NavigationProvider>(navigatorKey.currentContext!,
               listen: false)
           .finishOpen();
 
       notifyListeners();
+    }
+  }
+
+  void startFirebase() async {
+    var fb = wallet.getConfigEntry('firebaseToken');
+    notificationProvider = NotificationProvider(fb);
+    notificationProvider!.start();
+    if (fb == null) {
+      fb = await notificationProvider!.getInitialToken();
+      if (fb != null) {
+        notificationProvider!.tokenToServer();
+        wallet.storeConfigEntry('firebaseToken', fb);
+      }
+    }
+  }
+
+  void onNewMessage(SimplifiedNotification message, [bool notify = true]) {
+    var vc = accountVcs.values.firstWhere((v) => v.id == message.targetAccount);
+    var lastMessages =
+        outstandingMessages[vc.credentialSubject['webview']] ?? [];
+    lastMessages.add(message);
+    outstandingMessages[vc.credentialSubject['webview']] = lastMessages;
+
+    if (notify) {
+      wallet.storeConfigEntry(
+          'outstandingMessages',
+          jsonEncode(outstandingMessages
+              .map((k, v) => MapEntry(k, v.map((e) => e.toJson()).toList()))));
+      notifyListeners();
+    }
+  }
+
+  void onNewMessages(List<SimplifiedNotification> messages) {
+    for (var m in messages) {
+      onNewMessage(m, false);
+    }
+    wallet.storeConfigEntry(
+        'outstandingMessages',
+        jsonEncode(outstandingMessages
+            .map((k, v) => MapEntry(k, v.map((e) => e.toJson()).toList()))));
+    notifyListeners();
+  }
+
+  void onMessageOpen(SimplifiedNotification message) {
+    var vc = accountVcs.values.firstWhere((v) => v.id == message.targetAccount);
+    removeOutstandingMessages(vc.credentialSubject['webview']);
+    my_util.navigateClassic(WebViewWindow(
+      initialUrl: vc.credentialSubject['webview'],
+      title: '',
+    ));
+  }
+
+  void removeOutstandingMessages(String webviewUrl) {
+    outstandingMessages.remove(webviewUrl);
+    wallet.storeConfigEntry(
+        'outstandingMessages',
+        jsonEncode(outstandingMessages
+            .map((k, v) => MapEntry(k, v.map((e) => e.toJson()).toList()))));
+    notifyListeners();
+  }
+
+  Future<String> generateAuthJwt(String nonce) async {
+    var did = await newCredentialDid(KeyType.p256, KeyStore.system,
+        {'invalidateByNewBiometric': false, 'attestationChallenge': nonce});
+
+    var keyStoreId = getOsKeyStoreIdForDid(did);
+    if (keyStoreId != null) {
+      var keyInfo = await wallet.getKeyInformation(keyStoreId);
+      var jwk = sd_jwt.Jwk.fromJson(keyInfo);
+      var jwt = sd_jwt.Jwt(issuer: did, additionalClaims: {'nonce': nonce});
+      var signer = WalletCryptoProviderForSdJwt(wallet, keyStoreId);
+      var jws = await jwt.sign(
+          signer: signer,
+          header: sd_jwt.JwsJoseHeader(
+              algorithm: sd_jwt.SigningAlgorithm.ecdsaSha256Prime,
+              x509certificateChain: jwk.x509CertificateChain
+                  ?.map((e) => base64Decode(addPaddingToBase64(e)))
+                  .toList()));
+
+      wallet.deleteKey(keyStoreId);
+      deleteOsKeyStoreIdForDid(did);
+      return jws.toCompactSerialization();
+    } else {
+      throw Exception('No key found');
     }
   }
 
@@ -347,6 +523,13 @@ class WalletProvider extends ChangeNotifier {
           const Duration(days: 1)) {
         checkValidity();
       }
+    }
+
+    var om = wallet.getConfigEntry('outstandingMessages');
+    if (om != null) {
+      outstandingMessages = (jsonDecode(om) as Map).map((k, v) => MapEntry(
+          k as String,
+          (v as List).map((e) => SimplifiedNotification.fromJson(e)).toList()));
     }
   }
 
@@ -676,6 +859,10 @@ class WalletProvider extends ChangeNotifier {
           paymentCredentials.add(vc);
           _updateLastThreePayments(vc.id!);
           getLnBalance(vc.id!);
+        } else if (vc.type.contains('HidyPseudonym')) {
+          if (vc.credentialSubject['webview'] != null) {
+            accountVcs[vc.credentialSubject['webview']] = vc;
+          }
         } else {
           if (!vc.type.contains('PaymentReceipt')) {
             credentials.add(vc);
@@ -713,6 +900,11 @@ class WalletProvider extends ChangeNotifier {
       if (sortingType == SortingType.typeDown) {
         credentials = credentials.reversed.toList();
       }
+    }
+
+    if (notifyMessageBackend) {
+      notifyMessageBackend = false;
+      notificationProvider?.tokenToServer();
     }
   }
 
