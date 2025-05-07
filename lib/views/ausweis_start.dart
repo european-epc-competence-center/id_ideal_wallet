@@ -26,6 +26,7 @@ class AusweisStartState extends State<AusweisStart> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       navigate();
     });
+  }
 
   @override
   Widget build(BuildContext context) {
