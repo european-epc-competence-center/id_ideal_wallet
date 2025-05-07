@@ -1,1 +1,0 @@
-/home/yannik/EECC/ID_Ideal/EECC_Wallet/id_ideal_wallet/build/app/intermediates/cxx/RelWithDebInfo/46464h5s/obj/x86
