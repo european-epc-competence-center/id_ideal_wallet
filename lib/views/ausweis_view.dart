@@ -10,6 +10,7 @@ import 'package:id_ideal_wallet/basicUi/ausweis/insert_card.dart';
 import 'package:id_ideal_wallet/basicUi/ausweis/main_content.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 class AusweisView extends StatefulWidget {
@@ -23,7 +24,15 @@ class AusweisViewState extends State<AusweisView> {
   @override
   void initState() {
     super.initState();
-    Provider.of<AusweisProvider>(context, listen: false).startListening();
+
+    final ausweis = Provider.of<AusweisProvider>(context, listen: false);
+    ausweis.startListening();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ausweis.screen == AusweisScreen.start) {
+      ausweis.startProgress();
+    }
+    });
+    
   }
 
   Widget getBody(AusweisProvider ausweis) {
@@ -37,7 +46,7 @@ class AusweisViewState extends State<AusweisView> {
           onPressed: () {
             ausweis.startProgress();
           },
-          child: Text('Ausweisdaten in Credential umwandeln'),
+          child: const Text('Ausweisdaten in Credential umwandeln'),
         ),
       );
     } else if (ausweis.screen == AusweisScreen.finish) {
@@ -68,7 +77,7 @@ class AusweisViewState extends State<AusweisView> {
             ? AppBar(
                 title: Center(
                   child: Text(
-                    "Ausweis",
+                    AppLocalizations.of(context)!.idCard,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).primaryTextTheme.headlineLarge,
                   ),

@@ -2,17 +2,21 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_ssi/credentials.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart';
+import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/ausweis_message.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
+import 'package:id_ideal_wallet/main.dart';
+import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:xml/xml.dart';
 
 enum AusweisScreen {
   enterPin,
@@ -342,12 +346,19 @@ class AusweisProvider extends ChangeNotifier {
     }
   }
 
-  void cancel() {
+  void cancel(context) {
     try {
       method.invokeMethod('sendCommand', jsonEncode({'cmd': 'CANCEL'}));
     } on PlatformException catch (e) {
       logger.d('Failed to connect to sdk: ${e.message}.');
     }
+
+    Navigator.of(context).push(Platform.isIOS
+        ? CupertinoPageRoute(builder: (context) => const HomeScreen())
+        : MaterialPageRoute(builder: (context) => const HomeScreen()));
+
+    Provider.of<NavigationProvider>(context, listen: false)
+        .changePage([NavigationPage.abo]);
   }
 
   void accept() {
@@ -470,24 +481,53 @@ class AusweisProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Map<String, String> idCardTranslations = {
+    'DocumentType': 'Dokumententyp:',
+    'IssuingState': 'Ausstellender Staat:',
+    'DateOfExpiry': 'Ablaufdatum:',
+    'GivenNames': 'Vorname:',
+    'FamilyNames': 'Nachname:',
+    'ArtisticName': 'Künstlername:',
+    'AcademicTitle': 'Akademischer Titel:',
+    'PlaceOfBirth': 'Geburtsort:',
+    'Nationality': 'Staatsangehörigkeit:',
+    'BirthName': 'Geburtsname:',
+    'PlaceOfResidence': 'Adresse:',
+    'DateOfBirth': 'Geburtsdatum:',
+    'ResidencePermitI': 'Aufenthaltserlaubnis 1:'
+  };
+
+  void setUnknownError(message) {
+    errorDescription = message.description ?? 'Es ist ein Fehler aufgetreten';
+    errorMessage =
+        message.message ?? 'Es liegt keine Beschreibung des Fehlers vor';
+    screen = AusweisScreen.error;
+  }
+
   void handleAuthMessage(dynamic message) async {
     if (message is AuthMessage) {
       if (message.major ==
           'http://www.bsi.bund.de/ecard/api/1.1/resultmajor#ok') {
-        // successful response
         if (selfInfo) {
           var response = await get(Uri.parse(message.url!),
-              headers: {'Accept': 'text/html'});
-          logger.d('${response.statusCode} / ${response.body}');
-
+              headers: {'Accept': 'application/json'});
           if (response.statusCode == 200) {
-            readData = {};
-            var document = XmlDocument.parse(response.body);
-            var t = document.findAllElements('td').toList();
-            for (int i = 0; i < t.length; i += 2) {
-              logger.d('${t[i].innerText} ${t[i + 1].innerText}');
-              readData![t[i].innerText] = t[i + 1].innerText;
+            try {
+              readData = parsePersonalData(response);
+            } catch (e) {
+              logger.d('Error parsing personal data: $e');
+              setUnknownError(message);
+              notifyListeners();
+              return;
             }
+
+            // TODO: got the id_card data in readData, how to continue?
+            // send readData to our backend -> "https://eathfresh.ssi.eecc.de"
+            // backend validates age and returns a link, which contains the over16/18 credential
+            // handleLink(url) method needs to be used?
+
+            logger.d('readData: $readData');
+            await validateAge(readData!);
 
             screen = AusweisScreen.finish;
             requestedAttributes = [];
@@ -509,17 +549,106 @@ class AusweisProvider extends ChangeNotifier {
         if (message.reason == 'User_Cancelled') {
           reset();
         } else {
-          errorDescription =
-              message.description ?? 'Es ist ein Fehler aufgetreten';
-          errorMessage =
-              message.message ?? 'Es liegt keine Beschreibung des Fehlers vor';
-          screen = AusweisScreen.error;
+          setUnknownError(message);
         }
       }
     } else {
       logger.d("Incorrect type for handleAuthMessage");
     }
     notifyListeners();
+  }
+
+  Map<String, String> parsePersonalData(Response response) {
+    String utf8body = utf8.decode(response.bodyBytes);
+    var jsonResponse = jsonDecode(utf8body);
+    var personalData = jsonResponse['PersonalData'];
+
+    Map<String, String> result = {};
+
+    personalData.forEach((key, value) {
+      processDataField(result, key, value);
+    });
+
+    logger.d(result);
+    return result;
+  }
+
+  void processDataField(Map<String, String> result, String key, dynamic value) {
+    if (value == null || value == '') {
+      logger.d('Not setting $key to $value');
+      return;
+    }
+
+    String translatedKey = idCardTranslations[key] ?? key;
+
+    logger.d('key: $key, value: $value');
+
+    if (key == 'PlaceOfBirth' && value is Map) {
+      result[translatedKey] = value['FreetextPlace'];
+    } else if (key == 'PlaceOfResidence' && value is Map) {
+      processResidenceField(result, translatedKey, value);
+    } else if (value is Map) {
+      processNestedData(result, translatedKey, value);
+    } else {
+      processSimpleData(result, key, translatedKey, value);
+    }
+  }
+
+  void processResidenceField(
+      Map<String, String> result, String translatedKey, Map value) {
+    var structuredPlace = value['StructuredPlace'];
+    if (structuredPlace is Map) {
+      result[translatedKey] = 'Land: ${structuredPlace['Country']}, '
+          'Stadt: ${structuredPlace['ZipCode']} ${structuredPlace['City']}, '
+          'Straße: ${structuredPlace['Street'].replaceAll('ẞ', 'ß')}';
+      logger.d('Street: ${structuredPlace['Street']}');
+    }
+  }
+
+  void processNestedData(
+      Map<String, String> result, String translatedKey, Map value) {
+    value.forEach((subKey, subValue) {
+      result['$translatedKey.$subKey'] = subValue;
+    });
+  }
+
+  void processSimpleData(Map<String, String> result, String key,
+      String translatedKey, dynamic value) {
+    if (key == 'DateOfBirth' || key == 'DateOfExpiry') {
+      result[translatedKey] = formatDate(value);
+    } else {
+      result[translatedKey] = value;
+    }
+  }
+
+  String formatDate(String value) {
+    value = value.split("+")[0];
+    DateTime parsedDate = DateTime.parse(value);
+    return DateFormat('dd.MM.yyyy').format(parsedDate);
+  }
+
+  Future<void> validateAge(Map<String, dynamic> data) async {
+    const String backendUrl = 'https://eatfresh.ssi.eecc.de/verify-age';
+    try {
+      final response = await post(
+        Uri.parse(backendUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(data),
+      );
+
+      if (response.statusCode == 200) {
+        logger.d('Data sent successfully: ${response.body}');
+        final navigationProvider = Provider.of<NavigationProvider>(
+            navigatorKey.currentContext!,
+            listen: false);
+        navigationProvider
+            .handleLink(response.body); // Call handleLink with the URL
+      } else {
+        logger.d('Failed to send data: ${response.statusCode}');
+      }
+    } catch (e) {
+      logger.d('Error while validating age: $e');
+    }
   }
 
   void handleStatusMessage(dynamic message) {

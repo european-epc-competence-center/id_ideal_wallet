@@ -138,7 +138,7 @@ class NavigationProvider extends ChangeNotifier {
           .startProgress(tcTokenUrl);
     }
     // Handle own App Link
-    else if (link.startsWith('https://wallet.bccm.dev')) {
+    else if (link.startsWith('https://')) {
       var asUri = Uri.parse(link);
       // Known Query Parameter
       if (link.contains('credential_offer')) {
@@ -149,6 +149,8 @@ class NavigationProvider extends ChangeNotifier {
         handleOobId(link);
       } else if (link.contains('_oob=')) {
         handleDidcommMessage(link);
+      } else if (link.contains('request_uri')) {
+        handlePresentationRequestOidc(link);
       }
       // Known Path Parameters
       else if (asUri.path == '/' || asUri.path.isEmpty) {

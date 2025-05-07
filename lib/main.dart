@@ -13,7 +13,9 @@ import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
 import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
+import 'package:id_ideal_wallet/views/StartScreen.dart';
 import 'package:id_ideal_wallet/views/abo_overview.dart';
+import 'package:id_ideal_wallet/views/ausweis_start.dart';
 import 'package:id_ideal_wallet/views/ausweis_view.dart';
 import 'package:id_ideal_wallet/views/authorized_apps.dart';
 import 'package:id_ideal_wallet/views/credential_detail.dart';
@@ -25,7 +27,6 @@ import 'package:id_ideal_wallet/views/search_new_abo.dart';
 import 'package:id_ideal_wallet/views/send_satoshi_screen.dart';
 import 'package:id_ideal_wallet/views/settings_page.dart';
 import 'package:id_ideal_wallet/views/web_view.dart';
-import 'package:id_ideal_wallet/views/welcome_screen.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -90,17 +91,6 @@ class App extends StatelessWidget {
   }
 }
 
-class StartScreen extends StatelessWidget {
-  const StartScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<NavigationProvider>(builder: (context, navigator, child) {
-      return navigator.showWelcome ? const WelcomeScreen() : const HomeScreen();
-    });
-  }
-}
-
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -118,13 +108,13 @@ class HomeScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 CustomNavigationItem(
-                    text: 'Home',
+                    text: AppLocalizations.of(context)!.home,
                     activeIcon: Icons.home,
                     inactiveIcon: Icons.home_outlined,
                     activeIndices: const [NavigationPage.abo],
                     navigator: navigator),
                 CustomNavigationItem(
-                    text: 'Credentials',
+                    text: 'Wallet',
                     activeIcon: Icons.co_present,
                     inactiveIcon: Icons.co_present_outlined,
                     activeIndices: const [
@@ -146,18 +136,13 @@ class HomeScreen extends StatelessWidget {
                   width: 20,
                 ),
                 CustomNavigationItem(
-                    text: AppLocalizations.of(context)!.payments(0),
+                    text: AppLocalizations.of(context)!.idCard,
                     activeIcon: Icons.credit_card,
                     inactiveIcon: Icons.credit_card_outlined,
-                    activeIndices: const [
-                      NavigationPage.paymentCard,
-                      NavigationPage.sendSatoshi,
-                      NavigationPage.topUp,
-                      NavigationPage.paymentOverview
-                    ],
+                    activeIndices: const [NavigationPage.ausweisStart],
                     navigator: navigator),
                 CustomNavigationItem(
-                    text: AppLocalizations.of(context)!.settings,
+                    text: AppLocalizations.of(context)!.options,
                     activeIcon: Icons.settings,
                     inactiveIcon: Icons.settings_outlined,
                     activeIndices: const [
@@ -165,7 +150,6 @@ class HomeScreen extends StatelessWidget {
                       NavigationPage.authorizedApps,
                       NavigationPage.license,
                       NavigationPage.searchNewAbo,
-                      NavigationPage.ausweis
                     ],
                     navigator: navigator),
               ],
@@ -215,6 +199,8 @@ class HomeScreen extends StatelessWidget {
         return const PaymentCardOverview();
       case NavigationPage.settings:
         return const SettingsPage();
+      case NavigationPage.ausweisStart:
+        return const AusweisStart();
       case NavigationPage.webView:
         return WebViewWindow(initialUrl: navigator.webViewUrl, title: '');
       case NavigationPage.credentialDetail:
@@ -223,7 +209,7 @@ class HomeScreen extends StatelessWidget {
         return const AuthorizedAppsManger();
       case NavigationPage.license:
         return LicensePage(
-          applicationName: 'EECC Wallet',
+          applicationName: 'EECC Identity Wallet',
           applicationVersion: versionNumber,
           applicationIcon: Image.asset(
             'assets/icons/app_icon-playstore.png',

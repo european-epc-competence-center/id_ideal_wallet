@@ -54,6 +54,7 @@ class PresentationRequestDialog extends StatefulWidget {
   final X509Certificate? requesterCert;
   final ClientMetaData? oidcClientMetadata;
   final PresentationDefinition definition;
+  final String? initialRedirectUri;
 
   const PresentationRequestDialog(
       {super.key,
@@ -77,7 +78,8 @@ class PresentationRequestDialog extends StatefulWidget {
       this.oidcResponseMode,
       this.oidcState,
       this.oidcClientMetadata,
-      this.oidcRedirectUri});
+      this.oidcRedirectUri,
+      this.initialRedirectUri});
 
   @override
   PresentationRequestDialogState createState() =>
@@ -987,6 +989,17 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
                 ),
               );
             });
+
+        // Force launch initial redirect URI
+        if (widget.initialRedirectUri != null && widget.initialRedirectUri!.isNotEmpty) {
+          try {
+            logger.i('Forcing launch of initial redirect URI: ${widget.initialRedirectUri}');
+            await launchUrl(Uri.parse(widget.initialRedirectUri!),
+                mode: LaunchMode.externalApplication);
+          } catch (e) {
+            logger.e('Failed to launch initial redirect URI: ${widget.initialRedirectUri}, Error: $e');
+          }
+        }
 
         //Navigator.of(context).pop();
 

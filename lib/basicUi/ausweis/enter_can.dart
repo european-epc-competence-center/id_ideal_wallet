@@ -65,7 +65,7 @@ class EnterCanState extends State<EnterCan> {
             }
           },
           negativeFunction: () =>
-              Provider.of<AusweisProvider>(context, listen: false).cancel(),
+              Provider.of<AusweisProvider>(context, listen: false).cancel(context),
         )
       ],
     );

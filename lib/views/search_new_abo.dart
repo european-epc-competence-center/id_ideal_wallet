@@ -100,7 +100,7 @@ class SearchNewAboState extends State<SearchNewAbo> {
                     iconUrl: e.pictureUrl,
                   ));
                 },
-                child: Text('Öffnen'))
+                child: const Text('Öffnen'))
                 : ElevatedButton(
                 onPressed: () {
                   Provider.of<WalletProvider>(context,
@@ -108,7 +108,7 @@ class SearchNewAboState extends State<SearchNewAbo> {
                       .addAbo(e);
                   setState(() {});
                 },
-                child: Text('Holen')),
+                child: const Text('Holen')),
           );
         },
         separatorBuilder: (BuildContext context, int index) {

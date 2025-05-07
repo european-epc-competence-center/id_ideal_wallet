@@ -35,20 +35,55 @@ class XmlWidget extends StatelessWidget {
       var textList = text.split(' ');
       var newText = textList.map((e) {
         if (e.startsWith('\$')) {
+          String value = '';
+          String key = '';
+          String? format;
+
           if (e.contains('%')) {
             var split = e.split('%');
-            var value = credential
-                    .credentialSubject[split.first.replaceAll('\$', '')] ??
-                '';
-            if (split.last == 'date') {
-              value = value is String && value.isNotEmpty
-                  ? DateFormat('dd.MM.yyyy').format(DateTime.parse(value))
-                  : '';
-            }
-            return value;
+            key = split.first.replaceAll('\$', '');
+            format = split.last;
           } else {
-            return credential.credentialSubject[e.replaceAll('\$', '')] ?? '';
+            key = e.replaceAll('\$', '');
           }
+
+          // Try getting value from credentialSubject first
+          value = credential.credentialSubject[key] ?? '';
+
+          // If not found in subject, check top-level fields
+          if (value.isEmpty) {
+            if (key == 'issuer') {
+              String fullIssuer = credential.issuer.toString();
+              if (fullIssuer.contains('/')) {
+                value = fullIssuer.split('/').last;
+                if (value.endsWith('}')) {
+                  value = value.substring(0, value.length - 1);
+                }
+              } else {
+                value = fullIssuer; // Use the full string if no '/' found
+                if (value.endsWith('}')) {
+                  value = value.substring(0, value.length - 1);
+                }
+              }
+            } else if (key == 'issuanceDate') {
+              // issuanceDate might also be top-level
+              value = credential.issuanceDate?.toIso8601String() ?? '';
+            }
+            // Add more top-level fields here if needed
+          }
+
+          // Apply formatting if specified and value is not empty
+          if (format != null && value.isNotEmpty) {
+            if (format == 'date') {
+              try {
+                value = DateFormat('dd/MM/yyyy').format(DateTime.parse(value));
+              } catch (_) {
+                value = ''; // Handle potential parse errors
+              }
+            }
+            // Add more formats here if needed
+          }
+          return value;
         } else {
           return e;
         }

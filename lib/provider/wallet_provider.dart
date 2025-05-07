@@ -36,8 +36,8 @@ class WalletProvider extends ChangeNotifier {
   bool openError = false;
 
   String? lndwId;
-  String tosUrl = 'https://hidy.eu/terms.html';
-  String aboutUrl = 'https://hidy.eu';
+  String tosUrl = 'https://wallet.eecc.de/terms.html';
+  String aboutUrl = 'https://wallet.eecc.de';
 
   SortingType sortingType = SortingType.dateDown;
 

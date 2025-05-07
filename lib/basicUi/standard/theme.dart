@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class IdWalletDesignTheme {
   final ThemeData theme = ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+      colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       cardColor: Colors.white,
       fontFamily: 'Outfit',
       primaryTextTheme: const TextTheme(
@@ -27,7 +27,7 @@ class IdWalletDesignTheme {
       expansionTileTheme: const ExpansionTileThemeData(
           backgroundColor: Colors.white,
           collapsedBackgroundColor: Colors.white),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: const AppBarTheme( // TOP BAR
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
           elevation: 0));

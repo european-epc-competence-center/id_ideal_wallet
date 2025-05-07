@@ -64,7 +64,7 @@ class EnterPukState extends State<EnterPuk> {
             }
           },
           negativeFunction: () =>
-              Provider.of<AusweisProvider>(context, listen: false).cancel(),
+              Provider.of<AusweisProvider>(context, listen: false).cancel(context),
         )
       ],
     );

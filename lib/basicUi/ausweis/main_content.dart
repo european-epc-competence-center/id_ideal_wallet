@@ -35,7 +35,7 @@ class MainContent extends StatelessWidget {
             subtitle: Text(
               ausweis.requesterCert!.subjectName,
             ),
-            title: Text('Anfragender'),
+            title: const Text('Anfragender'),
             onTap: () => showDialog(
                 context: context,
                 builder: (BuildContext context) {
@@ -47,28 +47,28 @@ class MainContent extends StatelessWidget {
                           shrinkWrap: true,
                           children: [
                             ListTile(
-                              title: Text('Anfragender'),
+                              title: const Text('Anfragender'),
                               subtitle: Text(
                                   '${ausweis.requesterCert!.subjectName}\n${ausweis.requesterCert!.subjectUrl}'),
                             ),
                             ListTile(
-                              title: Text(
+                              title: const Text(
                                   'Aussteller des Berechtigungszertifikats'),
                               subtitle: Text(
                                   '${ausweis.requesterCert!.issuerName}\n${ausweis.requesterCert!.issuerUrl}'),
                             ),
                             ListTile(
-                              title: Text('Gültigkeit'),
+                              title: const Text('Gültigkeit'),
                               subtitle: Text(
                                   '${ausweis.requesterCert!.effectiveDate.day.toString().padLeft(2, '0')}.${ausweis.requesterCert!.effectiveDate.month.toString().padLeft(2, '0')}.${ausweis.requesterCert!.effectiveDate.year} - ${ausweis.requesterCert!.expirationDate.day.toString().padLeft(2, '0')}.${ausweis.requesterCert!.expirationDate.month.toString().padLeft(2, '0')}.${ausweis.requesterCert!.expirationDate.year}'),
                             ),
                             if (ausweis.requesterCert!.purpose.isNotEmpty)
                               ListTile(
-                                title: Text('Grund'),
+                                title: const Text('Grund'),
                                 subtitle: Text(ausweis.requesterCert!.purpose),
                               ),
                             ListTile(
-                              title: Text('Anbieterinformationen'),
+                              title: const Text('Anbieterinformationen'),
                               subtitle:
                                   Text(ausweis.requesterCert!.termsOfUsage),
                             )
@@ -77,7 +77,7 @@ class MainContent extends StatelessWidget {
                         persistentFooterButtons: [
                           TextButton(
                               onPressed: () => Navigator.of(context).pop(),
-                              child: Text('Ok'))
+                              child: const Text('Ok'))
                         ],
                       ));
                 }),
@@ -153,7 +153,7 @@ class MainContent extends StatelessWidget {
                           .accept(),
                   negativeFunction: () =>
                       Provider.of<AusweisProvider>(context, listen: false)
-                          .cancel(),
+                          .cancel(context),
                 ),
               ]
             : [],

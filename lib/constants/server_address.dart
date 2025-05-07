@@ -47,10 +47,10 @@ var contextEndpoint =
     'https://hidy.app/walletcontext?plattform=${Platform.isIOS ? '1' : '2'}';
 var applicationEndpoint =
     'https://hidy.app/walletcontext/apps?plattform=${Platform.isIOS ? '1' : '2'}';
-var pluginEndpoint = "https://ssi-wallet.prod-k8s.eecc.de/plugins/plugin_list.json";
-var stylingEndpoint = 'https://hidy.app/walletcontext/layouts';
-var termsVersionEndpoint = 'https://hidy.app/walletcontext/terms';
-String versionNumber = '1.0.0';
+var pluginEndpoint = "https://wallet.eecc.de/plugins/plugin_list.json";
+var stylingEndpoint = 'https://wallet.eecc.de/styles/layouts.json';
+var termsVersionEndpoint = 'https://wallet.eecc.de/walletcontext/terms.json';
+String versionNumber = '1.0.1';
 String baseUrl = 'https://hidy.app';
 bool testBuild = false;
 
