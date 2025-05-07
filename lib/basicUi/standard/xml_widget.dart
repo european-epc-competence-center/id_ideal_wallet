@@ -67,7 +67,7 @@ class XmlWidget extends StatelessWidget {
               }
             } else if (key == 'issuanceDate') {
               // issuanceDate might also be top-level
-              value = credential.issuanceDate.toIso8601String() ?? '';
+              value = credential.issuanceDate?.toIso8601String() ?? '';
             }
             // Add more top-level fields here if needed
           }
