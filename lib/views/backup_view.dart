@@ -4,6 +4,8 @@ import 'package:id_ideal_wallet/functions/backup_functions.dart';
 import 'package:id_ideal_wallet/provider/encryption_provider.dart';
 
 class BackupWidget extends StatefulWidget {
+  const BackupWidget({super.key});
+
   @override
   _BackupWidgetState createState() => _BackupWidgetState();
 }

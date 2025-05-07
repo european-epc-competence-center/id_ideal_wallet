@@ -113,10 +113,6 @@ class CredentialDetailState extends State<CredentialDetailView> {
                 } else {
                   Provider.of<NavigationProvider>(context, listen: false)
                       .goBack();
-                  // Navigator.of(context).pushReplacement(MaterialPageRoute(
-                  //     builder: (context) => const CredentialPage(
-                  //           initialSelection: 'all',
-                  //         )));
                 }
               },
               child: Text(AppLocalizations.of(context)!.delete))
@@ -189,39 +185,6 @@ class CredentialDetailState extends State<CredentialDetailView> {
                 padding: EdgeInsets.symmetric(horizontal: 10),
                 child: Icon(Icons.delete_outline_sharp, size: 30)))
       ],
-      // footerButtons: [
-      //   TextButton(
-      //       onPressed: getHolderDidFromCredential(widget.credential.toJson()) ==
-      //               ''
-      //           ? () => Navigator.of(context).push(MaterialPageRoute(
-      //               builder: (context) => StyledScaffoldTitle(
-      //                   title:
-      //                       AppLocalizations.of(context)!.sellCredentialTitle,
-      //                   child: Consumer<WalletProvider>(
-      //                       builder: (context, wallet, child) {
-      //                     return TopUp(
-      //                         paymentMethods: wallet.paymentCredentials,
-      //                         onTopUpSats: (amount, memo, vc) =>
-      //                             Navigator.of(context)
-      //                                 .pushReplacement(MaterialPageRoute(
-      //                                     builder: (context) => QrRender(
-      //                                           credential: widget.credential,
-      //                                           amount: amount,
-      //                                           memo: memo,
-      //                                         ))),
-      //                         onTopUpFiat: (x) {});
-      //                   }))))
-      //           : () => Navigator.of(context).push(MaterialPageRoute(
-      //               builder: (context) =>
-      //                   QrRender(credential: widget.credential))),
-      //       child: Text(
-      //           getHolderDidFromCredential(widget.credential.toJson()) == ''
-      //               ? AppLocalizations.of(context)!.forSale
-      //               : AppLocalizations.of(context)!.forShow)),
-      //   TextButton(
-      //       onPressed: _deleteCredential,
-      //       child: Text(AppLocalizations.of(context)!.delete))
-      // ],
       child: _buildBody(),
     );
   }

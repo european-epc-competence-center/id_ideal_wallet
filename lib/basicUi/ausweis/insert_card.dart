@@ -9,7 +9,7 @@ class InsertCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 15),
+          padding: const EdgeInsets.symmetric(horizontal: 15),
           child: Column(
             children: [
               Text(
@@ -24,13 +24,13 @@ class InsertCard extends StatelessWidget {
       persistentFooterButtons: [
         ElevatedButton(
             onPressed: () =>
-                Provider.of<AusweisProvider>(context, listen: false).cancel(),
+                Provider.of<AusweisProvider>(context, listen: false).cancel(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(45),
             ),
-            child: Text('Vorgang Abbrechen')),
+            child: const Text('Vorgang Abbrechen')),
       ],
     );
   }

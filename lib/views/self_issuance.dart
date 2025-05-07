@@ -66,54 +66,6 @@ class SelfIssueList extends StatelessWidget {
                     schema: socialMediaSchema,
                     type: 'SocialMediaAccountCredential')),
                 child: const Text('Social Media Account')),
-            // ElevatedButton(
-            //     onPressed: () async {
-            //       JsonSchema deviceInfoSchema;
-            //       var deviceInfo = DeviceInfoPlugin();
-            //       if (Platform.isAndroid) {
-            //         var info = await deviceInfo.androidInfo;
-            //         var androidAidPlugin = const AndroidId();
-            //         deviceInfoSchema = JsonSchema.create({
-            //           'type': 'object',
-            //           'properties': {
-            //             'deviceId': {
-            //               'type': 'string',
-            //               'const': await androidAidPlugin.getId()
-            //             },
-            //             'deviceModel': {'type': 'string', 'const': info.model},
-            //             'deviceManufacturer': {
-            //               'type': 'string',
-            //               'const': info.manufacturer
-            //             },
-            //           }
-            //         });
-            //       } else if (Platform.isIOS) {
-            //         var info = await deviceInfo.iosInfo;
-            //         deviceInfoSchema = JsonSchema.create({
-            //           'type': 'object',
-            //           'properties': {
-            //             'deviceId': {
-            //               'type': 'string',
-            //               'const': info.identifierForVendor
-            //             },
-            //             'deviceModel': {'type': 'string', 'const': info.model},
-            //             'deviceManufacturer': {
-            //               'type': 'string',
-            //               'const': 'Apple'
-            //             },
-            //           }
-            //         });
-            //       } else {
-            //         throw Exception(
-            //             'This should never happen. Unknown Platform');
-            //       }
-            //
-            //       Navigator.of(context).push(MaterialPageRoute(
-            //           builder: (context) => FixedSelfIssue(
-            //               schema: deviceInfoSchema,
-            //               type: 'DeviceInformation')));
-            //     },
-            //     child: Text(AppLocalizations.of(context)!.deviceInformation))
           ],
         ));
   }

@@ -19,7 +19,7 @@ class EnterPinState extends State<EnterPin> {
     return Consumer<AusweisProvider>(builder: (context, ausweis, child) {
       return Scaffold(
         body: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Column(
             children: [
               Text(
@@ -55,10 +55,10 @@ class EnterPinState extends State<EnterPin> {
               ),
               Text('Verbleibende Versuche: ${ausweis.pinRetry}'),
               if (ausweis.pinRetry == 2)
-                Text(
+                const Text(
                     'Solltest Du auch bei diesem Versuch eine falsche PIN eingeben, muss vor dem letzten Versuch die CAN eingegeben werden. Das ist die 6-stellige Zahlenfolge auf der Vorderseite deines Ausweises.'),
               if (ausweis.pinRetry == 1)
-                Text(
+                const Text(
                     'Das ist dein letzter Versuch, eine korrekte PIN einzugeben. Sollte auch dieser fehlschlagen, wird die Online-Ausweis-Funktion gesperrt.'),
               const SizedBox(
                 height: 20,
@@ -75,7 +75,7 @@ class EnterPinState extends State<EnterPin> {
                 ausweis.setPin(controller.text);
               }
             },
-            negativeFunction: () => ausweis.cancel(),
+            negativeFunction: () => ausweis.cancel(context),
           )
         ],
       );

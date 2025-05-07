@@ -72,7 +72,7 @@
   "enterData": "enter your data",
   "presentationSuccessful": "Credentials successfully presented",
   "presentationFailed": "Credentials could not be presented",
-  "reject": "reject",
+  "reject": "Reject",
   "send": "send",
   "sendPresentation": "send credentials",
   "username": "User name in the selected network",

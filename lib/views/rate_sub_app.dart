@@ -40,7 +40,7 @@ class RateSubAppState extends State<RateSubApp> {
         const SizedBox(
           height: 10,
         ),
-        Text('Bewerte die Anwendung, indem Du die Sterne antippst'),
+        const Text('Bewerte die Anwendung, indem Du die Sterne antippst'),
         const SizedBox(
           height: 10,
         ),
@@ -69,7 +69,7 @@ class RateSubAppState extends State<RateSubApp> {
             onPressed: () {
               Navigator.of(context).pop();
             },
-            child: Text('Bewerten'))
+            child: const Text('Bewerten'))
       ]),
     );
   }
