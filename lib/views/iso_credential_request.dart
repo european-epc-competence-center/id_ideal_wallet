@@ -26,20 +26,20 @@ class IsoCredentialRequestState extends State<IsoCredentialRequest> {
 
   Widget getText(MdocProvider mdoc) {
     if (mdoc.transmissionState == BleMdocTransmissionState.uninitialized) {
-      return Text('Es wird vorbereitet');
+      return const Text('Es wird vorbereitet');
     } else if (mdoc.transmissionState == BleMdocTransmissionState.advertising) {
       return mdoc.qrData.isEmpty
-          ? Text('Daten werden erstellt')
+          ? const Text('Daten werden erstellt')
           : QrImageView(data: mdoc.qrData);
     } else if (mdoc.transmissionState == BleMdocTransmissionState.connected) {
-      return Text('Erfolgreich verbunden. Warte auf Anfrage');
+      return const Text('Erfolgreich verbunden. Warte auf Anfrage');
     } else if (mdoc.transmissionState == BleMdocTransmissionState.send) {
-      return Text('Daten gesendet');
+      return const Text('Daten gesendet');
     } else if (mdoc.transmissionState ==
         BleMdocTransmissionState.disconnected) {
-      return Text('Übertragung beendet. Verbindung getrennt');
+      return const Text('Übertragung beendet. Verbindung getrennt');
     } else {
-      return Text('Keine Ahnung was grad los ist');
+      return const Text('Keine Ahnung was grad los ist');
     }
   }
 

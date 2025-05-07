@@ -21,10 +21,14 @@ class AusweisStartState extends State<AusweisStart> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  void initState() {
+    super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       navigate();
     });
+
+  @override
+  Widget build(BuildContext context) {
     return StyledScaffoldTitle(
       title: AppLocalizations.of(context)!.idCard,
       child: Column(

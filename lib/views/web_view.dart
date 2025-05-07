@@ -165,21 +165,21 @@ class WebViewWindowState extends State<WebViewWindow> {
               Directionality(
                 textDirection: TextDirection.rtl,
                 child: MenuAnchor(
-                  alignmentOffset: Offset(10, 2),
+                  alignmentOffset: const Offset(10, 2),
                   menuChildren: [
                     MenuItemButton(
-                        trailingIcon: Icon(Icons.share),
+                        trailingIcon: const Icon(Icons.share),
                         onPressed: () {
                           Share.share(
                               'https://wallet.bccm.dev/webview?url=${Uri.encodeFull(widget.initialUrl)}&title=${widget.title}');
                         },
-                        child: Text('Teilen')),
+                        child: const Text('Teilen')),
                     MenuItemButton(
-                      trailingIcon: Icon(Icons.refresh),
+                      trailingIcon: const Icon(Icons.refresh),
                       onPressed: () {
                         webViewController?.reload();
                       },
-                      child: Text('Laden'),
+                      child: const Text('Laden'),
                     ),
                     // TODO uncomment if rating feature ready to use
                     // MenuItemButton(

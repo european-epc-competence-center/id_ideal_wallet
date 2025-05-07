@@ -32,7 +32,7 @@ class AboDetailViewState extends State<AboDetailView> {
           title: ListTile(
         title: Text(widget.abo.name,
             style: Theme.of(context).primaryTextTheme.headlineLarge),
-        subtitle: Text('by Author'),
+        subtitle: const Text('by Author'),
       )),
       body: SingleChildScrollView(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -42,7 +42,7 @@ class AboDetailViewState extends State<AboDetailView> {
                   child: ListTile(
                 title: Text('4 / 5',
                     style: Theme.of(context).primaryTextTheme.titleLarge),
-                subtitle: StarRow(
+                subtitle: const StarRow(
                   rating: 4.0,
                 ),
               )),
@@ -50,11 +50,11 @@ class AboDetailViewState extends State<AboDetailView> {
                   child: ListTile(
                 title: Text('500',
                     style: Theme.of(context).primaryTextTheme.titleLarge),
-                subtitle: Text('Abonenten'),
+                subtitle: const Text('Abonenten'),
               ))
             ],
           ),
-          SizedBox(
+          const SizedBox(
             height: 10,
           ),
           SizedBox(
@@ -70,16 +70,16 @@ class AboDetailViewState extends State<AboDetailView> {
               viewportFraction: 0.8,
               scale: 0.9,
               loop: false,
-              pagination: SwiperPagination(),
+              pagination: const SwiperPagination(),
               //control: SwiperControl(),
             ),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             child: Text('Beschreibung',
                 style: Theme.of(context).primaryTextTheme.titleLarge),
           ),
-          Padding(
+          const Padding(
             padding: EdgeInsets.symmetric(horizontal: 10),
             child: Text('Lorem ipsum dolor sit...'),
           ),

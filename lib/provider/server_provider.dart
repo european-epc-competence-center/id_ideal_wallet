@@ -49,7 +49,7 @@ Future<void> sendStringAndFile(String apiUrl, String apiKey, String textData, Fi
 }
 
 Future<String> fetchFileInMemory(String fileId) async {
-  String apiUrl = '${localhost}:3000/data/$fileId';
+  String apiUrl = '$localhost:3000/data/$fileId';
 
     // Send GET request to fetch the file
   var response = await http.get(Uri.parse(apiUrl));

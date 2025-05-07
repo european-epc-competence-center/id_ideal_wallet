@@ -24,7 +24,15 @@ class AusweisViewState extends State<AusweisView> {
   @override
   void initState() {
     super.initState();
-    Provider.of<AusweisProvider>(context, listen: false).startListening();
+
+    final ausweis = Provider.of<AusweisProvider>(context, listen: false);
+    ausweis.startListening();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ausweis.screen == AusweisScreen.start) {
+      ausweis.startProgress();
+    }
+    });
+    
   }
 
   Widget getBody(AusweisProvider ausweis) {
@@ -33,15 +41,12 @@ class AusweisViewState extends State<AusweisView> {
     } else if (ausweis.screen == AusweisScreen.insertCard) {
       return const InsertCard();
     } else if (ausweis.screen == AusweisScreen.start) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ausweis.startProgress();
-      });
       return Center(
         child: ElevatedButton(
           onPressed: () {
             ausweis.startProgress();
           },
-          child: Text('Ausweisdaten in Credential umwandeln'),
+          child: const Text('Ausweisdaten in Credential umwandeln'),
         ),
       );
     } else if (ausweis.screen == AusweisScreen.finish) {

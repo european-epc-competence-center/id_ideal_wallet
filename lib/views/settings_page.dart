@@ -45,7 +45,7 @@ class SettingsPageState extends State<SettingsPage> {
           ),
           ListTile(
             title: Text(AppLocalizations.of(context)!.about),
-            subtitle: Text('https://id.eecc.de'), // wallet.aboutUrl
+            subtitle: const Text('https://id.eecc.de'), // wallet.aboutUrl
             onTap: () {
               launchUrl(Uri.parse('https://id.eecc.de'),
                   mode: LaunchMode.externalApplication);
@@ -67,14 +67,14 @@ class SettingsPageState extends State<SettingsPage> {
           ),
           ListTile(
             title: Text(AppLocalizations.of(context)!.openSourceNote), // Neu test
-            subtitle: Text('https://github.com/european-epc-competence-center/id_ideal_wallet'),
+            subtitle: const Text('https://github.com/european-epc-competence-center/id_ideal_wallet'),
             onTap: () {
               launchUrl(Uri.parse('https://github.com/european-epc-competence-center/id_ideal_wallet'),
                   mode: LaunchMode.externalApplication);
             },
           ),ListTile(
             title: Text(AppLocalizations.of(context)!.forkedFromNote), // Neu test
-            subtitle: Text('https://github.com/b2cm/id_ideal_wallet'),
+            subtitle: const Text('https://github.com/b2cm/id_ideal_wallet'),
             onTap: () {
               launchUrl(Uri.parse('https://github.com/b2cm/id_ideal_wallet'),
                   mode: LaunchMode.externalApplication);

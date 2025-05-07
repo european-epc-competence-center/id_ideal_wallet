@@ -9,7 +9,7 @@ class InsertCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 15),
+          padding: const EdgeInsets.symmetric(horizontal: 15),
           child: Column(
             children: [
               Text(
@@ -30,7 +30,7 @@ class InsertCard extends StatelessWidget {
               foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(45),
             ),
-            child: Text('Vorgang Abbrechen')),
+            child: const Text('Vorgang Abbrechen')),
       ],
     );
   }

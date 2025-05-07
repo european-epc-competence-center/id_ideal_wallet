@@ -44,7 +44,7 @@ Future<void> performBackup(BuildContext context, String memonic) async {
   File file = await saveFileLocally(sha256.convert(password).toString(), encryptedData);
 
   String apiUrl =
-      '${localhost}/data'; // Replace with your server URL      // Replace with your API key
+      '$localhost/data'; // Replace with your server URL      // Replace with your API key
   String textData = sha256.convert(password).toString();
 
   await sendStringAndFile(apiUrl, apiKey, textData, file);
@@ -61,7 +61,7 @@ Future<void> applyBackup(BuildContext context, String memonic) async {
 
   try {
     encryptedData = await fetchFileInMemory(
-        sha256.convert(utf8.encode(password!)).toString());
+        sha256.convert(utf8.encode(password)).toString());
   } catch (e) {
     // if we catch here we did not get a 200
     ScaffoldMessenger.of(context).showSnackBar(
@@ -71,7 +71,7 @@ Future<void> applyBackup(BuildContext context, String memonic) async {
 
   // Decrypt the data using the password
   String encodedBoxes =
-      await encryptionService.decryptData(password!, encryptedData);
+      await encryptionService.decryptData(password, encryptedData);
 
   Map<String, Box<dynamic>> boxes =
       wallet.wallet.getBoxes().cast<String, Box<dynamic>>();
