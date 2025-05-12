@@ -68,3 +68,5 @@ class DefaultFirebaseOptions {
     iosBundleId: 'eu.hidy.app',
   );
 }
+
+//TODO ios: Do firebase setup https://firebase.google.com/docs/cloud-messaging/flutter/client#ios

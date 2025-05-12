@@ -11,8 +11,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationProvider {
   final _localNotify = FlutterLocalNotificationsPlugin();
+
+  // TODO android: correct image
   final AndroidInitializationSettings _initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  // TODO ios: initialize local_notify https://pub.dev/packages/flutter_local_notifications#-ios-setup
   final _firebase = FirebaseMessaging.instance;
 
   String? firebaseToken;
