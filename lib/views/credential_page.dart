@@ -170,13 +170,7 @@ ListTile generateTile(String? before, String key, dynamic value) {
           child: Text(AppLocalizations.of(navigatorKey.currentContext!)!.show),
           onTap: () {
             if (value.contains('image')) {
-              Navigator.of(navigatorKey.currentContext!).push(Platform.isIOS
-                  ? CupertinoPageRoute(
-                      builder: (context) =>
-                          Base64ImagePreview(imageDataUri: value))
-                  : MaterialPageRoute(
-                      builder: (context) =>
-                          Base64ImagePreview(imageDataUri: value)));
+              navigateClassic(Base64ImagePreview(imageDataUri: value));
             } else if (value.contains('application/pdf')) {
               Navigator.of(navigatorKey.currentContext!).push(Platform.isIOS
                   ? CupertinoPageRoute(

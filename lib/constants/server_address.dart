@@ -89,7 +89,7 @@ var stylingEndpoint = 'https://test.hidy.app/walletcontext/layouts';
 var termsVersionEndpoint = 'https://test.hidy.app/walletcontext/terms';
 var messagingBackend =
     'https://test.hidy.app/walletcontext/fbm/registeraccount';
-String versionNumber = '4.0.6-test';
+String versionNumber = '4.1.0-test';
 String baseUrl = 'https://test.hidy.app';
 bool testBuild = true;
 

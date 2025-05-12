@@ -8,7 +8,9 @@ import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:provider/provider.dart';
 
 class CameraView extends StatefulWidget {
-  const CameraView({super.key});
+  final String type;
+
+  const CameraView({super.key, required this.type});
 
   @override
   CamaraViewState createState() => CamaraViewState();
@@ -27,7 +29,7 @@ class CamaraViewState extends State<CameraView> {
       return;
     }
     Provider.of<WalletProvider>(navigatorKey.currentContext!, listen: false)
-        .addPhotoId('driversLicensePhoto', front!, back!);
+        .addPhotoId(widget.type, front!, back!);
     Navigator.of(context).pop();
   }
 

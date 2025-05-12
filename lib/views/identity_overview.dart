@@ -5,6 +5,7 @@ import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/camera_view.dart';
+import 'package:id_ideal_wallet/views/show_photo_id.dart';
 import 'package:provider/provider.dart';
 
 class IdentityOverview extends StatefulWidget {
@@ -50,9 +51,37 @@ class IdentityOverviewState extends State<IdentityOverview> {
               SizedBox(
                 height: 5,
               ),
-              ElevatedButton(
-                  onPressed: () => navigateClassic(CameraView()),
-                  child: Text('Führerschein-Foto'))
+              wallet.getDriverLicensePhoto() == null
+                  ? ElevatedButton(
+                      onPressed: () => navigateClassic(CameraView(
+                            type: 'driverLicensePhoto',
+                          )),
+                      child: Text('Führerschein-Foto hinzufügen'))
+                  : ElevatedButton(
+                      onPressed: () {
+                        var vc = wallet.getDriverLicensePhoto();
+                        navigateClassic(ShowPhotoId(
+                            front: vc!.credentialSubject['front'],
+                            back: vc.credentialSubject['back']));
+                      },
+                      child: Text('Führerschein anzeigen')),
+              SizedBox(
+                height: 5,
+              ),
+              wallet.getIdCardPhoto() == null
+                  ? ElevatedButton(
+                      onPressed: () => navigateClassic(CameraView(
+                            type: 'idCardPhoto',
+                          )),
+                      child: Text('Ausweis-Foto hinzufügen'))
+                  : ElevatedButton(
+                      onPressed: () {
+                        var vc = wallet.getIdCardPhoto();
+                        navigateClassic(ShowPhotoId(
+                            front: vc!.credentialSubject['front'],
+                            back: vc.credentialSubject['back']));
+                      },
+                      child: Text('Ausweis anzeigen'))
             ],
           ),
         );
