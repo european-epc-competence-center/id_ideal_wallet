@@ -11,7 +11,6 @@ import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
@@ -21,6 +20,8 @@ import 'package:iso_mdoc/iso_mdoc.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:x509b/x509.dart';
+
+import '../l10n/app_localizations.dart';
 
 enum BleMdocTransmissionState {
   uninitialized,
@@ -633,15 +634,11 @@ class MdocProvider extends ChangeNotifier {
         presentationDefinitionId: '');
     var target = PresentationRequestDialog(
       definition: PresentationDefinition(inputDescriptors: []),
-      definitionHash: '',
       otherEndpoint: '',
-      receiverDid: '',
-      myDid: '',
       results: [asFilter],
-      isIso: true,
       requesterCert: requesterCert,
     );
-    var res = await navigateClassic(target);
+    var (_, res) = await navigateClassic(target);
 
     if (res != null) {
       String type = '';

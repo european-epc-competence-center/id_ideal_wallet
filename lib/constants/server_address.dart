@@ -1,9 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logger/logger.dart';
 import 'package:pointycastle/digests/sha256.dart';
+
+import '../l10n/app_localizations.dart';
 
 var relay = 'https://167.235.195.132:8888';
 //var relay = 'http://localhost:8888';

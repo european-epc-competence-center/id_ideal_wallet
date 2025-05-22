@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart';
 import 'package:id_ideal_wallet/basicUi/standard/cached_image.dart';
 import 'package:id_ideal_wallet/basicUi/standard/styled_scaffold_title.dart';
@@ -10,6 +9,8 @@ import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/web_view.dart';
 import 'package:provider/provider.dart';
+
+import '../l10n/app_localizations.dart';
 
 class SearchNewAbo extends StatefulWidget {
   const SearchNewAbo({super.key});

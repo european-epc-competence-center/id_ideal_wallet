@@ -1,16 +1,14 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
 
-import 'package:base_codecs/base_codecs.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/didcomm.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../constants/server_address.dart';
+import '../l10n/app_localizations.dart';
 import '../provider/wallet_provider.dart';
 import '../views/presentation_dialog.dart';
 import '../views/presentation_proposal_dialog.dart';
@@ -186,21 +184,39 @@ Future<bool> handleRequestPresentation(
     } else {
       var target = PresentationRequestDialog(
         definition: definition,
-        definitionHash: hexEncode(definitionHash),
         name: definition.name,
         purpose: definition.purpose,
-        message: message,
         otherEndpoint: requester,
-        receiverDid: message.from!,
-        myDid: myDid,
         results: filtered,
         lnInvoice: invoice,
         paymentCards: paymentCards,
         lnInvoiceRequest: invoiceReq,
       );
-      Navigator.of(navigatorKey.currentContext!).push(Platform.isIOS
-          ? CupertinoPageRoute(builder: (context) => target)
-          : MaterialPageRoute(builder: (context) => target));
+      var (_, finalSend) = await navigateClassic(target);
+      if (finalSend != null) {
+        sendPresentation(
+            finalSend,
+            message.presentationDefinition.first.challenge,
+            message,
+            myDid,
+            requester);
+      } else {
+        var problem = ProblemReport(
+            replyUrl: '$relay/buffer/$myDid',
+            returnRoute: ReturnRouteValue.thread,
+            to: [message.from!],
+            from: myDid,
+            parentThreadId: message.threadId ?? message.id,
+            code: 'e.p.user.decline');
+
+        // TODO sendMessage(
+        //     myDid,
+        //     requester,
+        //     Provider.of<WalletProvider>(navigatorKey.currentContext!,
+        //         listen: false),
+        //     problem,
+        //     message.from!);
+      }
     }
   } catch (e) {
     logger.e(e);
@@ -209,6 +225,73 @@ Future<bool> handleRequestPresentation(
         AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsNote);
   }
   return false;
+}
+
+sendPresentation(List<FilterResult> finalSend, String nonce,
+    RequestPresentation message, String myDid, String endpoint) async {
+  var vp = VerifiablePresentation.fromFilterResults(finalSend);
+  var wallet =
+      Provider.of<WalletProvider>(navigatorKey.currentContext!, listen: false);
+  for (var vc in vp.verifiableCredential!) {
+    var did = vc.credentialSubject['id'];
+    if (did == null || did == '') continue;
+    var (signer, proofType) = await getCredentialSigningStuff(wallet, did);
+    await vp.addProof(signer, proofType,
+        challenge: nonce, loadDocument: loadDocumentFast);
+    logger.d(await vp.verify());
+  }
+
+  var presentationMessage = Presentation(
+      replyUrl: '$relay/buffer/$myDid',
+      returnRoute: ReturnRouteValue.thread,
+      to: [message.from!],
+      from: myDid,
+      verifiablePresentation: [vp],
+      threadId: message.threadId ?? message.id,
+      parentThreadId: message.parentThreadId);
+  // logger.d(widget.lnInvoiceRequest);
+  // logger.d(widget.paymentCards);
+  // if (widget.lnInvoiceRequest != null && widget.paymentCards != null) {
+  //   logger.d('generate invoice');
+  //   var paymentId = widget.paymentCards!.first.id!;
+  //   var lnInKey = wallet.getLnInKey(paymentId);
+  //   var invoice = await createInvoice(
+  //       lnInKey!,
+  //       SatoshiAmount.fromUnitAndValue(
+  //           widget.lnInvoiceRequest!['amount'], SatoshiUnit.sat),
+  //       memo: widget.lnInvoiceRequest!['memo'] ?? '');
+  //   var index = invoice['checking_id'];
+  //   logger.d(index);
+  //   wallet.newPayment(
+  //     paymentId,
+  //     index,
+  //     widget.lnInvoiceRequest!['memo'] ?? '',
+  //     SatoshiAmount.fromUnitAndValue(
+  //         widget.lnInvoiceRequest!['amount'], SatoshiUnit.sat),
+  //   );
+  //
+  //   var paymentAtt = Attachment(
+  //       format: 'lnInvoice',
+  //       data: AttachmentData(json: {
+  //         'type': 'lnInvoice',
+  //         'lnInvoice': invoice['payment_request']
+  //       }));
+  //
+  //   presentationMessage.attachments?.add(paymentAtt);
+  // }
+  sendMessage(
+    myDid, endpoint, wallet, presentationMessage,
+    message.from!,
+    //lnInvoice: widget.lnInvoice, paymentCards: widget.paymentCards
+  );
+
+  for (var cred in vp.verifiableCredential ?? <VerifiableCredential>[]) {
+    wallet.storeExchangeHistoryEntry(
+        cred.credentialSubject['id'], DateTime.now(), 'present', endpoint);
+  }
+
+  // Navigator.of(context).pop();
+  return vp;
 }
 
 Future<bool> handlePresentation(

@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
+
+import '../l10n/app_localizations.dart';
 
 const String localhost =
     "http://78.47.219.104"; //http://ec2-18-199-147-148.eu-central-1.compute.amazonaws.com";//"http://10.0.2.2";

@@ -3,7 +3,6 @@ import 'package:dart_ssi/didcomm.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/currency_display.dart';
 import 'package:id_ideal_wallet/basicUi/standard/modal_dismiss_wrapper.dart';
 import 'package:id_ideal_wallet/basicUi/standard/payment_finished.dart';
@@ -14,6 +13,7 @@ import 'package:id_ideal_wallet/views/payment_method_selection.dart';
 import 'package:uuid/uuid.dart';
 
 import '../constants/server_address.dart';
+import '../l10n/app_localizations.dart';
 import '../provider/wallet_provider.dart';
 import 'didcomm_message_handler.dart';
 

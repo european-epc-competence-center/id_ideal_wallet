@@ -10,7 +10,6 @@ import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart';
 import 'package:id_ideal_wallet/constants/root_certificates.dart';
@@ -29,6 +28,8 @@ import 'package:provider/provider.dart'; //import 'package:random_password_gener
 import 'package:sd_jwt/sd_jwt.dart' as sd_jwt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:x509b/x509.dart' as x509;
+
+import '../l10n/app_localizations.dart';
 
 void printWrapped(String text) {
   final pattern = RegExp('.{1,800}'); // 800 is the size of each chunk

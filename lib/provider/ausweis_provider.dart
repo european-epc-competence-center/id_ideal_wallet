@@ -6,7 +6,6 @@ import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
@@ -19,6 +18,8 @@ import 'package:provider/provider.dart';
 import 'package:sd_jwt/sd_jwt.dart' as sd_jwt;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:xml/xml.dart';
+
+import '../l10n/app_localizations.dart';
 
 enum AusweisScreen {
   enterPin,

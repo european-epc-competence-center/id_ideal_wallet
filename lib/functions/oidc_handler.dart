@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' as io;
 
 import 'package:base_codecs/base_codecs.dart';
 import 'package:cbor/cbor.dart';
@@ -11,24 +12,30 @@ import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart';
+import 'package:id_ideal_wallet/basicUi/standard/currency_display.dart';
+import 'package:id_ideal_wallet/basicUi/standard/modal_dismiss_wrapper.dart';
+import 'package:id_ideal_wallet/basicUi/standard/payment_finished.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
+import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/ausweis_view.dart';
 import 'package:id_ideal_wallet/views/credential_offer_new.dart';
 import 'package:id_ideal_wallet/views/presentation_request.dart';
 import 'package:id_ideal_wallet/views/web_view.dart';
 import 'package:iso_mdoc/iso_mdoc.dart';
+import 'package:json_path/json_path.dart';
 import 'package:pointycastle/export.dart' as pc;
 import 'package:provider/provider.dart';
 import 'package:sd_jwt/sd_jwt.dart' as sd_jwt;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 import 'package:x509b/x509.dart' as x509;
+
+import '../l10n/app_localizations.dart';
 
 String removeTrailingSlash(String base64Input) {
   while (base64Input.endsWith('/')) {
@@ -112,7 +119,7 @@ Future<void> handleOfferOid(String offerUri) async {
   try {
     issuerMetadata = CredentialIssuerMetaData.fromJson(issuerMetaReq.body);
   } catch (e) {
-    logger.d('Failed parsing issuer metadata');
+    logger.d('Failed parsing issuer metadata: $e');
     showErrorMessage(
         AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
         AppLocalizations.of(navigatorKey.currentContext!)!
@@ -389,13 +396,13 @@ Future<void> handleOfferOid(String offerUri) async {
 }
 
 Future<Map?> getAuthServerMetaData(String authServer) async {
-  var OidonfigRes =
+  var oidConfigRes =
       await get(Uri.parse('$authServer/.well-known/openid-configuration'));
-  if (OidonfigRes.statusCode == 200) {
-    return jsonDecode(OidonfigRes.body);
+  if (oidConfigRes.statusCode == 200) {
+    return jsonDecode(oidConfigRes.body);
   } else {
     logger.d(
-        'status Oidonfig $authServer: ${OidonfigRes.statusCode} / ${OidonfigRes.body}');
+        'status OidConfig $authServer: ${oidConfigRes.statusCode} / ${oidConfigRes.body}');
     var oauthConfigRes = await get(
         Uri.parse('$authServer/.well-known/oauth-authorization-server'));
     if (oauthConfigRes.statusCode == 200) {
@@ -1125,6 +1132,11 @@ storeCredential(String format, dynamic credential, String credentialDid,
       showSuccessMessage(
           AppLocalizations.of(navigatorKey.currentContext!)!.credentialReceived,
           signedData.docType);
+    } else {
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .wrongCredentialNote);
     }
   } else if (format == OidCredentialFormat.sdJwt ||
       format == OidCredentialFormat.sdJwtDc) {
@@ -1252,144 +1264,148 @@ storeCredential(String format, dynamic credential, String credentialDid,
   }
 }
 
+sendErrorResponse(String responseUri, String mode, String errorCode) {
+  if (mode.startsWith('direct_post')) {
+    post(Uri.parse(responseUri),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'error=$errorCode');
+  } else {
+    launchUrl(Uri.parse('$responseUri?error=$errorCode'),
+        mode: LaunchMode.externalApplication);
+  }
+}
+
 Future<void> handlePresentationRequestOid(String request) async {
   var asUri = Uri.parse(request);
-  PresentationDefinition? definition;
-  String? nonce, responseUri;
-  ClientMetaData? clientMetaData;
+  RequestObject requestData;
 
-  nonce = asUri.queryParameters['nonce'];
-  var redirectUri = asUri.queryParameters['redirect_uri'];
-  var requestUri = asUri.queryParameters['request_uri'];
-  var clientId = asUri.queryParameters['client_id'];
-  var presDef = asUri.queryParameters['presentation_definition'];
-  var presDefUri = asUri.queryParameters['presentation_definition_uri'];
-  var state = asUri.queryParameters['state'];
-  var responseMode = asUri.queryParameters['response_mode'];
-  logger.d('State: $state');
+  try {
+    if (asUri.queryParameters.containsKey('request_uri')) {
+      // fetch request
+      var method = asUri.queryParameters['request_uri_method'] ?? 'get';
+      logger.d('${asUri.queryParameters['request_uri']!} / $method');
+      Response requestRaw;
+      if (method == 'get') {
+        requestRaw = await get(Uri.parse(asUri.queryParameters['request_uri']!),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            });
+      } else if (method == 'post') {
+        requestRaw = await post(
+            Uri.parse(asUri.queryParameters['request_uri']!),
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Accept': 'application/oauth-authz-req+jwt'
+            });
+      } else {
+        logger.d('Unknown requestUriMethod $method');
+        showErrorMessage(
+            AppLocalizations.of(navigatorKey.currentContext!)!.downloadFailed,
+            AppLocalizations.of(navigatorKey.currentContext!)!
+                .downloadFailedExplanation);
+        return;
+      }
+      logger.d(requestRaw.statusCode);
+      if (requestRaw.statusCode != 200) {
+        showErrorMessage(
+            AppLocalizations.of(navigatorKey.currentContext!)!.downloadFailed,
+            AppLocalizations.of(navigatorKey.currentContext!)!
+                .downloadFailedExplanation);
+        logger.d('Request nicht gefunden');
+        return;
+      }
+      logger.d(requestRaw.headers);
+      logger.d(requestRaw.body);
 
-  if (clientId == null) {
+      if (isRawJson(requestRaw.body)) {
+        logger.d('raw json');
+        requestData = RequestObject.fromJson(requestRaw.body);
+      } else {
+        // it is a jwt/jws (as normally expected)
+        logger.d('jwt');
+        var payload = requestRaw.body.split('.')[1];
+        logger.d(
+            jsonDecode(utf8.decode(base64Decode(addPaddingToBase64(payload)))));
+        requestData = RequestObject.fromJson(
+            utf8.decode(base64Decode(addPaddingToBase64(payload))));
+      }
+
+      if (requestData.clientMetaDataUri != null) {
+        var metaDataResponse =
+            await get(Uri.parse(requestData.clientMetaDataUri!), headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        });
+        if (metaDataResponse.statusCode == 200) {
+          requestData.clientMetaData =
+              ClientMetaData.fromJson(metaDataResponse.body);
+        }
+      }
+    } else {
+      requestData = RequestObject.fromJson(asUri.queryParameters);
+    }
+  } catch (e) {
+    logger.d(e);
     showErrorMessage(
         AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsTitle,
         AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsNote);
-    logger.d('client id null');
     return;
   }
 
-  if (presDef != null) {
-    // Case 1: Every relevant information is in original query-parameters
-    logger.d(presDef);
-    definition = PresentationDefinition.fromJson(presDef);
-  } else if (presDefUri != null) {
-    // Case 2: presentation definition must be fetched
-    logger.d(presDefUri);
-    var res = await get(Uri.parse(presDefUri), headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    });
-    if (res.statusCode == 200) {
-      definition = PresentationDefinition.fromJson(res.body);
-    } else {
-      showErrorMessage(
-          AppLocalizations.of(navigatorKey.currentContext!)!.downloadFailed,
-          AppLocalizations.of(navigatorKey.currentContext!)!
-              .downloadFailedExplanation);
-      logger.d('no presentation definition found at $presDefUri');
-      return;
+  if (requestData.presentationDefinitionUri != null) {
+    var presDefResponse =
+        await get(Uri.parse(requestData.presentationDefinitionUri!));
+    if (presDefResponse.statusCode == 200) {
+      requestData.presentationDefinition =
+          PresentationDefinition.fromJson(presDefResponse.body);
     }
-  } else {
-    // Case 3: the total request must be fetched
-    logger.d(requestUri);
-    logger.d(clientId);
-
-    if (requestUri == null) {
-      showErrorMessage(
-          AppLocalizations.of(navigatorKey.currentContext!)!.downloadFailed,
-          AppLocalizations.of(navigatorKey.currentContext!)!
-              .downloadFailedExplanation);
-      logger.d('requestUri null');
-      return;
-    }
-    logger.d(requestUri);
-    var requestRaw = await get(Uri.parse(requestUri), headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    });
-    logger.d(requestRaw.statusCode);
-    if (requestRaw.statusCode != 200) {
-      showErrorMessage(
-          AppLocalizations.of(navigatorKey.currentContext!)!.downloadFailed,
-          AppLocalizations.of(navigatorKey.currentContext!)!
-              .downloadFailedExplanation);
-      logger.d('Request nicht gefunden');
-      return;
-    }
-    logger.d(requestRaw.headers);
-    logger.d(requestRaw.body);
-
-    RequestObject requestObject;
-    if (isRawJson(requestRaw.body)) {
-      logger.d('raw json');
-      requestObject = RequestObject.fromJson(requestRaw.body);
-    } else {
-      // it is a jwt/jws (as normally expected)
-      logger.d('jwt');
-      var payload = requestRaw.body.split('.')[1];
-      logger.d(
-          jsonDecode(utf8.decode(base64Decode(addPaddingToBase64(payload)))));
-      requestObject = RequestObject.fromJson(
-          utf8.decode(base64Decode(addPaddingToBase64(payload))));
-    }
-
-    if (requestObject.clientMetaDataUri != null) {
-      var metaDataResponse =
-          await get(Uri.parse(requestObject.clientMetaDataUri!));
-      if (metaDataResponse.statusCode == 200) {
-        clientMetaData = ClientMetaData.fromJson(metaDataResponse.body);
-      }
-    } else {
-      clientMetaData = requestObject.clientMetaData;
-    }
-
-    logger.d(requestObject.nonce);
-    logger.d(requestObject.presentationDefinition);
-    logger.d(requestObject.responseMode);
-    redirectUri = requestObject.redirectUri;
-    logger.d(redirectUri);
-    definition = requestObject.presentationDefinition;
-    nonce = requestObject.nonce;
-    responseMode = requestObject.responseMode;
-    responseUri = requestObject.responseUri;
-    state = requestObject.state;
   }
 
-  if (nonce == null) {
+  logger.d('Response Mode: ${requestData.responseMode}');
+
+  if (requestData.clientId == null) {
+    logger.d('no clientId');
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsTitle,
+        AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsNote);
+
+    if (requestData.responseUri != null || requestData.redirectUri != null) {
+      sendErrorResponse(requestData.responseUri ?? requestData.redirectUri!,
+          requestData.responseMode!, 'invalid_request');
+    }
+    return;
+  }
+
+  if (requestData.nonce == null) {
     logger.d('no nonce');
     showErrorMessage(
         AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsTitle,
         AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsNote);
+    sendErrorResponse(
+        requestData.responseUri ??
+            requestData.redirectUri ??
+            requestData.clientId!,
+        requestData.responseMode!,
+        'invalid_request');
     return;
   }
-
-  logger.d('Response Mode: $responseMode');
 
   var wallet =
       Provider.of<WalletProvider>(navigatorKey.currentContext!, listen: false);
 
-  var allCreds = wallet.allCredentials();
+  var allCreds = wallet.w3cCredentials;
   var isoCreds = wallet.isoMdocCredentials;
   List<VerifiableCredential> creds = [];
   List<IssuerSignedObject> isoCredsParsed = [];
   List<sd_jwt.SdJws> sdJwtCredentials = [];
-  allCreds.forEach((key, value) {
-    if (value.verifiableCredential != '') {
-      var vc = VerifiableCredential.fromJson(value.verifiableCredential);
-      var type = getTypeToShow(vc.type);
-      if (type != 'PaymentReceipt') {
-        creds.add(vc);
-      }
+
+  for (var vc in allCreds) {
+    var type = getTypeToShow(vc.type);
+    if (type != 'PaymentReceipt') {
+      creds.add(vc);
     }
-  });
+  }
 
   for (var cred in isoCreds) {
     isoCredsParsed.add(IssuerSignedObject.fromCbor(
@@ -1401,43 +1417,582 @@ Future<void> handlePresentationRequestOid(String request) async {
         c.metadata.replaceAll('$sdPrefix:', '')));
   }
 
-  if (definition == null) {
-    logger.d('No presentation definition');
-    showErrorMessage(
-        AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsTitle,
-        AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsNote);
-    return;
-  }
-
-  try {
-    logger.d(isoCredsParsed.length);
-    var filtered = searchCredentialsForPresentationDefinition(definition,
+  List<FilterResult> filtered;
+  if (requestData.presentationDefinition != null) {
+    filtered = searchCredentialsForPresentationDefinition(
+        requestData.presentationDefinition!,
         credentials: creds,
         isoMdocCredentials: isoCredsParsed,
         sdJwtCredentials: sdJwtCredentials);
     logger.d(
         'successfully filtered: sdLength: ${filtered.first.sdJwtCredentials?.length}');
+  } else if (requestData.dcqlQuery != null) {
+    filtered = await searchCredentialsForDcqlQuery(requestData.dcqlQuery!,
+        w3cCredentials: creds,
+        mdocCredentials: isoCredsParsed,
+        sdJwtCredentials: sdJwtCredentials);
+  } else {
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsTitle,
+        AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsNote);
+    sendErrorResponse(
+        requestData.responseUri ??
+            requestData.redirectUri ??
+            requestData.clientId!,
+        requestData.responseMode!,
+        'access_denied');
+    return;
+  }
+
+  try {
+    logger.d(isoCredsParsed.length);
 
     var target = PresentationRequestDialog(
-      definition: definition,
-      definitionHash: '',
-      otherEndpoint: responseUri ?? redirectUri ?? clientId,
-      receiverDid: clientId,
-      myDid: 'myDid',
+      definition: requestData.presentationDefinition ??
+          PresentationDefinition(inputDescriptors: []),
+      otherEndpoint: requestData.responseUri ??
+          requestData.redirectUri ??
+          requestData.clientId!,
       results: filtered,
-      isOidc: true,
-      nonce: nonce,
-      oidcState: state,
-      oidcResponseMode: responseMode,
-      oidcClientMetadata: clientMetaData,
-      oidcRedirectUri: redirectUri,
     );
 
-    navigateClassic(target);
+    var (_, toSend) = await navigateClassic(target);
+    if (toSend != null) {
+      sendPresentationResponse(toSend, requestData);
+    } else {
+      sendErrorResponse(
+          requestData.responseUri ??
+              requestData.redirectUri ??
+              requestData.clientId!,
+          requestData.responseMode!,
+          'access_denied');
+    }
   } catch (e) {
     logger.e(e);
     showErrorMessage(
         AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsTitle,
         AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsNote);
+    sendErrorResponse(
+        requestData.responseUri ??
+            requestData.redirectUri ??
+            requestData.clientId!,
+        requestData.responseMode!,
+        'access_denied');
+  }
+}
+
+Future<(dynamic, PresentationSubmission, String?)> buildAnswer(
+    List<FilterResult> finalSend,
+    WalletProvider wallet,
+    RequestObject requestData) async {
+  dynamic vp;
+  List<InputDescriptorMappingObject> descriptorMap = [];
+  String definitionId = '';
+  bool hasW3C = false;
+  String? mdocGeneratedNonce;
+  var responseUri = requestData.responseUri ??
+      requestData.redirectUri ??
+      requestData.clientId!;
+
+  logger.d((requestData.toJson()));
+  vp = requestData.presentationDefinition != null ? [] : <String, List>{};
+  logger.d(vp.runtimeType);
+
+  for (FilterResult entry in finalSend) {
+    definitionId = entry.presentationDefinitionId;
+
+    if (entry.nestedResults != null && entry.nestedResults!.isNotEmpty) {
+      var (vpIn, sub, mnonce) =
+          await buildAnswer(entry.nestedResults!, wallet, requestData);
+      vp.addAll(vpIn);
+      descriptorMap.addAll(sub.descriptorMap);
+    } else {
+      if (entry.isoMdocCredentials != null &&
+          entry.isoMdocCredentials!.isNotEmpty) {
+        logger.d('handle mdoc');
+        var handover = OID4VPHandover.fromValues(
+            requestData.clientId!, responseUri, requestData.nonce!);
+        mdocGeneratedNonce = handover.mdocGeneratedNonce;
+        List<Document> docs = [];
+
+        for (var cred in entry.isoMdocCredentials!) {
+          var mso = MobileSecurityObject.fromCbor(cred.issuerAuth.payload);
+          var did = coseKeyToDid(mso.deviceKeyInfo.deviceKey);
+          int? alg = getCoseAlgorithmForDid(did);
+          if (alg == null) {
+            throw Exception('no algorithm');
+          }
+
+          var transcript = SessionTranscript(handover: handover);
+          var ds = await generateDeviceSignature({}, mso.docType, transcript,
+              signer: WalletSigner(wallet, did, alg));
+          docs.add(Document(
+              docType: mso.docType, issuerSigned: cred, deviceSigned: ds));
+        }
+
+        var res = DeviceResponse(status: 0, documents: docs);
+
+        descriptorMap.add(InputDescriptorMappingObject(
+            id: entry.matchingDescriptorIds.first,
+            format: OidCredentialFormat.msoMdoc,
+            path: JsonPath(r'$')));
+
+        if (requestData.presentationDefinition != null) {
+          vp.add(removePaddingFromBase64(base64UrlEncode(res.toEncodedCbor())));
+        } else {
+          vp[entry.matchingDescriptorIds.first] = [
+            removePaddingFromBase64(base64UrlEncode(res.toEncodedCbor()))
+          ];
+        }
+      }
+
+      if (entry.credentials != null && entry.credentials!.isNotEmpty) {
+        logger.d('handle w3c');
+
+        if (requestData.presentationDefinition != null) {
+          hasW3C = true;
+        } else {
+          var vpW3c =
+              VerifiablePresentation(verifiableCredential: entry.credentials);
+          int index = 0;
+          for (var vc in vpW3c.verifiableCredential!) {
+            var did = vc.credentialSubject['id'];
+            if (did == null || did == '') continue;
+            var (signer, proofType) =
+                await getCredentialSigningStuff(wallet, did);
+            await vpW3c.addProof(signer, proofType,
+                challenge: requestData.nonce, loadDocument: loadDocumentFast);
+            if (requestData.presentationDefinition != null) {
+              for (var descriptorId in entry.matchingDescriptorIds) {
+                descriptorMap.add(InputDescriptorMappingObject(
+                    id: descriptorId,
+                    format: OidCredentialFormat.ldpVc,
+                    path: JsonPath(
+                        '\$${entry.sdJwtCredentials != null && entry.sdJwtCredentials!.isNotEmpty ? '[${vp.length}]' : ''}.verifiableCredential[$index]')));
+                index++;
+              }
+            }
+          }
+          List existing = vp[entry.matchingDescriptorIds.first] ?? [];
+          existing.add(vpW3c);
+          vp[entry.matchingDescriptorIds.first] = existing;
+        }
+      }
+
+      int arrayIndex = 0;
+      if (entry.sdJwtCredentials != null &&
+          entry.sdJwtCredentials!.isNotEmpty) {
+        logger.d('handle sd jwt');
+        List sdJwtCreds = [];
+        for (var s in entry.sdJwtCredentials!) {
+          var sd = s.toSdJwt();
+
+          var cnf = sd.confirmation!.toJson();
+          logger.d(cnf['jwk']);
+          var multibase = jwkToMultiBase(cnf['jwk']);
+          var restoredDid = 'did:key:$multibase';
+
+          sd_jwt.SigningAlgorithm? algorithm;
+          if (restoredDid.startsWith('did:key:zQ3s')) {
+            algorithm = sd_jwt.SigningAlgorithm.ecdsaSha256Koblitz;
+          } else if (restoredDid.startsWith('did:key:zDn')) {
+            algorithm = sd_jwt.SigningAlgorithm.ecdsaSha256Prime;
+          } else if (restoredDid.startsWith('did:key:z82')) {
+            algorithm = sd_jwt.SigningAlgorithm.ecdsaSha384Prime;
+          } else if (restoredDid.startsWith('did:key:z2J9')) {
+            algorithm = sd_jwt.SigningAlgorithm.ecdsaSha512Prime;
+          } else if (restoredDid.startsWith('did:key:z6Mk')) {
+            algorithm = sd_jwt.SigningAlgorithm.eddsa25519Sha512;
+          }
+
+          var signed = await s.bind(
+              signer: WalletCryptoProviderForSdJwt(wallet.wallet, restoredDid),
+              audience: responseUri,
+              issuedAt: DateTime.now(),
+              nonce: requestData.nonce!,
+              signingAlgorithm: algorithm!);
+
+          logger.d(signed);
+          printWrapped(signed.toCompactSerialization());
+          var kbJwtParsed = signed.keyBindingJws!.toKbJwt();
+          logger.d(base64.encode(signed.digest) ==
+              base64.encode(kbJwtParsed.sdHash));
+
+          sdJwtCreds.add(signed.toCompactSerialization());
+
+          descriptorMap.add(InputDescriptorMappingObject(
+              id: entry.matchingDescriptorIds.first,
+              format: OidCredentialFormat.sdJwt,
+              path: JsonPath(
+                  '\$${vp.isEmpty && entry.sdJwtCredentials!.length == 1 ? '' : '[${arrayIndex + vp.length - 1}]'}')));
+          arrayIndex++;
+        }
+
+        if (requestData.presentationDefinition != null) {
+          vp.addAll(sdJwtCreds);
+        } else {
+          List existing = vp[entry.matchingDescriptorIds.first] ?? [];
+          existing.addAll(sdJwtCreds);
+          vp[entry.matchingDescriptorIds.first] = existing;
+        }
+      }
+    }
+  }
+
+  if (hasW3C) {
+    logger.d('build w3c from filter result');
+    var vpW3C = VerifiablePresentation.fromFilterResults(finalSend);
+    for (var vc in vpW3C.verifiableCredential!) {
+      var did = vc.credentialSubject['id'];
+      if (did == null || did == '') continue;
+      var (signer, proofType) = await getCredentialSigningStuff(wallet, did);
+      await vpW3C.addProof(signer, proofType,
+          challenge: requestData.nonce, loadDocument: loadDocumentFast);
+    }
+    vp.add(vpW3C.toJson());
+    descriptorMap = vpW3C.presentationSubmission!.descriptorMap;
+    definitionId = vpW3C.presentationSubmission!.presentationDefinitionId;
+    logger.d(vpW3C.toJson());
+    logger.d(vp);
+  }
+
+  return (
+    vp,
+    PresentationSubmission(
+        presentationDefinitionId: definitionId, descriptorMap: descriptorMap),
+    mdocGeneratedNonce
+  );
+}
+
+sendPresentationResponse(
+    List<FilterResult> finalSend, RequestObject requestData) async {
+  var wallet =
+      Provider.of<WalletProvider>(navigatorKey.currentContext!, listen: false);
+
+  var responseUri = requestData.responseUri ??
+      requestData.redirectUri ??
+      requestData.clientId!;
+
+  dynamic vp;
+  PresentationSubmission submission;
+  String? mdocGeneratedNonce;
+
+  try {
+    (vp, submission, mdocGeneratedNonce) =
+        await buildAnswer(finalSend, wallet, requestData);
+  } catch (e) {
+    logger.d('build answer failed: $e');
+    // TODO other message & send error response with suitable code
+    showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.sendFailed,
+        AppLocalizations.of(navigatorKey.currentContext!)!.sendFailedNote);
+    return;
+  }
+
+  logger.d('send presentation to $responseUri');
+  Response res;
+
+  if (requestData.responseMode == 'direct_post') {
+    String vpAnswer = vp is List && vp.length == 1
+        ? vp.first is String
+            ? vp.first
+            : jsonEncode(vp.first)
+        : jsonEncode(vp);
+    var uriString = 'vp_token=${Uri.encodeQueryComponent(vpAnswer)}';
+    if (requestData.presentationDefinition != null) {
+      uriString +=
+          '&presentation_submission=${Uri.encodeQueryComponent(submission.toString())}';
+    }
+    if (requestData.state != null) {
+      uriString += '&state=${Uri.encodeQueryComponent(requestData.state!)}';
+    }
+    res = await post(Uri.parse(responseUri),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: uriString);
+  } else if (requestData.responseMode == 'direct_post.jwt') {
+    if (requestData.clientMetaData?.authEncryptedResponseAlg != null &&
+        requestData.clientMetaData?.authEncryptedResponseEnc != null) {
+      // we should build jwe
+      List<Map<String, dynamic>>? jwks;
+      if (requestData.clientMetaData?.jwksUri != null) {
+        var res = await get(Uri.parse(requestData.clientMetaData!.jwksUri!));
+        if (res.statusCode == 200) {
+          var body = jsonDecode(res.body);
+
+          var keys = (body['keys'] as List).cast<Map>();
+          jwks = keys
+              .map((e) => e.map((key, value) => MapEntry(key as String, value)))
+              .toList();
+        }
+      } else {
+        jwks = requestData.clientMetaData?.jwks;
+      }
+      if (jwks == null) {
+        // TODO other message & send error response with suitable code
+        showErrorMessage(
+            AppLocalizations.of(navigatorKey.currentContext!)!.sendFailed,
+            AppLocalizations.of(navigatorKey.currentContext!)!.sendFailedNote);
+        return;
+      }
+      Map<String, dynamic> readerKey;
+      try {
+        readerKey = jwks.firstWhere((element) =>
+            element['alg'] ==
+            requestData.clientMetaData!.authEncryptedResponseAlg);
+      } catch (e) {
+        logger.d('no suitableKey');
+        // TODO other message & send error response with suitable code
+        showErrorMessage(
+            AppLocalizations.of(navigatorKey.currentContext!)!.sendFailed,
+            AppLocalizations.of(navigatorKey.currentContext!)!.sendFailedNote);
+        return;
+      }
+      var crv = readerKey['crv'];
+
+      logger.d(readerKey);
+      KeyType walletKeyType;
+      if (crv == 'P-256') {
+        walletKeyType = KeyType.p256;
+      } else if (crv == 'X25519') {
+        walletKeyType = KeyType.x25519;
+      } else if (crv == 'P-384') {
+        walletKeyType = KeyType.p384;
+      } else if (crv == 'P521') {
+        walletKeyType = KeyType.p521;
+      } else {
+        walletKeyType = KeyType.secp256k1;
+      }
+      var cDid = await wallet.newConnectionDid(walletKeyType);
+
+      var myJwkPub = resolveDidKey(cDid)
+          .convertAllKeysToJwk()
+          .resolveKeyIds()
+          .verificationMethod!
+          .first
+          .publicKeyJwk;
+
+      var enc = requestData.clientMetaData!.authEncryptedResponseEnc!;
+
+      var header = {
+        'alg': requestData.clientMetaData!.authEncryptedResponseAlg,
+        'enc': enc,
+        'kid': readerKey['kid'],
+        'apv': base64Encode(utf8.encode(requestData.nonce!)),
+        'apu': mdocGeneratedNonce,
+        'epk': myJwkPub
+      };
+
+      logger.d(header);
+
+      if (header['alg'] == 'ECDH-ES') {
+        var sharedSecret = await ecdhES(
+            WalletKeyAgreementGenerator(wallet.wallet, cDid),
+            readerKey,
+            header['alg'],
+            enc,
+            apu: header['apu'],
+            apv: header['apv']);
+
+        logger.d('$sharedSecret, ${sharedSecret.length}');
+        // direct mode
+        var key = x509.SymmetricKey(keyValue: Uint8List.fromList(sharedSecret));
+        // build aad ( ASCII(BASE64URL(UTF8(JWE Protected Header))) )
+        var aad = ascii.encode(removePaddingFromBase64(
+            base64UrlEncode(utf8.encode(jsonEncode(header)))));
+
+        //data
+        var data = {
+          'vp_token': vp.length == 1 ? vp.first : vp,
+        };
+
+        if (requestData.presentationDefinition != null) {
+          data['presentation_submission'] = submission;
+        }
+        if (requestData.state != null) {
+          data['state'] = requestData.state;
+        }
+
+        x509.Encrypter e;
+        if (enc == 'A128CBC-HS256') {
+          e = key.createEncrypter(
+              x509.algorithms.encryption.aes.cbcWithHmac.sha256);
+        } else if (enc == 'A192CBC-HS384') {
+          e = key.createEncrypter(
+              x509.algorithms.encryption.aes.cbcWithHmac.sha384);
+        } else if (enc == 'A256CBC-HS512') {
+          e = key.createEncrypter(
+              x509.algorithms.encryption.aes.cbcWithHmac.sha512);
+        } else if (enc == 'A128GCM' || enc == 'A192GCM' || enc == 'A256GCM') {
+          e = key.createEncrypter(x509.algorithms.encryption.aes.gcm);
+        } else {
+          throw Exception('Unknown enc $enc');
+        }
+
+        //6) encrypt and get tag
+        var encrypted = e.encrypt(
+            Uint8List.fromList(utf8.encode(jsonEncode(data))),
+            additionalAuthenticatedData: aad);
+
+        var jwe =
+            '${removePaddingFromBase64(base64UrlEncode(utf8.encode(jsonEncode(header))))}..${removePaddingFromBase64(base64UrlEncode(encrypted.initializationVector!))}.${removePaddingFromBase64(base64UrlEncode(encrypted.data))}.${removePaddingFromBase64(base64UrlEncode(encrypted.authenticationTag!))}';
+
+        logger.d('jwe: $jwe');
+        var httpClient = io.HttpClient();
+        var request = await httpClient.postUrl(Uri.parse(responseUri));
+        request.headers
+            .set('Content-Type', 'application/x-www-form-urlencoded');
+        request.write(
+            'response=${Uri.encodeQueryComponent(jwe)}${requestData.state != null ? '&state=${Uri.encodeQueryComponent(requestData.state!)}' : ''}');
+
+        var response = await request.close();
+        res = Response(
+            await response.transform(utf8.decoder).join(), response.statusCode);
+        // res = await post(Uri.parse(widget.otherEndpoint),
+        //     headers: {'content-type': 'application/x-www-form-urlencoded'},
+        //     body:
+        //         'response=${Uri.encodeQueryComponent(jwe)}${widget.oidcState != null ? '&state=${Uri.encodeQueryComponent(widget.oidcState!)}' : ''}');
+        if (requestData.redirectUri != null) {
+          launchUrl(Uri.parse(requestData.redirectUri!),
+              mode: LaunchMode.externalApplication);
+        }
+      } else {
+        logger.d('Unsupported alg ${header['alg']}');
+        // TODO other message & send error response with suitable code
+        showErrorMessage(
+            AppLocalizations.of(navigatorKey.currentContext!)!.sendFailed,
+            AppLocalizations.of(navigatorKey.currentContext!)!.sendFailedNote);
+        return;
+      }
+    } else {
+      logger.d('jwt requested but no enc and alg given');
+      // TODO other message & send error response with suitable code
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.sendFailed,
+          AppLocalizations.of(navigatorKey.currentContext!)!.sendFailedNote);
+      return;
+    }
+  } else {
+    String vpAnswer = vp.length == 1
+        ? vp.first is String
+            ? vp.first
+            : jsonEncode(vp.first)
+        : jsonEncode(vp);
+    var uriString =
+        '$responseUri?vp_token=${Uri.encodeQueryComponent(vpAnswer)}';
+    if (requestData.presentationDefinition != null) {
+      uriString +=
+          '&presentation_submission=${Uri.encodeQueryComponent(submission.toString())}';
+    }
+    if (requestData.state != null) {
+      uriString += '&state=${Uri.encodeQueryComponent(requestData.state!)}';
+    }
+    logger.d(uriString);
+
+    var r = await launchUrl(Uri.parse(uriString),
+        mode: LaunchMode.externalApplication);
+    if (r) {
+      res = Response('', 200);
+    } else {
+      res = Response('', 400);
+    }
+  }
+
+  logger.d(res.statusCode);
+  logger.d(res.body);
+  if ((res.statusCode == 200 || res.statusCode == 201)) {
+    String type = '';
+
+    for (var entry in finalSend) {
+      for (var cred in entry.credentials ?? <VerifiableCredential>[]) {
+        wallet.storeExchangeHistoryEntry(cred.credentialSubject['id'],
+            DateTime.now(), 'present', responseUri);
+
+        type += '${getTypeToShow(cred.type)}, \n';
+      }
+      logger.d(type);
+
+      for (var cred in entry.isoMdocCredentials ?? <IssuerSignedObject>[]) {
+        var mso = MobileSecurityObject.fromCbor(cred.issuerAuth.payload);
+
+        var did = coseKeyToDid(mso.deviceKeyInfo.deviceKey);
+        wallet.storeExchangeHistoryEntry(
+            did, DateTime.now(), 'present', responseUri);
+
+        type += '${mso.docType}, \n';
+      }
+      logger.d(type);
+
+      for (var cred in entry.sdJwtCredentials ?? <sd_jwt.SdJws>[]) {
+        var sdJwt = cred.toSdJwt();
+
+        var cnf = sdJwt.confirmation!.toJson();
+        logger.d(cnf['jwk']);
+        var multibase = jwkToMultiBase(cnf['jwk']);
+        var restoredDid = 'did:key:$multibase';
+        wallet.storeExchangeHistoryEntry(
+            restoredDid, DateTime.now(), 'present', responseUri);
+
+        var vct = sdJwt.additionalClaims?['vct'] ?? '';
+        type += '$vct, \n';
+      }
+    }
+
+    if (type.length >= 3) {
+      type = type.substring(0, type.length - 3);
+    }
+    logger.d(type);
+
+    await showModalBottomSheet(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(10), topRight: Radius.circular(10)),
+        ),
+        context: navigatorKey.currentContext!,
+        builder: (context) {
+          return ModalDismissWrapper(
+            child: PaymentFinished(
+              headline: AppLocalizations.of(navigatorKey.currentContext!)!
+                  .presentationSuccessful,
+              success: true,
+              amount: CurrencyDisplay(
+                  amount: type, symbol: '', mainFontSize: 18, centered: true),
+            ),
+          );
+        });
+
+    //Navigator.of(context).pop();
+
+    try {
+      Map bodyData = jsonDecode(res.body);
+      if (bodyData.containsKey('redirect_uri')) {
+        launchUrl(Uri.parse(bodyData['redirect_uri']),
+            mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      logger.d('no json response: $e');
+    }
+  } else {
+    await showModalBottomSheet(
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(10), topRight: Radius.circular(10))),
+        context: navigatorKey.currentContext!,
+        builder: (context) {
+          return ModalDismissWrapper(
+            closeSeconds: 4,
+            child: PaymentFinished(
+              headline: AppLocalizations.of(navigatorKey.currentContext!)!
+                  .presentationFailed,
+              success: false,
+              amount: const CurrencyDisplay(
+                  width: 350,
+                  amount: '',
+                  symbol: '',
+                  mainFontSize: 18,
+                  centered: true),
+            ),
+          );
+        });
+    // Navigator.of(context).pop();
   }
 }

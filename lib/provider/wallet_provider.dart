@@ -11,7 +11,6 @@ import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart';
 import 'package:id_ideal_wallet/basicUi/standard/currency_display.dart';
 import 'package:id_ideal_wallet/basicUi/standard/modal_dismiss_wrapper.dart';
@@ -32,6 +31,7 @@ import 'package:sd_jwt/sd_jwt.dart' as sd_jwt;
 import 'package:uuid/uuid.dart';
 
 import '../functions/util.dart' as my_util;
+import '../l10n/app_localizations.dart';
 
 enum KeyStore { software, system }
 
@@ -57,6 +57,7 @@ class WalletProvider extends ChangeNotifier {
   List<VerifiableCredential> paymentCredentials = [];
   List<Credential> isoMdocCredentials = [];
   List<Credential> sdJwtCredentials = [];
+  List<VerifiableCredential> w3cCredentials = [];
   Map<String, VerifiableCredential> accountVcs = {};
 
   Set<String> credentialsTypes = {};
@@ -834,6 +835,7 @@ class WalletProvider extends ChangeNotifier {
     paymentCredentials = [];
     isoMdocCredentials = [];
     sdJwtCredentials = [];
+    w3cCredentials = [];
     credentialsTypes = {
       AppLocalizations.of(navigatorKey.currentContext!)!.allCredentials
     };
@@ -855,6 +857,11 @@ class WalletProvider extends ChangeNotifier {
         }
 
         var vc = VerifiableCredential.fromJson(cred.verifiableCredential);
+
+        if (cred.metadata == '') {
+          w3cCredentials.add(vc);
+        }
+
         if (vc.type.contains('PaymentContext')) {
           paymentCredentials.add(vc);
           _updateLastThreePayments(vc.id!);

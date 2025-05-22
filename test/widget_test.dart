@@ -5,25 +5,43 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
+import 'package:dart_ssi/credentials.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:id_ideal_wallet/l10n/app_localizations.dart';
+import 'package:id_ideal_wallet/views/presentation_request.dart';
 
+import 'example_credentials.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('test presentation request widget for selecting credentials',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(Localizations(
+        locale: Locale('de'),
+        delegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        child: PresentationRequestDialog(
+            results: [
+              FilterResult(
+                  matchingDescriptorIds: [],
+                  presentationDefinitionId: 'abc',
+                  fulfilled: true,
+                  isoMdocCredentials: [msoVc1],
+                  sdJwtCredentials: [sdJwt2]),
+            ],
+            otherEndpoint: 'google.com',
+            definition: PresentationDefinition(inputDescriptors: []))));
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    var finder = find.bySemanticsLabel('org.iso.18013.5.1.mDL');
+    expect(finder, findsOneWidget);
+    var findMdocCred = find.text('org.iso.18013.5.1.mDL');
+    expect(findMdocCred, findsOneWidget);
+    var findSdJwt = find.text('TestVc2');
+    expect(findSdJwt, findsOneWidget);
   });
 }

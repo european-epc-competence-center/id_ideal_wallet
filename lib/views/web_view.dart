@@ -7,7 +7,6 @@ import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart';
 import 'package:id_ideal_wallet/basicUi/standard/cached_image.dart';
@@ -23,6 +22,8 @@ import 'package:id_ideal_wallet/views/presentation_request.dart';
 import 'package:id_ideal_wallet/views/qr_scanner.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+
+import '../l10n/app_localizations.dart';
 
 class WebViewWindow extends StatefulWidget {
   final String initialUrl;
@@ -403,7 +404,7 @@ class WebViewWindowState extends State<WebViewWindow> {
 
                         if ((uri.authority.contains('wallet.id-ideal.de') ||
                             uri.authority.contains('wallet.bccm.dev') ||
-                            uri.scheme == 'eudi-openid4vci')) {
+                            uri.scheme == 'eudi-openid4ci')) {
                           Provider.of<NavigationProvider>(context,
                                   listen: false)
                               .handleLink(
@@ -649,17 +650,18 @@ class WebViewWindowState extends State<WebViewWindow> {
       } else {
         var target = PresentationRequestDialog(
           definition: definition,
-          definitionHash: hexEncode(definitionHash),
           askForBackground: askForBackground,
           name: definition.name,
           purpose: definition.purpose,
           otherEndpoint: initialUrl,
-          receiverDid: '',
-          myDid: '',
           results: filtered,
-          nonce: nonce,
         );
-        vp = await navigateClassic(target);
+        bool backgroundAllow;
+        (backgroundAllow, vp) = await navigateClassic(target);
+        if (askForBackground && backgroundAllow) {
+          var wallet = Provider.of<WalletProvider>(context, listen: false);
+          wallet.addAuthorizedApp(initialUrl, hexEncode(definitionHash));
+        }
       }
 
       return vp;
