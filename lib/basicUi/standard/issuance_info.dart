@@ -35,8 +35,9 @@ class IssuanceInfoState extends State<IssuanceInfo> {
     super.initState();
 
     for (var descriptorId in widget.descriptorIds) {
-      var descriptor = widget.definition.inputDescriptors
-          .firstWhere((element) => element.id == descriptorId);
+      var descriptor = widget.definition.inputDescriptors.firstWhere(
+          (element) => element.id == descriptorId,
+          orElse: () => InputDescriptor());
 
       if (descriptor.constraints != null &&
           descriptor.constraints?.fields != null) {

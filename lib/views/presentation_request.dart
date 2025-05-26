@@ -63,6 +63,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
     super.initState();
     for (var res in widget.results) {
       fulfillable = fulfillable && res.fulfilled;
+      logger.d('fulfilled: ${res.fulfilled} / fulfillable: $fulfillable');
       var selectedCreds = <bool>[];
       int innerPos = 0;
       for (var _ in res.isoMdocCredentials ?? []) {

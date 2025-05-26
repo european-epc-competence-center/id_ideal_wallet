@@ -145,6 +145,7 @@ Future<void> handleOfferOid(String offerUri) async {
   }
   for (String t in credentialToRequest) {
     var credConfig = issuerMetadata.credentialsSupported[t];
+
     if (credConfig == null) {
       logger.d('credential without config');
       showErrorMessage(
@@ -153,8 +154,11 @@ Future<void> handleOfferOid(String offerUri) async {
               .oidMetadataErrorNote);
       return;
     }
+    credConfig.credentialId ??= t;
     offeredCredentials.add(credConfig);
   }
+
+  logger.d(offeredCredentials);
 
   dynamic res = true;
   res = await Future.delayed(const Duration(seconds: 1), () async {
@@ -222,15 +226,19 @@ Future<void> handleOfferOid(String offerUri) async {
           '${const Uuid().v4().toString()}-${const Uuid().v4().toString()}';
       String pkceCodeChallenge = removePaddingFromBase64(
           base64UrlEncode(sha256.process(utf8.encode(pkceCodeVerifier))));
-      logger.d(offeredCredentials.map((e) => e.toJson()).toList());
+
+      var configMap = {};
+      for (var c in offeredCredentials) {
+        configMap[c.credentialId] = c.toJson();
+      }
+      logger.d(configMap);
       Provider.of<WalletProvider>(navigatorKey.currentContext!, listen: false)
           .storeConfig(
               state,
               jsonEncode({
                 'offer': offer.toJson(),
                 'authServer': authserver,
-                'credentials':
-                    offeredCredentials.map((e) => e.toJson()).toList(),
+                'credentials': configMap,
                 'codeVerifier': pkceCodeVerifier
               }));
 
@@ -454,9 +462,15 @@ Future<void> handleRedirect(String uri, [String? dpopNonce]) async {
   String codeVerifier = parsed['codeVerifier'];
   OidCredentialOffer offer = OidCredentialOffer.fromJson(parsed['offer']);
   List<CredentialsSupportedObject> credentialMetadata =
-      (parsed['credentials'] as List)
-          .map((e) => CredentialsSupportedObject.fromJson(e))
+      (parsed['credentials'] as Map)
+          .map((k, e) {
+            var encoded = CredentialsSupportedObject.fromJson(e);
+            encoded.credentialId = k;
+            return MapEntry(k, encoded);
+          })
+          .values
           .toList();
+
   logger.d('authServer: $authServer, codeVerifier: $codeVerifier');
 
   Map? clientMetaData = knownAuthServer[authServer];
@@ -781,9 +795,12 @@ Future<void> getCredential(
       format: credentialMetadata.format,
       credentialType: credentialMetadata.credentialType,
       context: credentialMetadata.context,
+      credentialConfigurationId: credentialMetadata.credentialId,
       proof: [
         CredentialRequestProof(proofType: proofType, proofValue: proofValue)
       ]);
+
+  logger.d(credentialRequest);
 
   pc.AsymmetricKeyPair<pc.RSAPublicKey, pc.RSAPrivateKey>? decryptionKey;
   if (metadata.credentialResponseEncryptionRequired ?? false) {
@@ -901,8 +918,13 @@ Future<void> getCredential(
               decodedCredentialResponse.transactionId!,
               decryptionKey));
     } else {
-      storeCredential(format, decodedCredentialResponse.credential,
-          credentialDid, wallet, credentialIssuer);
+      storeCredential(
+          format,
+          decodedCredentialResponse.credential ??
+              decodedCredentialResponse.credentials?.first.credential,
+          credentialDid,
+          wallet,
+          credentialIssuer);
     }
   } else {
     logger.d(credentialResponse.statusCode);
@@ -932,14 +954,9 @@ OidCredentialResponse decryptResponse(
   decrypt.init(false,
       pc.PrivateKeyParameter<pc.RSAPrivateKey>(decryptionKey.privateKey));
   var decrypted = decrypt.process(encryptedKey);
-  // var encryptor = decryptionKey.privateKey!
-  //     .createEncrypter(algorithms.encryption.rsa.oaep256);
-  // var decrypted = encryptor.decrypt(EncryptionResult(encryptedKey));
 
   logger.d(iv);
 
-  // var symmetric = SymmetricKey(keyValue: decrypted);
-  // Encrypter symmetricDecrypt;
   Uint8List decrypted2;
   var enc = header['enc'];
   if (enc == 'A128GCM' || enc == 'A192GCM' || enc == 'A256GCM') {
@@ -953,7 +970,6 @@ OidCredentialResponse decryptResponse(
           ascii.encode(split.first),
         ));
     decrypted2 = algorithm.process(Uint8List.fromList(cipher + tag));
-    // symmetricDecrypt = symmetric.createEncrypter(algorithms.encryption.aes.gcm);
   } else {
     int macLength, blockLength;
     pc.Digest digest;
@@ -1178,6 +1194,7 @@ storeCredential(String format, dynamic credential, String credentialDid,
           AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
           AppLocalizations.of(navigatorKey.currentContext!)!
               .wrongCredentialNote);
+      return;
     }
 
     var cnf = sd.confirmation!.toJson();
@@ -1190,6 +1207,7 @@ storeCredential(String format, dynamic credential, String credentialDid,
           AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
           AppLocalizations.of(navigatorKey.currentContext!)!
               .wrongCredentialNote2);
+      return;
     }
 
     var claims = sd.additionalClaims ?? {};
@@ -1245,13 +1263,6 @@ storeCredential(String format, dynamic credential, String credentialDid,
     if (verified) {
       var credDid = asVc.credentialSubject['id'];
       logger.d(credDid);
-      // var storageCred = wallet.getCredential(credDid.split('#').first);
-      // if (storageCred == null) {
-      //   showErrorMessage(
-      //       AppLocalizations.of(navigatorKey.currentContext!)!.saveError,
-      //       AppLocalizations.of(navigatorKey.currentContext!)!.saveErrorNote);
-      //   return;
-      // }
 
       wallet.storeCredential(asVc, credDid);
       wallet.storeExchangeHistoryEntry(
@@ -1260,6 +1271,12 @@ storeCredential(String format, dynamic credential, String credentialDid,
       showSuccessMessage(
           AppLocalizations.of(navigatorKey.currentContext!)!.credentialReceived,
           getTypeToShow(asVc.type));
+    } else {
+      showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+        AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredentialNote,
+      );
+      return;
     }
   }
 }
@@ -1292,12 +1309,43 @@ Future<void> handlePresentationRequestOid(String request) async {
               'Accept': 'application/json'
             });
       } else if (method == 'post') {
+        var walletMetadata = AuthorizationServerMetadata(
+          vpFormatsSupported: VpFormats(
+              ldp: VpFormatLdp(proofTypeValues: [
+                LdpProofType.ed25519Signature2020.value,
+                LdpProofType.jsonWebSignature2020.value
+              ]),
+              sdJwt: VpFormatSdJwt(
+                  sdJwtAlgValues: ['ES256', 'ES384', 'ES512', 'EdDSA'],
+                  kbJwtAlgValues: ['ES256', 'ES384', 'ES512', 'EdDSA']),
+              msoMdoc: VpFormatMsoMdoc(issuerAuthAlgValues: [
+                CoseAlgorithm.es256,
+                CoseAlgorithm.es384,
+                CoseAlgorithm.es512,
+                CoseAlgorithm.edDSA,
+                -9,
+                -52,
+                -51,
+                -19
+              ], deviceAuthAlgValues: [
+                CoseAlgorithm.es256,
+                CoseAlgorithm.es384,
+                CoseAlgorithm.es512,
+                CoseAlgorithm.edDSA,
+                -9,
+                -52,
+                -51,
+                -19
+              ])),
+        );
         requestRaw = await post(
             Uri.parse(asUri.queryParameters['request_uri']!),
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded',
               'Accept': 'application/oauth-authz-req+jwt'
-            });
+            },
+            body:
+                'wallet_metadata=${Uri.encodeQueryComponent(walletMetadata.toString())}');
       } else {
         logger.d('Unknown requestUriMethod $method');
         showErrorMessage(
@@ -1408,8 +1456,12 @@ Future<void> handlePresentationRequestOid(String request) async {
   }
 
   for (var cred in isoCreds) {
-    isoCredsParsed.add(IssuerSignedObject.fromCbor(
-        base64Decode(cred.metadata.replaceAll('$isoPrefix:', ''))));
+    var iso = IssuerSignedObject.fromCbor(
+        base64Decode(cred.metadata.replaceAll('$isoPrefix:', '')));
+    var mso = MobileSecurityObject.fromCbor(iso.issuerAuth.payload);
+    if (mso.validityInfo.validUntil.isAfter(DateTime.now())) {
+      isoCredsParsed.add(iso);
+    }
   }
 
   for (var c in wallet.sdJwtCredentials) {
@@ -1495,7 +1547,7 @@ Future<(dynamic, PresentationSubmission, String?)> buildAnswer(
       requestData.clientId!;
 
   logger.d((requestData.toJson()));
-  vp = requestData.presentationDefinition != null ? [] : <String, List>{};
+  vp = requestData.presentationDefinition != null ? [] : <String, dynamic>{};
   logger.d(vp.runtimeType);
 
   for (FilterResult entry in finalSend) {
@@ -1540,9 +1592,22 @@ Future<(dynamic, PresentationSubmission, String?)> buildAnswer(
         if (requestData.presentationDefinition != null) {
           vp.add(removePaddingFromBase64(base64UrlEncode(res.toEncodedCbor())));
         } else {
-          vp[entry.matchingDescriptorIds.first] = [
-            removePaddingFromBase64(base64UrlEncode(res.toEncodedCbor()))
-          ];
+          dynamic existing = vp[entry.matchingDescriptorIds.first];
+          dynamic toAdd;
+          if (existing is List) {
+            existing.add(
+                removePaddingFromBase64(base64UrlEncode(res.toEncodedCbor())));
+            toAdd = existing;
+          } else if (existing is String) {
+            toAdd = [
+              existing,
+              removePaddingFromBase64(base64UrlEncode(res.toEncodedCbor()))
+            ];
+          } else {
+            toAdd =
+                removePaddingFromBase64(base64UrlEncode(res.toEncodedCbor()));
+          }
+          vp[entry.matchingDescriptorIds.first] = toAdd;
         }
       }
 
@@ -1573,9 +1638,17 @@ Future<(dynamic, PresentationSubmission, String?)> buildAnswer(
               }
             }
           }
-          List existing = vp[entry.matchingDescriptorIds.first] ?? [];
-          existing.add(vpW3c);
-          vp[entry.matchingDescriptorIds.first] = existing;
+          dynamic existing = vp[entry.matchingDescriptorIds.first];
+          dynamic toAdd;
+          if (existing is List) {
+            existing.add(vpW3c);
+            toAdd = existing;
+          } else if (existing is Map) {
+            toAdd = [existing, vpW3c];
+          } else {
+            toAdd = vpW3c;
+          }
+          vp[entry.matchingDescriptorIds.first] = toAdd;
         }
       }
 
@@ -1607,7 +1680,7 @@ Future<(dynamic, PresentationSubmission, String?)> buildAnswer(
 
           var signed = await s.bind(
               signer: WalletCryptoProviderForSdJwt(wallet.wallet, restoredDid),
-              audience: responseUri,
+              audience: requestData.clientId!,
               issuedAt: DateTime.now(),
               nonce: requestData.nonce!,
               signingAlgorithm: algorithm!);
@@ -1622,7 +1695,7 @@ Future<(dynamic, PresentationSubmission, String?)> buildAnswer(
 
           descriptorMap.add(InputDescriptorMappingObject(
               id: entry.matchingDescriptorIds.first,
-              format: OidCredentialFormat.sdJwt,
+              format: OidCredentialFormat.sdJwtDc,
               path: JsonPath(
                   '\$${vp.isEmpty && entry.sdJwtCredentials!.length == 1 ? '' : '[${arrayIndex + vp.length - 1}]'}')));
           arrayIndex++;
@@ -1631,9 +1704,17 @@ Future<(dynamic, PresentationSubmission, String?)> buildAnswer(
         if (requestData.presentationDefinition != null) {
           vp.addAll(sdJwtCreds);
         } else {
-          List existing = vp[entry.matchingDescriptorIds.first] ?? [];
-          existing.addAll(sdJwtCreds);
-          vp[entry.matchingDescriptorIds.first] = existing;
+          dynamic existing = vp[entry.matchingDescriptorIds.first];
+          dynamic toAdd;
+          if (existing is List) {
+            existing.addAll(sdJwtCreds);
+            toAdd = existing;
+          } else if (existing is String) {
+            toAdd = [existing, ...sdJwtCreds];
+          } else {
+            toAdd = sdJwtCreds.length == 1 ? sdJwtCreds.first : sdJwtCreds;
+          }
+          vp[entry.matchingDescriptorIds.first] = toAdd;
         }
       }
     }
@@ -1682,7 +1763,8 @@ sendPresentationResponse(
         await buildAnswer(finalSend, wallet, requestData);
   } catch (e) {
     logger.d('build answer failed: $e');
-    // TODO other message & send error response with suitable code
+    sendErrorResponse(
+        responseUri, requestData.responseMode ?? 'query', 'server_error');
     showErrorMessage(
         AppLocalizations.of(navigatorKey.currentContext!)!.sendFailed,
         AppLocalizations.of(navigatorKey.currentContext!)!.sendFailedNote);
@@ -1728,7 +1810,9 @@ sendPresentationResponse(
         jwks = requestData.clientMetaData?.jwks;
       }
       if (jwks == null) {
-        // TODO other message & send error response with suitable code
+        logger.d('no jwks found');
+        sendErrorResponse(responseUri, requestData.responseMode ?? 'query',
+            'invalid_request');
         showErrorMessage(
             AppLocalizations.of(navigatorKey.currentContext!)!.sendFailed,
             AppLocalizations.of(navigatorKey.currentContext!)!.sendFailedNote);
@@ -1741,7 +1825,8 @@ sendPresentationResponse(
             requestData.clientMetaData!.authEncryptedResponseAlg);
       } catch (e) {
         logger.d('no suitableKey');
-        // TODO other message & send error response with suitable code
+        sendErrorResponse(responseUri, requestData.responseMode ?? 'query',
+            'invalid_request');
         showErrorMessage(
             AppLocalizations.of(navigatorKey.currentContext!)!.sendFailed,
             AppLocalizations.of(navigatorKey.currentContext!)!.sendFailedNote);
@@ -1757,7 +1842,7 @@ sendPresentationResponse(
         walletKeyType = KeyType.x25519;
       } else if (crv == 'P-384') {
         walletKeyType = KeyType.p384;
-      } else if (crv == 'P521') {
+      } else if (crv == 'P-521') {
         walletKeyType = KeyType.p521;
       } else {
         walletKeyType = KeyType.secp256k1;
@@ -1794,47 +1879,93 @@ sendPresentationResponse(
             apv: header['apv']);
 
         logger.d('$sharedSecret, ${sharedSecret.length}');
-        // direct mode
-        var key = x509.SymmetricKey(keyValue: Uint8List.fromList(sharedSecret));
+
         // build aad ( ASCII(BASE64URL(UTF8(JWE Protected Header))) )
         var aad = ascii.encode(removePaddingFromBase64(
             base64UrlEncode(utf8.encode(jsonEncode(header)))));
 
         //data
         var data = {
-          'vp_token': vp.length == 1 ? vp.first : vp,
+          'vp_token': vp is List && vp.length == 1 ? vp.first : vp,
         };
+        logger.d(vp);
 
         if (requestData.presentationDefinition != null) {
+          logger.d(submission);
           data['presentation_submission'] = submission;
         }
         if (requestData.state != null) {
           data['state'] = requestData.state;
         }
 
-        x509.Encrypter e;
-        if (enc == 'A128CBC-HS256') {
-          e = key.createEncrypter(
-              x509.algorithms.encryption.aes.cbcWithHmac.sha256);
-        } else if (enc == 'A192CBC-HS384') {
-          e = key.createEncrypter(
-              x509.algorithms.encryption.aes.cbcWithHmac.sha384);
-        } else if (enc == 'A256CBC-HS512') {
-          e = key.createEncrypter(
-              x509.algorithms.encryption.aes.cbcWithHmac.sha512);
-        } else if (enc == 'A128GCM' || enc == 'A192GCM' || enc == 'A256GCM') {
-          e = key.createEncrypter(x509.algorithms.encryption.aes.gcm);
+        //4) Generate IV
+        var iv = getSecureRandom().nextBytes(16);
+
+        Uint8List encrypted2, tag;
+        if (enc == 'A128GCM' || enc == 'A192GCM' || enc == 'A256GCM') {
+          var algorithm = pc.GCMBlockCipher(pc.AESEngine());
+          algorithm.init(
+              true,
+              pc.AEADParameters(
+                pc.KeyParameter(Uint8List.fromList(sharedSecret)),
+                128,
+                iv,
+                aad,
+              ));
+          var res = algorithm
+              .process(Uint8List.fromList(utf8.encode(jsonEncode(data))));
+          encrypted2 = res.sublist(0, res.length - 16);
+          tag = res.sublist(res.length - 16);
         } else {
-          throw Exception('Unknown enc $enc');
+          int macLength, blockLength;
+          pc.Digest digest;
+          if (enc == 'A128CBC-HS256') {
+            macLength = 16;
+            blockLength = 64;
+            digest = pc.SHA256Digest();
+          } else if (enc == 'A192CBC-HS384') {
+            macLength = 24;
+            blockLength = 64;
+            digest = pc.SHA384Digest();
+          } else if (enc == 'A256CBC-HS512') {
+            digest = pc.SHA512Digest();
+            blockLength = 128;
+            macLength = 32;
+          } else {
+            logger.d('Unsupported enc $enc');
+            sendErrorResponse(responseUri, requestData.responseMode ?? 'query',
+                'server_error');
+            showErrorMessage(
+                AppLocalizations.of(navigatorKey.currentContext!)!.sendFailed,
+                AppLocalizations.of(navigatorKey.currentContext!)!
+                    .sendFailedNote);
+            return;
+          }
+
+          var algorithm = pc.PaddedBlockCipher('AES/CBC/PKCS7');
+          algorithm.init(
+              true,
+              pc.PaddedBlockCipherParameters(
+                  pc.ParametersWithIV(
+                      pc.KeyParameter(
+                          Uint8List.fromList(sharedSecret.sublist(macLength))),
+                      iv),
+                  null));
+          encrypted2 = algorithm
+              .process(Uint8List.fromList(utf8.encode(jsonEncode(data))));
+
+          var mac = pc.HMac(digest, blockLength);
+          var al = aad.length * 8;
+          var alHex = al.toRadixString(16).padLeft(16, '0');
+          mac.init(pc.KeyParameter(
+              Uint8List.fromList(sharedSecret.sublist(0, macLength))));
+          var computedMac = mac.process(
+              Uint8List.fromList(aad + iv + encrypted2 + hexDecode(alHex)));
+          tag = computedMac.sublist(0, macLength);
         }
 
-        //6) encrypt and get tag
-        var encrypted = e.encrypt(
-            Uint8List.fromList(utf8.encode(jsonEncode(data))),
-            additionalAuthenticatedData: aad);
-
         var jwe =
-            '${removePaddingFromBase64(base64UrlEncode(utf8.encode(jsonEncode(header))))}..${removePaddingFromBase64(base64UrlEncode(encrypted.initializationVector!))}.${removePaddingFromBase64(base64UrlEncode(encrypted.data))}.${removePaddingFromBase64(base64UrlEncode(encrypted.authenticationTag!))}';
+            '${removePaddingFromBase64(base64UrlEncode(utf8.encode(jsonEncode(header))))}..${removePaddingFromBase64(base64UrlEncode(iv))}.${removePaddingFromBase64(base64UrlEncode(encrypted2))}.${removePaddingFromBase64(base64UrlEncode(tag))}';
 
         logger.d('jwe: $jwe');
         var httpClient = io.HttpClient();
@@ -1857,7 +1988,8 @@ sendPresentationResponse(
         }
       } else {
         logger.d('Unsupported alg ${header['alg']}');
-        // TODO other message & send error response with suitable code
+        sendErrorResponse(
+            responseUri, requestData.responseMode ?? 'query', 'server_error');
         showErrorMessage(
             AppLocalizations.of(navigatorKey.currentContext!)!.sendFailed,
             AppLocalizations.of(navigatorKey.currentContext!)!.sendFailedNote);
@@ -1865,7 +1997,8 @@ sendPresentationResponse(
       }
     } else {
       logger.d('jwt requested but no enc and alg given');
-      // TODO other message & send error response with suitable code
+      sendErrorResponse(
+          responseUri, requestData.responseMode ?? 'query', 'invalid_request');
       showErrorMessage(
           AppLocalizations.of(navigatorKey.currentContext!)!.sendFailed,
           AppLocalizations.of(navigatorKey.currentContext!)!.sendFailedNote);
