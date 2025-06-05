@@ -283,5 +283,12 @@
   "bleButton": "Neustart",
   "bleError": "Es ist ein Fehler aufgetreten. Bitte starten Sie den Vorgang mittels des Buttons neu.\nSollten Sie diese Meldung zum wiederholten Mal sehen, versuchen Sie Bluetooth aus und wieder an zu schalten oder Hidy neu zu starten",
   "biometricPromptTitle": "Signaturerstellung",
-  "biometricPromptSubtitle": "Bitte authentifizieren Sie sich für die Nutzung Ihres Schlüssels"
+  "biometricPromptSubtitle": "Bitte authentifizieren Sie sich für die Nutzung Ihres Schlüssels",
+  "verifiedMail": "Bereits verifizierte E-Mail-Adressen:",
+  "noMailAddress": "Sie haben noch keine E-Mail-Adressen hinterlegt",
+  "newMailAddress": "Neue E-Mail Adresse hinzufügen",
+  "deleteMail": "Sind Sie sicher, dass Sie diese E-Mail-Adresse löschen möchten?",
+  "sendMailFailed": "Senden der E-Mail fehlgeschlagen",
+  "checkMails": "Bitte überprüfen Sie Ihr E-Mail Postfach",
+  "sendSuccess": "Senden Erfolgreich"
 }

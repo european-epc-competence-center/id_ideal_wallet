@@ -17,5 +17,6 @@ enum NavigationPage {
   aboDetail,
   backupOverview,
   backupCreate,
-  backupRestore
+  backupRestore,
+  email
 }

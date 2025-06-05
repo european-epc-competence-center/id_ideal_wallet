@@ -870,4 +870,26 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get biometricPromptSubtitle =>
       'Bitte authentifizieren Sie sich für die Nutzung Ihres Schlüssels';
+
+  @override
+  String get verifiedMail => 'Bereits verifizierte E-Mail-Adressen:';
+
+  @override
+  String get noMailAddress => 'Sie haben noch keine E-Mail-Adressen hinterlegt';
+
+  @override
+  String get newMailAddress => 'Neue E-Mail Adresse hinzufügen';
+
+  @override
+  String get deleteMail =>
+      'Sind Sie sicher, dass Sie diese E-Mail-Adresse löschen möchten?';
+
+  @override
+  String get sendMailFailed => 'Senden der E-Mail fehlgeschlagen';
+
+  @override
+  String get checkMails => 'Bitte überprüfen Sie Ihr E-Mail Postfach';
+
+  @override
+  String get sendSuccess => 'Senden Erfolgreich';
 }

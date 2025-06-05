@@ -51,6 +51,14 @@ class IdentityOverviewState extends State<IdentityOverview> {
               SizedBox(
                 height: 5,
               ),
+              ElevatedButton(
+                  onPressed: () =>
+                      Provider.of<NavigationProvider>(context, listen: false)
+                          .changePage([NavigationPage.email]),
+                  child: Text('E-Mail')),
+              SizedBox(
+                height: 5,
+              ),
               wallet.getDriverLicensePhoto() == null
                   ? ElevatedButton(
                       onPressed: () => navigateClassic(CameraView(

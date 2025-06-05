@@ -24,6 +24,7 @@ import 'package:id_ideal_wallet/views/backup_view.dart';
 import 'package:id_ideal_wallet/views/credential_detail.dart';
 import 'package:id_ideal_wallet/views/credential_page.dart';
 import 'package:id_ideal_wallet/views/identity_overview.dart';
+import 'package:id_ideal_wallet/views/mail_credential_view.dart';
 import 'package:id_ideal_wallet/views/payment_card_overview.dart';
 import 'package:id_ideal_wallet/views/payment_overview.dart';
 import 'package:id_ideal_wallet/views/qr_scanner.dart';
@@ -163,6 +164,7 @@ class HomeScreen extends StatelessWidget {
                       NavigationPage.identityOverview,
                       NavigationPage.credential,
                       NavigationPage.credentialDetail,
+                      NavigationPage.email
                     ],
                     navigator: navigator),
                 const SizedBox(
@@ -280,6 +282,8 @@ class HomeScreen extends StatelessWidget {
         return const RestoreWidget();
       case NavigationPage.identityOverview:
         return const IdentityOverview();
+      case NavigationPage.email:
+        return const MailCredentialView();
       default:
         return const AboOverview();
     }

@@ -1675,6 +1675,48 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Bitte authentifizieren Sie sich für die Nutzung Ihres Schlüssels'**
   String get biometricPromptSubtitle;
+
+  /// No description provided for @verifiedMail.
+  ///
+  /// In de, this message translates to:
+  /// **'Bereits verifizierte E-Mail-Adressen:'**
+  String get verifiedMail;
+
+  /// No description provided for @noMailAddress.
+  ///
+  /// In de, this message translates to:
+  /// **'Sie haben noch keine E-Mail-Adressen hinterlegt'**
+  String get noMailAddress;
+
+  /// No description provided for @newMailAddress.
+  ///
+  /// In de, this message translates to:
+  /// **'Neue E-Mail Adresse hinzufügen'**
+  String get newMailAddress;
+
+  /// No description provided for @deleteMail.
+  ///
+  /// In de, this message translates to:
+  /// **'Sind Sie sicher, dass Sie diese E-Mail-Adresse löschen möchten?'**
+  String get deleteMail;
+
+  /// No description provided for @sendMailFailed.
+  ///
+  /// In de, this message translates to:
+  /// **'Senden der E-Mail fehlgeschlagen'**
+  String get sendMailFailed;
+
+  /// No description provided for @checkMails.
+  ///
+  /// In de, this message translates to:
+  /// **'Bitte überprüfen Sie Ihr E-Mail Postfach'**
+  String get checkMails;
+
+  /// No description provided for @sendSuccess.
+  ///
+  /// In de, this message translates to:
+  /// **'Senden Erfolgreich'**
+  String get sendSuccess;
 }
 
 class _AppLocalizationsDelegate

@@ -283,5 +283,12 @@
   "bleButton": "Restart",
   "bleError": "An error has occurred. Please restart the process using the button.\nIf you see this message repeatedly, try switching Bluetooth off and on again or restarting Hidy",
   "biometricPromptTitle": "Signature Generation",
-  "biometricPromptSubtitle": "Please authenticate for the usage of your signing key"
+  "biometricPromptSubtitle": "Please authenticate for the usage of your signing key",
+  "verifiedMail": "Verified e-mail addresses:",
+  "noMailAddress": "You have not added any e-mail addresses",
+  "newMailAddress": "Add new e-mail address",
+  "deleteMail": "Are you sure you want to delete this e-mail address?",
+  "sendMailFailed": "Failed to send e-mail",
+  "checkMails": "Please check your e-mail inbox",
+  "sendSuccess": "Send Successful"
 }

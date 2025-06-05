@@ -864,4 +864,26 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get biometricPromptSubtitle =>
       'Please authenticate for the usage of your signing key';
+
+  @override
+  String get verifiedMail => 'Verified e-mail addresses:';
+
+  @override
+  String get noMailAddress => 'You have not added any e-mail addresses';
+
+  @override
+  String get newMailAddress => 'Add new e-mail address';
+
+  @override
+  String get deleteMail =>
+      'Are you sure you want to delete this e-mail address?';
+
+  @override
+  String get sendMailFailed => 'Failed to send e-mail';
+
+  @override
+  String get checkMails => 'Please check your e-mail inbox';
+
+  @override
+  String get sendSuccess => 'Send Successful';
 }

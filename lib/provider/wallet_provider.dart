@@ -59,6 +59,7 @@ class WalletProvider extends ChangeNotifier {
   List<Credential> sdJwtCredentials = [];
   List<VerifiableCredential> w3cCredentials = [];
   Map<String, VerifiableCredential> accountVcs = {};
+  List<VerifiableCredential> mailCredentials = [];
 
   Set<String> credentialsTypes = {};
 
@@ -836,6 +837,7 @@ class WalletProvider extends ChangeNotifier {
     isoMdocCredentials = [];
     sdJwtCredentials = [];
     w3cCredentials = [];
+    mailCredentials = [];
     credentialsTypes = {
       AppLocalizations.of(navigatorKey.currentContext!)!.allCredentials
     };
@@ -870,6 +872,8 @@ class WalletProvider extends ChangeNotifier {
           if (vc.credentialSubject['webview'] != null) {
             accountVcs[vc.credentialSubject['webview']] = vc;
           }
+        } else if (vc.type.contains('Email')) {
+          mailCredentials.add(vc);
         } else {
           if (!vc.type.contains('PaymentReceipt')) {
             credentials.add(vc);

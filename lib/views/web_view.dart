@@ -193,8 +193,9 @@ class WebViewWindowState extends State<WebViewWindow> {
                     MenuItemButton(
                         trailingIcon: Icon(Icons.share),
                         onPressed: () {
-                          Share.share(
-                              'https://wallet.bccm.dev/webview?url=${Uri.encodeFull(widget.initialUrl)}&title=${widget.title}');
+                          SharePlus.instance.share(ShareParams(
+                              uri: Uri.parse(
+                                  'https://wallet.bccm.dev/webview?url=${Uri.encodeFull(widget.initialUrl)}&title=${widget.title}')));
                         },
                         child: Text('Teilen')),
                     MenuItemButton(
@@ -303,7 +304,8 @@ class WebViewWindowState extends State<WebViewWindow> {
                         webViewController?.addJavaScriptHandler(
                             handlerName: 'shareHandler',
                             callback: (args) async {
-                              var res = await Share.share(args.first);
+                              var res = await SharePlus.instance
+                                  .share(ShareParams(text: args.first));
                               return res.status == ShareResultStatus.success;
                             });
                         webViewController?.addJavaScriptHandler(
@@ -317,14 +319,15 @@ class WebViewWindowState extends State<WebViewWindow> {
                             handlerName: 'shareImageHandler',
                             callback: (args) async {
                               var d = UriData.fromUri(Uri.parse(args.first));
-                              var res = await Share.shareXFiles([
+                              var res = await SharePlus.instance
+                                  .share(ShareParams(files: [
                                 XFile.fromData(
                                   d.contentAsBytes(),
                                   mimeType: d.mimeType,
                                 )
                               ], fileNameOverrides: [
                                 'hidyShare.${d.mimeType.split('/').last}'
-                              ]);
+                              ]));
                               return res.status == ShareResultStatus.success;
                             });
                         webViewController?.addJavaScriptHandler(
