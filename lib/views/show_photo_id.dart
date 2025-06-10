@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:id_ideal_wallet/l10n/app_localizations.dart';
 
 class ShowPhotoId extends StatelessWidget {
   final String front, back;
@@ -13,7 +14,7 @@ class ShowPhotoId extends StatelessWidget {
       appBar: AppBar(),
       body: Column(
         children: [
-          Text('Vorderseite'),
+          Text(AppLocalizations.of(context)!.frontside),
           SizedBox(
             height: 5,
           ),
@@ -21,7 +22,7 @@ class ShowPhotoId extends StatelessWidget {
           SizedBox(
             height: 20,
           ),
-          Text('Rückseite'),
+          Text(AppLocalizations.of(context)!.backside),
           SizedBox(
             height: 5,
           ),

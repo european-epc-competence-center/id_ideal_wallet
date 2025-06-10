@@ -290,5 +290,8 @@
   "deleteMail": "Sind Sie sicher, dass Sie diese E-Mail-Adresse löschen möchten?",
   "sendMailFailed": "Senden der E-Mail fehlgeschlagen",
   "checkMails": "Bitte überprüfen Sie Ihr E-Mail Postfach",
-  "sendSuccess": "Senden Erfolgreich"
+  "sendSuccess": "Senden Erfolgreich",
+  "finish": "Fertig",
+  "frontside": "Vorderseite",
+  "backside": "Rückseite"
 }

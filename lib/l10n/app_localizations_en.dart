@@ -886,4 +886,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sendSuccess => 'Send Successful';
+
+  @override
+  String get finish => 'Finish';
+
+  @override
+  String get frontside => 'Front';
+
+  @override
+  String get backside => 'Back';
 }

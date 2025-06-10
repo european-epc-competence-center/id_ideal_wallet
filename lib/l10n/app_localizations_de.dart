@@ -892,4 +892,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get sendSuccess => 'Senden Erfolgreich';
+
+  @override
+  String get finish => 'Fertig';
+
+  @override
+  String get frontside => 'Vorderseite';
+
+  @override
+  String get backside => 'Rückseite';
 }

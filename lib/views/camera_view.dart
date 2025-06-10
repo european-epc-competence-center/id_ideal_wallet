@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:id_ideal_wallet/basicUi/standard/camera_view.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
+import 'package:id_ideal_wallet/l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -42,7 +43,7 @@ class CamaraViewState extends State<CameraView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Vorderseite'),
+            Text(AppLocalizations.of(context)!.frontside),
             GestureDetector(
               onTap: () async {
                 front = await navigateClassic(AndroidCameraWidget());
@@ -76,7 +77,7 @@ class CamaraViewState extends State<CameraView> {
             SizedBox(
               height: 10,
             ),
-            Text('Rückseite'),
+            Text(AppLocalizations.of(context)!.backside),
             GestureDetector(
               onTap: () async {
                 back = await navigateClassic(AndroidCameraWidget());
@@ -112,7 +113,7 @@ class CamaraViewState extends State<CameraView> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: storeData,
-        label: Text('Finish'),
+        label: Text(AppLocalizations.of(context)!.finish),
         icon: Icon(Icons.check),
       ),
     );

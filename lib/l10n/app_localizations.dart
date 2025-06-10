@@ -1717,6 +1717,24 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Senden Erfolgreich'**
   String get sendSuccess;
+
+  /// No description provided for @finish.
+  ///
+  /// In de, this message translates to:
+  /// **'Fertig'**
+  String get finish;
+
+  /// No description provided for @frontside.
+  ///
+  /// In de, this message translates to:
+  /// **'Vorderseite'**
+  String get frontside;
+
+  /// No description provided for @backside.
+  ///
+  /// In de, this message translates to:
+  /// **'Rückseite'**
+  String get backside;
 }
 
 class _AppLocalizationsDelegate
