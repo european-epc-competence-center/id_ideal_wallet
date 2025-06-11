@@ -15,7 +15,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 4.1.0-test+81
+version: 4.0.7-test+82
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -40,12 +40,12 @@ dependencies:
   http: ^1.2.2
 
   # developed by hidy team
-  #  dart_ssi:
-  #    git:
-  #      url: https://github.com/b2cm/dart_ssi
-  #      ref: flexible_key_store
   dart_ssi:
-    path: ../flutter_ssi_wallet
+    git:
+      url: https://github.com/b2cm/dart_ssi
+      ref: flexible_key_store
+  #  dart_ssi:
+  #    path: ../flutter_ssi_wallet
   #dart_ssi: ^3.0.0
   sd_jwt: ^1.0.0
   #    git:
@@ -63,7 +63,10 @@ dependencies:
   #path: ../cbor_test
   json_ld_processor: any
   keystore_plugin:
-    path: ../os_keystore_backend
+    git:
+      url: https://github.com/b2cm/hidy_keystore_plugin/
+      ref: development
+  #    path: ../os_keystore_backend
 
   # ui
   action_slider: any
