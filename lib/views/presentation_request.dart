@@ -61,9 +61,13 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
   @override
   initState() {
     super.initState();
+
     for (var res in widget.results) {
       fulfillable = fulfillable && res.fulfilled;
       logger.d('fulfilled: ${res.fulfilled} / fulfillable: $fulfillable');
+      if (res.selfIssuable != null && res.selfIssuable!.isNotEmpty) {
+        dataEntered = false;
+      }
       var selectedCreds = <bool>[];
       int innerPos = 0;
       for (var _ in res.isoMdocCredentials ?? []) {
@@ -198,6 +202,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
       if (result.nestedResults == null) {
         childList.add(
           ShowFilterResult(
+            key: UniqueKey(),
             result: result,
             selected: selected[outerPos],
             afterCheck: () => enoughSelected[outerPos] =
@@ -241,7 +246,9 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
                   });
                 },
               ),
-              children: [ShowFilterResult(result: nestedResult)],
+              children: [
+                ShowFilterResult(result: nestedResult),
+              ],
             );
 
             childList.add(nestedTile);
@@ -376,13 +383,13 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
     if (result.selfIssuable != null && result.selfIssuable!.isNotEmpty) {
       var pos = outerPos;
       dataEntered = false;
-      if ((result.credentials != null && result.credentials!.isNotEmpty) ||
-          (result.isoMdocCredentials != null &&
-              result.isoMdocCredentials!.isNotEmpty) ||
-          (result.sdJwtCredentials != null &&
-              result.sdJwtCredentials!.isNotEmpty)) {
-        dataEntered = true;
-      }
+      // if ((result.credentials != null && result.credentials!.isNotEmpty) ||
+      //     (result.isoMdocCredentials != null &&
+      //         result.isoMdocCredentials!.isNotEmpty) ||
+      //     (result.sdJwtCredentials != null &&
+      //         result.sdJwtCredentials!.isNotEmpty)) {
+      //   dataEntered = true;
+      // }
 
       for (var i in result.selfIssuable!) {
         //outerTileExpanded = true;
@@ -440,7 +447,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
       widget.results[index].credentials = cList;
       logger.d(widget.results);
       var m = selected[pos];
-      m[widget.results[index].credentials!.length - 1] = true;
+      m.insert(widget.results[index].credentials!.length - 1, true);
       dataEntered = true;
       setState(() {});
     }

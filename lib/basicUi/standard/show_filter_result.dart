@@ -29,7 +29,9 @@ class ShowFilterResultState extends State<ShowFilterResult> {
   @override
   void initState() {
     super.initState();
+  }
 
+  void getData() {
     for (var m in widget.result.isoMdocCredentials ?? <IssuerSignedObject>[]) {
       var mso = MobileSecurityObject.fromCbor(m.issuerAuth.payload);
       Map<String, dynamic> subject = {};
@@ -46,7 +48,8 @@ class ShowFilterResultState extends State<ShowFilterResult> {
 
     for (var w in widget.result.credentials ?? <VerifiableCredential>[]) {
       types.add(getTypeToShow(w.type));
-      content.add(buildCredSubject(w.credentialSubject));
+      content.add(buildCredSubject(
+          (w.credentialSubject as Map).cast<String, dynamic>()));
     }
 
     for (var s in widget.result.sdJwtCredentials ?? <SdJws>[]) {
@@ -60,6 +63,7 @@ class ShowFilterResultState extends State<ShowFilterResult> {
 
   @override
   Widget build(BuildContext context) {
+    getData();
     return ExpansionTile(
       initiallyExpanded: true,
       leading: widget.selected != null
