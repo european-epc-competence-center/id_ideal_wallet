@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/footer_buttons.dart';
+
+import '../l10n/app_localizations.dart';
 
 class AmountSelection extends StatefulWidget {
   final int minAmount, maxAmount;

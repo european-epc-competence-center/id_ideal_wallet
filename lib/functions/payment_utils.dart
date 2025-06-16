@@ -1,10 +1,8 @@
 import 'dart:convert';
 
 import 'package:bech32/bech32.dart';
-import 'package:crypto/crypto.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart';
 import 'package:id_ideal_wallet/basicUi/standard/currency_display.dart';
 import 'package:id_ideal_wallet/basicUi/standard/modal_dismiss_wrapper.dart';
@@ -18,6 +16,8 @@ import 'package:id_ideal_wallet/views/lnurl_amount_selector.dart';
 import 'package:id_ideal_wallet/views/payment_method_selection.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+
+import '../l10n/app_localizations.dart';
 
 class LightningException implements Exception {
   String message;
@@ -331,7 +331,7 @@ Future<void> handleLnurl(String lnurl) async {
     int minAmount = parsed['minSendable'];
     int maxAmount = parsed['maxSendable'];
     List metadata = jsonDecode(parsed['metadata']);
-    logger.d(sha256.convert(utf8.encode(parsed['metadata'])));
+    logger.d(sha256.process(utf8.encode(parsed['metadata'])));
     List descriptionEntry = metadata.firstWhere(
         (element) => element is List && element.first == 'text/plain',
         orElse: () => ['', '']);

@@ -18,7 +18,6 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.Process
 import android.os.RemoteException
-import android.view.WindowManager.LayoutParams
 import com.governikus.ausweisapp2.IAusweisApp2Sdk
 import com.governikus.ausweisapp2.IAusweisApp2SdkCallback
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -193,6 +192,7 @@ class MainActivity : FlutterFragmentActivity() {
 
         } else if (data != null && data.scheme == "content") {
             contentReceiver?.onReceive(this.applicationContext, intent)
+        } else if (action == "SELECT_NOTIFICATION") {
         } else {
             linkReceiver?.onReceive(this.applicationContext, intent)
         }
@@ -304,7 +304,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         // No Screenshots
-        window.addFlags(LayoutParams.FLAG_SECURE)
+        // window.addFlags(LayoutParams.FLAG_SECURE)
 
         // Flutter
         GeneratedPluginRegistrant.registerWith(flutterEngine)

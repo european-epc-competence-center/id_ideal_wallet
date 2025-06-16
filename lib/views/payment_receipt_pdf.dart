@@ -3,13 +3,14 @@ import 'dart:async';
 import 'package:dart_ssi/credentials.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/styled_scaffold_title.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pdf;
 import 'package:printing/printing.dart';
 import 'package:x509b/x509.dart' as x509;
+
+import '../l10n/app_localizations.dart';
 
 class PdfPreviewPage extends StatelessWidget {
   final VerifiableCredential paymentReceipt;

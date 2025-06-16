@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:dart_ssi/credentials.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/property_names.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
@@ -12,6 +11,8 @@ import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/web_view.dart';
 import 'package:json_schema/json_schema.dart';
 import 'package:provider/provider.dart';
+
+import '../../l10n/app_localizations.dart';
 
 class IssuanceInfo extends StatefulWidget {
   final PresentationDefinition definition;
@@ -34,8 +35,9 @@ class IssuanceInfoState extends State<IssuanceInfo> {
     super.initState();
 
     for (var descriptorId in widget.descriptorIds) {
-      var descriptor = widget.definition.inputDescriptors
-          .firstWhere((element) => element.id == descriptorId);
+      var descriptor = widget.definition.inputDescriptors.firstWhere(
+          (element) => element.id == descriptorId,
+          orElse: () => InputDescriptor());
 
       if (descriptor.constraints != null &&
           descriptor.constraints?.fields != null) {

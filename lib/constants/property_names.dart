@@ -1,5 +1,6 @@
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
+
+import '../l10n/app_localizations.dart';
 
 final propertyNames = {
   'givenName': AppLocalizations.of(navigatorKey.currentContext!)!.givenName,

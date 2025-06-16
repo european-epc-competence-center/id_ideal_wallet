@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logger/logger.dart';
+import 'package:pointycastle/digests/sha256.dart';
+
+import '../l10n/app_localizations.dart';
 
 var relay = 'https://167.235.195.132:8888';
 //var relay = 'http://localhost:8888';
@@ -35,35 +37,62 @@ Map knownAuthServer = {
     'client_id': 'wallet-dev',
     'redirect_uri': 'eudi-openid4ci://authorize'
   },
+  'https://authenticate.eudiw.dev/realms/pid-issuer-realm': {
+    'client_id': 'wallet-dev',
+    'redirect_uri': 'eudi-openid4ci://authorize'
+  },
+  // 'https://id.staging.authada.de/eudi/issuer/pid': {
+  //   'client_id': 'eEWA Wallet',
+  //   'redirect_uri': 'eudi-issuance://authorization'
+  // },
   'https://localhost:4443/idp/realms/pid-issuer-realm': {
     'client_id': 'wallet-dev',
     'redirect_uri': 'eudi-openid4ci://authorize'
+  },
+  'https://demo.pid-issuer.bundesdruckerei.de/c': {
+    'client_id': 'fed79862-af36-4fee-8e64-89e3c91091ed',
+    'pidIssuer': true,
+    'dpop': true
+  },
+  'https://demo.pid-issuer.bundesdruckerei.de/c2': {
+    'client_id': 'fed79862-af36-4fee-8e64-89e3c91091ed',
+    'pidIssuer': true,
+    'dpop': true
+  },
+  'https://demo.pid-issuer.bundesdruckerei.de/c1': {
+    'client_id': 'fed79862-af36-4fee-8e64-89e3c91091ed',
+    'pidIssuer': true,
+    'dpop': true
   }
 };
 
 // *****Endpoints for Public release*****
 
-var contextEndpoint =
-    'https://hidy.app/walletcontext?plattform=${Platform.isIOS ? '1' : '2'}';
-var applicationEndpoint =
-    'https://hidy.app/walletcontext/apps?plattform=${Platform.isIOS ? '1' : '2'}';
-var stylingEndpoint = 'https://hidy.app/walletcontext/layouts';
-var termsVersionEndpoint = 'https://hidy.app/walletcontext/terms';
-String versionNumber = '3.5.3';
-String baseUrl = 'https://hidy.app';
-bool testBuild = false;
+// var contextEndpoint =
+//     'https://hidy.app/walletcontext?plattform=${Platform.isIOS ? '1' : '2'}';
+// var applicationEndpoint =
+//     'https://hidy.app/walletcontext/apps?plattform=${Platform.isIOS ? '1' : '2'}';
+// var stylingEndpoint = 'https://hidy.app/walletcontext/layouts';
+// var termsVersionEndpoint = 'https://hidy.app/walletcontext/terms';
+// var messagingBackend =
+//     'https://test.hidy.app/walletcontext/fbm/registeraccount';
+// String versionNumber = '3.2.5';
+// String baseUrl = 'https://hidy.app';
+// bool testBuild = false;
 
 // ******Endpoints for Test-Release******
 
-// var contextEndpoint =
-//     'https://test.hidy.app/walletcontext?plattform=${Platform.isIOS ? '1' : '2'}';
-// var applicationEndpoint =
-//     'https://test.hidy.app/walletcontext/apps?plattform=${Platform.isIOS ? '1' : '2'}';
-// var stylingEndpoint = 'https://test.hidy.app/walletcontext/layouts';
-// var termsVersionEndpoint = 'https://test.hidy.app/walletcontext/terms';
-// String versionNumber = '3.4.2-test';
-// String baseUrl = 'https://test.hidy.app';
-// bool testBuild = true;
+var contextEndpoint =
+    'https://test.hidy.app/walletcontext?plattform=${Platform.isIOS ? '1' : '2'}';
+var applicationEndpoint =
+    'https://test.hidy.app/walletcontext/apps?plattform=${Platform.isIOS ? '1' : '2'}';
+var stylingEndpoint = 'https://test.hidy.app/walletcontext/layouts';
+var termsVersionEndpoint = 'https://test.hidy.app/walletcontext/terms';
+var messagingBackend =
+    'https://test.hidy.app/walletcontext/fbm/registeraccount';
+String versionNumber = '4.0.8-test';
+String baseUrl = 'https://test.hidy.app';
+bool testBuild = true;
 
 bool inOidcTest = false;
 
@@ -85,3 +114,5 @@ class DevHttpOverrides extends HttpOverrides {
           (X509Certificate cert, String host, int port) => true;
   }
 }
+
+final sha256 = SHA256Digest();

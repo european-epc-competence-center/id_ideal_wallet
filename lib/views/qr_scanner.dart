@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/styled_scaffold_title.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
@@ -10,8 +9,12 @@ import 'package:id_ideal_wallet/views/add_member_card.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
+
 class QrScanner extends StatefulWidget {
-  const QrScanner({super.key});
+  final bool inApp;
+
+  const QrScanner({super.key, this.inApp = true});
 
   @override
   QrScannerState createState() => QrScannerState();
@@ -32,14 +35,19 @@ class QrScannerState extends State<QrScanner> {
     final String code = barcode.rawValue!;
     logger.d(
         'Barcode found! $code, type: ${barcode.type.name}, format: ${barcode.format.name}');
-    var navigator = Provider.of<NavigationProvider>(context, listen: false);
-    if (code.length < 35 && !code.contains('://')) {
-      navigator.goBack();
-      navigateClassic(AddMemberCard(
-          initialNumber: code, initialBarcodeType: barcode.format.name));
+    if (widget.inApp) {
+      var navigator = Provider.of<NavigationProvider>(context, listen: false);
+      if (code.length < 35 && !code.contains('://')) {
+        navigator.goBack();
+        navigateClassic(AddMemberCard(
+            initialNumber: code, initialBarcodeType: barcode.format.name));
+      } else {
+        navigator.goBack();
+        navigator.handleLink(code);
+      }
     } else {
-      navigator.goBack();
-      navigator.handleLink(code);
+      //from webview
+      Navigator.of(context).pop(code);
     }
   }
 

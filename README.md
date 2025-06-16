@@ -29,6 +29,14 @@ research purpose.
   lnurls : `https://wallet.bccm.dev/invoice?invoice=<lightning invoice>`
   or `https://wallet.bccm.dev/invoice?lnurl=<lnurl>`
 
+## Push-Notifications
+
+- is implemented with firebase
+- configuration is added via .env file and given to compilation process with
+  `--dart-define-from-file=.env`
+- needed keys can be seen in [environment.dart](lib/constants/environment.dart)
+- app can be compiled and run without push notifications
+
 ## Important Notes
 
 - because the wallet store potential sensitive data the smartphone you run it on must offer an

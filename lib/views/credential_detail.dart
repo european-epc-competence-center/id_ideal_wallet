@@ -1,6 +1,5 @@
 import 'package:dart_ssi/credentials.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/issuer_info.dart';
 import 'package:id_ideal_wallet/basicUi/standard/styled_scaffold_title.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
@@ -12,6 +11,8 @@ import 'package:id_ideal_wallet/views/payment_receipt_pdf.dart';
 import 'package:provider/provider.dart';
 import 'package:x509b/x509.dart' as x509;
 
+import '../l10n/app_localizations.dart';
+
 class HistoryEntries extends StatelessWidget {
   const HistoryEntries({super.key, required this.credential});
 
@@ -20,8 +21,8 @@ class HistoryEntries extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<WalletProvider>(builder: (context, wallet, child) {
-      var credId = getHolderDidFromCredential(credential.toJson());
-      if (credId == '') {
+      var credId = credential.credentialSubject['id'];
+      if (credId == null || credId == '') {
         var type = getTypeToShow(credential.type);
         credId = '${credential.issuanceDate.toIso8601String()}$type';
       }
@@ -96,9 +97,8 @@ class CredentialDetailState extends State<CredentialDetailView> {
               child: Text(AppLocalizations.of(context)!.cancel)),
           TextButton(
               onPressed: () async {
-                var credId =
-                    getHolderDidFromCredential(widget.credential.toJson());
-                if (credId == '') {
+                var credId = widget.credential.credentialSubject['id'];
+                if (credId == null || credId == '') {
                   var type = getTypeToShow(widget.credential.type);
                   credId =
                       '${widget.credential.issuanceDate.toIso8601String()}$type';
@@ -130,7 +130,8 @@ class CredentialDetailState extends State<CredentialDetailView> {
       var receipt = Provider.of<WalletProvider>(context, listen: false)
           .getCredential(widget.credential.credentialSubject['receiptId']);
       if (receipt != null) {
-        var receiptVc = VerifiableCredential.fromJson(receipt.w3cCredential);
+        var receiptVc =
+            VerifiableCredential.fromJson(receipt.verifiableCredential);
         var target = PdfPreviewPage(
             paymentReceipt: receiptVc,
             eventName: widget.credential.credentialSubject['event'] ?? '');
@@ -335,8 +336,8 @@ class CredentialInfo extends StatelessWidget {
       otherData.add(expDateTile);
     }
 
-    var id = getHolderDidFromCredential(credential.toJson());
-    if (id == '') {
+    var id = credential.credentialSubject['id'];
+    if (id == null || id == '') {
       var type = getTypeToShow(credential.type);
       id = '${credential.issuanceDate.toIso8601String()}$type';
     }

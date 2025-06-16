@@ -1,23 +1,30 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/custom_navigation_item.dart';
 import 'package:id_ideal_wallet/basicUi/standard/theme.dart';
 import 'package:id_ideal_wallet/basicUi/standard/top_up.dart';
+import 'package:id_ideal_wallet/constants/firebase_options.dart';
 import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
 import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
+import 'package:id_ideal_wallet/provider/notification_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/abo_overview.dart';
 import 'package:id_ideal_wallet/views/ausweis_view.dart';
 import 'package:id_ideal_wallet/views/authorized_apps.dart';
+import 'package:id_ideal_wallet/views/backup_view.dart';
 import 'package:id_ideal_wallet/views/credential_detail.dart';
 import 'package:id_ideal_wallet/views/credential_page.dart';
+import 'package:id_ideal_wallet/views/identity_overview.dart';
+import 'package:id_ideal_wallet/views/mail_credential_view.dart';
 import 'package:id_ideal_wallet/views/payment_card_overview.dart';
 import 'package:id_ideal_wallet/views/payment_overview.dart';
 import 'package:id_ideal_wallet/views/qr_scanner.dart';
@@ -28,21 +35,47 @@ import 'package:id_ideal_wallet/views/web_view.dart';
 import 'package:id_ideal_wallet/views/welcome_screen.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'l10n/app_localizations.dart';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  var storage = await SharedPreferences.getInstance();
+  var storedMessages = storage.getString('messages');
+  Map messagesJson = storedMessages == null ? {} : jsonDecode(storedMessages);
+  messagesJson[message.messageId] =
+      SimplifiedNotification.fromRemoteMessage(message).toJson();
+  storage.setString('messages', jsonEncode(messagesJson));
+  logger.d(storage.getString('messages'));
+  logger.d("Handling a background message: ${message.messageId}");
+}
 
 void main() async {
   if (testBuild) {
     HttpOverrides.global = DevHttpOverrides();
   }
   WidgetsFlutterBinding.ensureInitialized();
+  bool withFirebase = true;
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  } catch (_) {
+    withFirebase = false;
+  }
+
   final appDocumentDir = await getApplicationDocumentsDirectory();
   bool isInit = await isOnboard();
   runApp(MultiProvider(
     providers: [
       ChangeNotifierProvider(
-          create: (context) => WalletProvider(appDocumentDir.path, isInit)),
+          create: (context) =>
+              WalletProvider(appDocumentDir.path, withFirebase, isInit)),
       ChangeNotifierProvider(create: (context) => NavigationProvider(!isInit)),
       ChangeNotifierProvider(create: (context) => MdocProvider()),
-      ChangeNotifierProvider(create: (context) => AusweisProvider())
+      ChangeNotifierProvider(create: (context) => AusweisProvider()),
     ],
     child: const App(),
   ));
@@ -124,12 +157,15 @@ class HomeScreen extends StatelessWidget {
                     activeIndices: const [NavigationPage.abo],
                     navigator: navigator),
                 CustomNavigationItem(
+                    // text: 'Identität',
                     text: 'Credentials',
                     activeIcon: Icons.co_present,
                     inactiveIcon: Icons.co_present_outlined,
                     activeIndices: const [
+                      // NavigationPage.identityOverview,
                       NavigationPage.credential,
-                      NavigationPage.credentialDetail
+                      NavigationPage.credentialDetail,
+                      NavigationPage.email
                     ],
                     navigator: navigator),
                 const SizedBox(
@@ -146,14 +182,13 @@ class HomeScreen extends StatelessWidget {
                   width: 20,
                 ),
                 CustomNavigationItem(
-                    text: AppLocalizations.of(context)!.payments(0),
-                    activeIcon: Icons.credit_card,
-                    inactiveIcon: Icons.credit_card_outlined,
+                    text: AppLocalizations.of(context)!.backup,
+                    activeIcon: Icons.backup,
+                    inactiveIcon: Icons.backup_outlined,
                     activeIndices: const [
-                      NavigationPage.paymentCard,
-                      NavigationPage.sendSatoshi,
-                      NavigationPage.topUp,
-                      NavigationPage.paymentOverview
+                      NavigationPage.backupOverview,
+                      NavigationPage.backupCreate,
+                      NavigationPage.backupRestore
                     ],
                     navigator: navigator),
                 CustomNavigationItem(
@@ -240,6 +275,16 @@ class HomeScreen extends StatelessWidget {
         return PaymentOverview(paymentContext: navigator.credential!);
       case NavigationPage.ausweis:
         return const AusweisView();
+      case NavigationPage.backupOverview:
+        return const BackupOverview();
+      case NavigationPage.backupCreate:
+        return const BackupWidget();
+      case NavigationPage.backupRestore:
+        return const RestoreWidget();
+      case NavigationPage.identityOverview:
+        return const IdentityOverview();
+      case NavigationPage.email:
+        return const MailCredentialView();
       default:
         return const AboOverview();
     }
@@ -296,6 +341,9 @@ class HomeScreen extends StatelessWidget {
                       ],
                     ),
                     getContent(navigator, wallet),
+                    Center(
+                      child: LifecycleWatcher(),
+                    ),
                     if (wallet.issuanceRunning.isNotEmpty)
                       Center(
                         child: Card(
@@ -395,7 +443,12 @@ class HomeScreen extends StatelessWidget {
                     width: double.infinity,
                     height: MediaQuery.of(context).size.height * 0.1,
                   ),
-                  const CircularProgressIndicator()
+                  Text(AppLocalizations.of(context)!.pictureProcessNote),
+                  const SizedBox(
+                    width: double.infinity,
+                    height: 5,
+                  ),
+                  Text(AppLocalizations.of(context)!.prepareWallet),
                 ],
               )
             ]),
@@ -403,5 +456,56 @@ class HomeScreen extends StatelessWidget {
         );
       }
     });
+  }
+}
+
+class LifecycleWatcher extends StatefulWidget {
+  const LifecycleWatcher({super.key});
+
+  @override
+  State<LifecycleWatcher> createState() => _LifecycleWatcherState();
+}
+
+class _LifecycleWatcherState extends State<LifecycleWatcher>
+    with WidgetsBindingObserver {
+  AppLifecycleState? _lastLifecycleState;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    logger.d('new state: ${state.name}');
+    if (state == AppLifecycleState.resumed) {
+      var storage = await SharedPreferences.getInstance();
+      await storage.reload();
+      logger.d(storage.getKeys());
+      var storedMessages = storage.getString('messages');
+      logger.d('stored messages: $storedMessages ');
+      if (storedMessages != null) {
+        Map messagesJson = jsonDecode(storedMessages);
+
+        Provider.of<WalletProvider>(navigatorKey.currentContext!, listen: false)
+            .onNewMessages(messagesJson.values
+                .map((e) => SimplifiedNotification.fromJson(e))
+                .toList());
+
+        storage.remove('messages');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox();
   }
 }

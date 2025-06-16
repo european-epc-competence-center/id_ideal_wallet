@@ -1,10 +1,12 @@
 import 'dart:convert';
 
-import 'package:crypto/crypto.dart';
+import 'package:base_codecs/base_codecs.dart';
 import 'package:dart_ssi/credentials.dart';
+import 'package:dart_ssi/util.dart';
+import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart';
 import 'package:id_ideal_wallet/basicUi/standard/cached_image.dart';
@@ -12,11 +14,16 @@ import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/oidc_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
+import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
+import 'package:id_ideal_wallet/views/iso_credential_request.dart';
 import 'package:id_ideal_wallet/views/presentation_request.dart';
+import 'package:id_ideal_wallet/views/qr_scanner.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+
+import '../l10n/app_localizations.dart';
 
 class WebViewWindow extends StatefulWidget {
   final String initialUrl;
@@ -33,13 +40,18 @@ class WebViewWindow extends StatefulWidget {
 class WebViewWindowState extends State<WebViewWindow> {
   final GlobalKey webViewKey = GlobalKey();
   bool isInAbo = false;
-  String imageUrl = '';
+  String? imageUrl;
+  String title = '';
+  String baseUrl = '';
   List<String>? trustedSites;
+  bool mdocRunning = false;
+  Color? titleBgColor, titleFontColor;
 
   InAppWebViewController? webViewController;
   InAppWebViewSettings settings = InAppWebViewSettings(
       useShouldOverrideUrlLoading: true,
       allowFileAccess: false,
+      allowFileAccessFromFileURLs: false,
       allowBackgroundAudioPlaying: false,
       mediaPlaybackRequiresUserGesture: true,
       allowsInlineMediaPlayback: false,
@@ -52,6 +64,10 @@ class WebViewWindowState extends State<WebViewWindow> {
   @override
   void initState() {
     super.initState();
+
+    imageUrl = widget.iconUrl;
+    title = widget.title;
+    baseUrl = widget.initialUrl;
 
     checkAbo();
 
@@ -82,65 +98,68 @@ class WebViewWindowState extends State<WebViewWindow> {
         currentAbos.map((e) => e.getComparableUrl()).toList();
 
     var asUri = Uri.parse(widget.initialUrl);
-    var toCheck =
-        removeTrailingSlash('${asUri.scheme}://${asUri.host}${asUri.path}');
+    var toCheck = removeTrailingSlash(
+        '${asUri.scheme.isEmpty ? 'https' : asUri.scheme}://${asUri.host}${asUri.path}');
     bool inLocalAboList = allAbos.contains(toCheck);
     logger.d('$allAbos contains? $toCheck');
 
-    Map<String, String> uriToImage = {};
-    Map<String, String> uriToTitle = {};
-    List<String> trusted;
-    List<String> originalAbos;
-    (trusted, uriToImage, uriToTitle, originalAbos) = await initTrustedSites();
-    trustedSites = trusted;
+    var trustedData = await initTrustedSites();
+    trustedSites = trustedData.keys.toList();
+
+    imageUrl = trustedData[toCheck]?.pictureUrl;
+    titleBgColor = trustedData[toCheck]?.getTitleBgColor();
+    titleFontColor = trustedData[toCheck]?.getTitleFontColor();
+    baseUrl = toCheck;
+
+    if (title.isEmpty) {
+      title = trustedData[toCheck]?.name ?? '';
+    }
 
     if (inLocalAboList) {
       // we have already an abo
+      setState(() {});
       return;
     }
 
     logger.d('$trustedSites contains? $toCheck');
-    logger.d(originalAbos);
-
     if (trustedSites!.contains(toCheck)) {
-      var urlToAdd = originalAbos.firstWhere((test) => test.startsWith(toCheck),
-          orElse: () => toCheck);
-      imageUrl = uriToImage[toCheck] ?? '';
-      logger.d(imageUrl);
-      logger.d('add $urlToAdd as abo');
       Provider.of<WalletProvider>(navigatorKey.currentContext!, listen: false)
-          .addAbo(AboData(uriToTitle[toCheck] ?? '', urlToAdd, imageUrl));
+          .addAbo(trustedData[toCheck]!);
     }
+
+    setState(() {});
   }
 
-  Future<(List<String>, Map<String, String>, Map<String, String>, List<String>)>
-      initTrustedSites() async {
+  Future<Map<String, AboData>> initTrustedSites() async {
     var res = await get(Uri.parse(applicationEndpoint));
-    List<Map<String, dynamic>> available = [];
+    Map<String, AboData> available = {};
     if (res.statusCode == 200) {
       List dec = jsonDecode(res.body);
-      available = dec.map((e) => (e as Map).cast<String, dynamic>()).toList();
+      for (var entry in dec) {
+        var data = AboData.fromJson(entry);
+        available[data.getComparableUrl()] = data;
+      }
     }
 
-    Map<String, String> uriToImage = {};
-    Map<String, String> uriToTitle = {};
-    List<String> trusted = [];
-    List<String> original = [];
-    if (available.isNotEmpty) {
-      trusted = available.map((e) {
-        var u = Uri.parse(e['url']!);
-        var correctUri =
-            removeTrailingSlash('${u.scheme}://${u.host}${u.path}');
-        uriToImage[correctUri] = e['mainbgimg'];
-        uriToTitle[correctUri] = e['name'] ?? '';
-        return removeTrailingSlash('${u.scheme}://${u.host}${u.path}');
-      }).toList();
-      original = available.map((e) {
-        return e['url']! as String;
-      }).toList();
-    }
+    // Map<String, String> uriToImage = {};
+    // Map<String, String> uriToTitle = {};
+    // List<String> trusted = [];
+    // List<String> original = [];
+    // if (available.isNotEmpty) {
+    //   trusted = available.map((e) {
+    //     var u = Uri.parse(e['url']!);
+    //     var correctUri =
+    //         removeTrailingSlash('${u.scheme}://${u.host}${u.path}');
+    //     uriToImage[correctUri] = e['mainbgimg'];
+    //     uriToTitle[correctUri] = e['name'] ?? '';
+    //     return removeTrailingSlash('${u.scheme}://${u.host}${u.path}');
+    //   }).toList();
+    //   original = available.map((e) {
+    //     return e['url']! as String;
+    //   }).toList();
+    // }
 
-    return (trusted, uriToImage, uriToTitle, original);
+    return available;
   }
 
   @override
@@ -158,9 +177,13 @@ class WebViewWindowState extends State<WebViewWindow> {
         return Scaffold(
           appBar: AppBar(
             automaticallyImplyLeading: false,
+            backgroundColor: titleBgColor,
             leading: IconButton(
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close)),
+                icon: Icon(
+                  Icons.close,
+                  color: titleFontColor,
+                )),
             actions: [
               Directionality(
                 textDirection: TextDirection.rtl,
@@ -170,8 +193,9 @@ class WebViewWindowState extends State<WebViewWindow> {
                     MenuItemButton(
                         trailingIcon: Icon(Icons.share),
                         onPressed: () {
-                          Share.share(
-                              'https://wallet.bccm.dev/webview?url=${Uri.encodeFull(widget.initialUrl)}&title=${widget.title}');
+                          SharePlus.instance.share(ShareParams(
+                              uri: Uri.parse(
+                                  'https://wallet.bccm.dev/webview?url=${Uri.encodeFull(widget.initialUrl)}&title=${widget.title}')));
                         },
                         child: Text('Teilen')),
                     MenuItemButton(
@@ -207,7 +231,10 @@ class WebViewWindowState extends State<WebViewWindow> {
                           controller.open();
                         }
                       },
-                      icon: const Icon(Icons.more_vert),
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: titleFontColor,
+                      ),
                     );
                   },
                 ),
@@ -215,7 +242,7 @@ class WebViewWindowState extends State<WebViewWindow> {
             ],
             centerTitle: true,
             title: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              if (widget.iconUrl != null)
+              if (imageUrl != null)
                 SizedBox(
                   width: MediaQuery.of(context).size.width * 0.07,
                   height: MediaQuery.of(context).size.width * 0.07,
@@ -225,16 +252,19 @@ class WebViewWindowState extends State<WebViewWindow> {
                     ),
                     child: CachedImage(
                       key: UniqueKey(),
-                      imageUrl: widget.iconUrl!,
-                      placeholder: widget.title,
+                      imageUrl: imageUrl!,
+                      placeholder: title,
                     ),
                   ),
                 ),
-              if (widget.iconUrl != null)
+              if (imageUrl != null)
                 const SizedBox(
                   width: 3,
                 ),
-              Text(widget.title)
+              Text(
+                title,
+                style: TextStyle(color: titleFontColor),
+              )
             ]),
           ),
           body: SafeArea(
@@ -274,21 +304,30 @@ class WebViewWindowState extends State<WebViewWindow> {
                         webViewController?.addJavaScriptHandler(
                             handlerName: 'shareHandler',
                             callback: (args) async {
-                              var res = await Share.share(args.first);
+                              var res = await SharePlus.instance
+                                  .share(ShareParams(text: args.first));
                               return res.status == ShareResultStatus.success;
+                            });
+                        webViewController?.addJavaScriptHandler(
+                            handlerName: 'initiateProximitySharing',
+                            callback: (args) async {
+                              navigateClassic(
+                                  const IsoCredentialRequest(), true);
+                              return true;
                             });
                         webViewController?.addJavaScriptHandler(
                             handlerName: 'shareImageHandler',
                             callback: (args) async {
                               var d = UriData.fromUri(Uri.parse(args.first));
-                              var res = await Share.shareXFiles([
+                              var res = await SharePlus.instance
+                                  .share(ShareParams(files: [
                                 XFile.fromData(
                                   d.contentAsBytes(),
                                   mimeType: d.mimeType,
                                 )
                               ], fileNameOverrides: [
                                 'hidyShare.${d.mimeType.split('/').last}'
-                              ]);
+                              ]));
                               return res.status == ShareResultStatus.success;
                             });
                         webViewController?.addJavaScriptHandler(
@@ -307,6 +346,51 @@ class WebViewWindowState extends State<WebViewWindow> {
                               logger.d(args);
                               return await requestPresentationNoSign(
                                   args.first, widget.initialUrl, trustedSites);
+                            });
+                        webViewController?.addJavaScriptHandler(
+                            handlerName: 'initializeSigningKey',
+                            callback: (args) async {
+                              if (args.isEmpty) {
+                                return await getSigningKey(
+                                  true,
+                                  true,
+                                  2,
+                                );
+                              } else {
+                                return await getSigningKey(
+                                    args.first, args[1], args.last);
+                              }
+                            });
+                        webViewController?.addJavaScriptHandler(
+                            handlerName: 'signData',
+                            callback: (args) async {
+                              logger.d(args);
+                              return await signData(args.first, args.last);
+                            });
+                        webViewController?.addJavaScriptHandler(
+                            handlerName: 'scanQrCode',
+                            callback: (args) async {
+                              return await navigateClassic(QrScanner(
+                                inApp: false,
+                              ));
+                            });
+                        webViewController?.addJavaScriptHandler(
+                            handlerName: 'addAccount',
+                            callback: (args) async {
+                              var pseudo = await Provider.of<WalletProvider>(
+                                      context,
+                                      listen: false)
+                                  .generatePseudonym(baseUrl);
+                              logger.d(pseudo);
+                              return pseudo.toJson();
+                            });
+                        webViewController?.addJavaScriptHandler(
+                            handlerName: 'loginToAccount',
+                            callback: (args) {
+                              return Provider.of<WalletProvider>(context,
+                                      listen: false)
+                                  .accountVcs[baseUrl]
+                                  ?.toJson();
                             });
                       },
                       onLoadStart: (controller, url) {
@@ -367,13 +451,13 @@ class WebViewWindowState extends State<WebViewWindow> {
                           this.progress = progress / 100;
                         });
                       },
-                      onUpdateVisitedHistory:
-                          (controller, url, androidIsReload) {
-                        logger.d(
-                            'new Uri: ${removeTrailingSlash(url.toString())}');
-                        Provider.of<NavigationProvider>(context, listen: false)
-                            .setWebViewUrl(removeTrailingSlash(url.toString()));
-                      },
+                      // onUpdateVisitedHistory:
+                      //     (controller, url, androidIsReload) {
+                      //   logger.d(
+                      //       'new Uri: ${removeTrailingSlash(url.toString())}');
+                      //   Provider.of<NavigationProvider>(context, listen: false)
+                      //       .setWebViewUrl(removeTrailingSlash(url.toString()));
+                      // },
                       onConsoleMessage: (controller, consoleMessage) {
                         logger.d(consoleMessage);
                       },
@@ -391,6 +475,37 @@ class WebViewWindowState extends State<WebViewWindow> {
     );
   }
 
+  Future<Map<String, dynamic>> getSigningKey(bool userAuthenticationRequired,
+      bool invalidateByNewBiometrics, int authType) async {
+    var wallet = Provider.of<WalletProvider>(context, listen: false);
+    var keyId = await wallet.newCredentialDid(KeyType.p256, KeyStore.system, {
+      'userAuthenticationRequired': userAuthenticationRequired,
+      'attestationChallenge': 'webview',
+      'invalidateByNewBiometric': invalidateByNewBiometrics,
+      'authType': authType
+    });
+    logger.d(keyId);
+    try {
+      var keyInfo = await wallet.wallet
+          .getKeyInformation(wallet.getOsKeyStoreIdForDid(keyId)!);
+      return keyInfo;
+    } on PlatformException catch (e) {
+      return {'errorCode': e.code, 'message': e.message, 'details': e.details};
+    }
+  }
+
+  Future<String> signData(String keyId, String data) async {
+    var wallet = Provider.of<WalletProvider>(context, listen: false);
+    try {
+      var signature = await wallet.wallet
+          .sign(keyId, base64Decode(addPaddingToBase64(data)));
+      return removePaddingFromBase64(base64UrlEncode(signature));
+    } on PlatformException catch (e) {
+      return jsonEncode(
+          {'errorCode': e.code, 'message': e.message, 'details': e.details});
+    }
+  }
+
   Future<Map<String, dynamic>> requestPresentationNoSign(
       dynamic request, String initialUrl, List<String>? trusted) async {
     var asUri = Uri.parse(initialUrl);
@@ -398,7 +513,8 @@ class WebViewWindowState extends State<WebViewWindow> {
         removeTrailingSlash('${asUri.scheme}://${asUri.host}${asUri.path}');
 
     if (trusted == null || trusted.isEmpty) {
-      (trusted, _, _, _) = await initTrustedSites();
+      var trustedData = await initTrustedSites();
+      trusted = trustedData.keys.toList();
     }
 
     if (testBuild) {
@@ -418,11 +534,11 @@ class WebViewWindowState extends State<WebViewWindow> {
     var allCreds = wallet.allCredentials();
     List<VerifiableCredential> creds = [];
     allCreds.forEach((key, value) {
-      if (value.w3cCredential != '') {
-        var vc = VerifiableCredential.fromJson(value.w3cCredential);
+      if (value.verifiableCredential != '') {
+        var vc = VerifiableCredential.fromJson(value.verifiableCredential);
         var type = getTypeToShow(vc.type);
         if (type != 'PaymentReceipt') {
-          var id = getHolderDidFromCredential(vc.toJson());
+          var id = vc.credentialSubject['id'];
           var status = wallet.revocationState[id];
           if (status == RevocationState.valid.index ||
               status == RevocationState.unknown.index) {
@@ -490,7 +606,7 @@ class WebViewWindowState extends State<WebViewWindow> {
             .toList(),
         id: '');
     var definitionHash =
-        sha256.convert(utf8.encode(definitionToHash.toString()));
+        sha256.process(utf8.encode(definitionToHash.toString()));
 
     var wallet = Provider.of<WalletProvider>(navigatorKey.currentContext!,
         listen: false);
@@ -498,11 +614,11 @@ class WebViewWindowState extends State<WebViewWindow> {
     var allCreds = wallet.allCredentials();
     List<VerifiableCredential> creds = [];
     allCreds.forEach((key, value) {
-      if (value.w3cCredential != '') {
-        var vc = VerifiableCredential.fromJson(value.w3cCredential);
+      if (value.verifiableCredential != '') {
+        var vc = VerifiableCredential.fromJson(value.verifiableCredential);
         var type = getTypeToShow(vc.type);
         if (type != 'PaymentReceipt') {
-          var id = getHolderDidFromCredential(vc.toJson());
+          var id = vc.credentialSubject['id'];
           var status = wallet.revocationState[id];
           if (status == RevocationState.valid.index ||
               status == RevocationState.unknown.index) {
@@ -521,27 +637,34 @@ class WebViewWindowState extends State<WebViewWindow> {
       var authorizedApps = wallet.getAuthorizedApps();
       var authorizedHashes = wallet.getHashesForAuthorizedApp(initialUrl);
       logger.d(authorizedHashes);
-      logger.d(definitionHash.toString());
+      logger.d(hexEncode(definitionHash));
       if (authorizedApps.contains(initialUrl) &&
-          authorizedHashes.contains(definitionHash.toString())) {
+          authorizedHashes.contains(hexEncode(definitionHash))) {
         logger.d('send with no interaction');
-        var tmp = await buildPresentation(filtered, wallet.wallet, nonce,
-            loadDocumentFunction: loadDocumentFast);
-        vp = VerifiablePresentation.fromJson(tmp);
+        var vp = VerifiablePresentation.fromFilterResults(filtered);
+        for (var vc in vp.verifiableCredential!) {
+          var did = vc.credentialSubject['id'];
+          if (did == null || did == '') continue;
+          var (signer, proofType) =
+              await getCredentialSigningStuff(wallet, did);
+          await vp.addProof(signer, proofType,
+              challenge: nonce, loadDocument: loadDocumentFast);
+        }
       } else {
         var target = PresentationRequestDialog(
           definition: definition,
-          definitionHash: definitionHash.toString(),
           askForBackground: askForBackground,
           name: definition.name,
           purpose: definition.purpose,
           otherEndpoint: initialUrl,
-          receiverDid: '',
-          myDid: '',
           results: filtered,
-          nonce: nonce,
         );
-        vp = await navigateClassic(target);
+        bool backgroundAllow;
+        (backgroundAllow, vp) = await navigateClassic(target);
+        if (askForBackground && backgroundAllow) {
+          var wallet = Provider.of<WalletProvider>(context, listen: false);
+          wallet.addAuthorizedApp(initialUrl, hexEncode(definitionHash));
+        }
       }
 
       return vp;
@@ -552,5 +675,14 @@ class WebViewWindowState extends State<WebViewWindow> {
           AppLocalizations.of(navigatorKey.currentContext!)!.noCredentialsNote);
       return null;
     }
+  }
+
+  @override
+  void dispose() {
+    if (mdocRunning) {
+      Provider.of<MdocProvider>(navigatorKey.currentContext!, listen: false)
+          .stopAdvertising(true);
+    }
+    super.dispose();
   }
 }

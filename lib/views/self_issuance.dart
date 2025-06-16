@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:dart_ssi/credentials.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/currency_display.dart';
 import 'package:id_ideal_wallet/basicUi/standard/modal_dismiss_wrapper.dart';
 import 'package:id_ideal_wallet/basicUi/standard/payment_finished.dart';
@@ -13,6 +12,8 @@ import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:json_schema2/json_schema.dart';
 import 'package:json_schema_form/json_schema_form.dart';
 import 'package:provider/provider.dart';
+
+import '../l10n/app_localizations.dart';
 
 final emailSchema = JsonSchema.create({
   'type': 'object',
@@ -146,13 +147,15 @@ class FixedSelfIssue extends StatelessWidget {
         credentialSubject: result,
         issuanceDate: DateTime.now());
 
-    var signed = await signCredential(wallet.wallet, credential.toJson());
+    var (signer, proofType) =
+        await getCredentialSigningStuff(wallet, credentialDid);
+    credential.sign(signer, proofType);
 
-    logger.d(signed);
+    logger.d(credential.toJson());
 
-    var storageCred = wallet.getCredential(credentialDid);
+    //var storageCred = wallet.getCredential(credentialDid);
 
-    wallet.storeCredential(signed, storageCred!.hdPath);
+    wallet.storeCredential(credential, credentialDid);
     wallet.storeExchangeHistoryEntry(
         credentialDid, DateTime.now(), 'issue', credentialDid);
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/cached_image.dart';
 import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
@@ -8,6 +7,8 @@ import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/web_view.dart';
 import 'package:provider/provider.dart';
+
+import '../l10n/app_localizations.dart';
 
 class AboOverview extends StatefulWidget {
   const AboOverview({super.key});
@@ -188,6 +189,8 @@ class AboOverviewState extends State<AboOverview>
                                 });
                               },
                               onTap: () {
+                                wallet.removeOutstandingMessages(
+                                    e.getComparableUrl());
                                 navigateClassic(WebViewWindow(
                                   initialUrl: e.url.replaceAll(
                                       'wid=', 'wid=${wallet.lndwId}'),
@@ -198,23 +201,63 @@ class AboOverviewState extends State<AboOverview>
                               child: SlideTransition(
                                 position: animations[index - 1],
                                 child: Column(children: [
-                                  SizedBox(
-                                    key: cardKeys[index - 1],
-                                    width:
-                                        MediaQuery.of(context).size.width * 0.2,
-                                    height:
-                                        MediaQuery.of(context).size.width * 0.2,
-                                    child: ClipRRect(
-                                      borderRadius: const BorderRadius.all(
-                                        Radius.circular(10),
-                                      ),
-                                      child: CachedImage(
-                                        key: UniqueKey(),
-                                        imageUrl: e.pictureUrl,
-                                        placeholder: e.name,
-                                      ),
-                                    ),
-                                  ),
+                                  Stack(
+                                      alignment: AlignmentDirectional.topEnd,
+                                      children: [
+                                        SizedBox(
+                                          key: cardKeys[index - 1],
+                                          width: MediaQuery.of(context)
+                                                  .size
+                                                  .width *
+                                              0.2,
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .width *
+                                              0.2,
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                const BorderRadius.all(
+                                              Radius.circular(10),
+                                            ),
+                                            child: CachedImage(
+                                              key: UniqueKey(),
+                                              imageUrl: e.pictureUrl,
+                                              placeholder: e.name,
+                                            ),
+                                          ),
+                                        ),
+                                        if (wallet.outstandingMessages
+                                            .containsKey(e.getComparableUrl()))
+                                          Container(
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.05,
+                                            height: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.05,
+                                            decoration: BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                wallet
+                                                        .outstandingMessages[e
+                                                            .getComparableUrl()]
+                                                        ?.length
+                                                        .toString() ??
+                                                    '0',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ]),
                                   Text(
                                     e.name,
                                     maxLines: 1,

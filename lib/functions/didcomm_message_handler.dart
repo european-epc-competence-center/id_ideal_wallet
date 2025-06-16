@@ -5,7 +5,6 @@ import 'package:dart_ssi/did.dart';
 import 'package:dart_ssi/didcomm.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart';
 import 'package:id_ideal_wallet/basicUi/standard/currency_display.dart';
 import 'package:id_ideal_wallet/basicUi/standard/modal_dismiss_wrapper.dart';
@@ -19,6 +18,8 @@ import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+
+import '../l10n/app_localizations.dart';
 
 Future<bool> handleOobUrl(String url) async {
   logger.d(url);
@@ -82,6 +83,7 @@ Future<bool> handleDidcommMessage(String message, [String? replyUrl]) async {
   try {
     plaintext = await getPlaintext(message, wallet);
   } catch (e) {
+    logger.d(e);
     showErrorMessage(
         AppLocalizations.of(navigatorKey.currentContext!)!.downloadFailed,
         AppLocalizations.of(navigatorKey.currentContext!)!
@@ -245,8 +247,9 @@ Future<DidcommPlaintextMessage> getPlaintext(
   } else if (isEncryptedMessage(message)) {
     try {
       var encrypted = DidcommEncryptedMessage.fromJson(message);
-      var decrypted =
-          await encrypted.decrypt(wallet.wallet, didResolver: resolveKeri);
+      var decrypted = await encrypted.decrypt(
+        wallet: wallet.wallet,
+      );
       if (decrypted is DidcommPlaintextMessage) {
         decrypted.from ??= encrypted.protectedHeaderSkid!.split('#').first;
         List<String> toDids = [];
@@ -327,9 +330,7 @@ Future<bool> handleInvitation(
     }
 
     if (replyUrl != null) {
-      var con = wallet.getConnection(myDid);
-      wallet.wallet.storeConnection(replyUrl, 'Kaprion', con!.hdPath,
-          keyType: KeyType.p384);
+      wallet.wallet.storeConnection(replyUrl, 'Kaprion', myDid);
     }
 
     logger.d(replyUrl);
@@ -356,10 +357,11 @@ Future<bool> handleInvitation(
     // counterpart like to issue credential
     var threadId = const Uuid().v4();
     var myDid = await wallet.newConnectionDid(KeyType.p384);
-    var con = wallet.getConnection(myDid);
-    wallet.wallet.storeConnection(replyUrl!, 'Kaprion', con!.hdPath,
-        keyType: KeyType.p384);
-    logger.d(await wallet.wallet.getPublicKey(con.hdPath, KeyType.p384));
+    wallet.wallet.storeConnection(
+      replyUrl!,
+      'Kaprion',
+      myDid,
+    );
     var propose = ProposeCredential(
         id: threadId,
         threadId: threadId,
@@ -414,7 +416,7 @@ sendMessage(String myDid, String? otherEndpoint, WalletProvider wallet,
         AppLocalizations.of(navigatorKey.currentContext!)!.sendFailedNote);
     throw Exception(' no Endpoint');
   }
-  var myPrivateKey = await wallet.privateKeyForConnectionDidAsJwk(myDid);
+
   DidDocument recipientDDO;
   if (receiverDid.startsWith('did:keri')) {
     if (receiverDid.contains('?')) {
@@ -449,10 +451,11 @@ sendMessage(String myDid, String? otherEndpoint, WalletProvider wallet,
   if (pubKey['kid'] == null) {
     pubKey['kid'] = (recipientDDO.keyAgreement!.first as VerificationMethod).id;
   }
-  var encrypted = DidcommEncryptedMessage.fromPlaintext(
-      senderPrivateKeyJwk: myPrivateKey!,
-      recipientPublicKeyJwk: [pubKey],
-      plaintext: message);
+  var encrypted = await message.encrypt(
+    wallet: wallet.wallet,
+    keyId: myDid,
+    recipientPublicKeyJwk: [pubKey],
+  );
 
   if (otherEndpoint.startsWith('http')) {
     logger.d('send message to $otherEndpoint');
@@ -536,11 +539,8 @@ sendMessage(String myDid, String? otherEndpoint, WalletProvider wallet,
         for (var pres in message.verifiablePresentation) {
           if (pres.verifiableCredential != null) {
             for (var cred in pres.verifiableCredential!) {
-              wallet.storeExchangeHistoryEntry(
-                  getHolderDidFromCredential(cred.toJson()),
-                  DateTime.now(),
-                  'present failed',
-                  message.to!.first);
+              wallet.storeExchangeHistoryEntry(cred.credentialSubject['id'],
+                  DateTime.now(), 'present failed', message.to!.first);
             }
           }
         }

@@ -5,7 +5,7 @@ import 'package:id_ideal_wallet/basicUi/ausweis/ausweis_data.dart';
 import 'package:id_ideal_wallet/basicUi/ausweis/enter_can.dart';
 import 'package:id_ideal_wallet/basicUi/ausweis/enter_pin.dart';
 import 'package:id_ideal_wallet/basicUi/ausweis/enter_puk.dart';
-import 'package:id_ideal_wallet/basicUi/ausweis/errro_page.dart';
+import 'package:id_ideal_wallet/basicUi/ausweis/error_page.dart';
 import 'package:id_ideal_wallet/basicUi/ausweis/insert_card.dart';
 import 'package:id_ideal_wallet/basicUi/ausweis/main_content.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';

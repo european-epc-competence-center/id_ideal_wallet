@@ -7,7 +7,6 @@ import 'dart:typed_data';
 import 'package:dart_ssi/credentials.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/cached_image.dart';
 import 'package:id_ideal_wallet/basicUi/standard/id_card.dart';
 import 'package:id_ideal_wallet/basicUi/standard/styled_scaffold_title.dart';
@@ -21,6 +20,8 @@ import 'package:id_ideal_wallet/views/iso_credential_request.dart';
 import 'package:json_path/fun_sdk.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
+
+import '../l10n/app_localizations.dart';
 
 class CredentialPage extends StatefulWidget {
   final String initialSelection;
@@ -67,7 +68,7 @@ class CredentialPageState extends State<CredentialPage> {
                 ? [
                     InkWell(
                         onTap: () =>
-                            navigateClassic(const IsoCredentialRequest()),
+                            navigateClassic(const IsoCredentialRequest(), true),
                         child: const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 10),
                             child: Icon(Icons.qr_code_2, size: 30)))
@@ -83,7 +84,7 @@ class CredentialPageState extends State<CredentialPage> {
                     itemBuilder: (context, index) {
                       var cred = credentialList[index];
                       var type = getTypeToShow(cred.type);
-                      var id = getHolderDidFromCredential(cred.toJson());
+                      var id = cred.credentialSubject['id'] ?? '';
                       if (id == '') {
                         id = '${cred.issuanceDate.toIso8601String()}$type';
                       }
@@ -170,13 +171,7 @@ ListTile generateTile(String? before, String key, dynamic value) {
           child: Text(AppLocalizations.of(navigatorKey.currentContext!)!.show),
           onTap: () {
             if (value.contains('image')) {
-              Navigator.of(navigatorKey.currentContext!).push(Platform.isIOS
-                  ? CupertinoPageRoute(
-                      builder: (context) =>
-                          Base64ImagePreview(imageDataUri: value))
-                  : MaterialPageRoute(
-                      builder: (context) =>
-                          Base64ImagePreview(imageDataUri: value)));
+              navigateClassic(Base64ImagePreview(imageDataUri: value));
             } else if (value.contains('application/pdf')) {
               Navigator.of(navigatorKey.currentContext!).push(Platform.isIOS
                   ? CupertinoPageRoute(
@@ -293,7 +288,8 @@ class ContextCardState extends State<ContextCard> {
           TextButton(
               onPressed: () async {
                 var credId = widget.context.id ??
-                    getHolderDidFromCredential(widget.context.toJson());
+                    widget.context.credentialSubject['id'] ??
+                    '';
                 if (credId == '') {
                   var type = getTypeToShow(widget.context.type);
                   credId =
@@ -462,7 +458,7 @@ class CredentialCard extends StatelessWidget {
                         credential: credential, track: false)
             : null,
         child: Consumer<WalletProvider>(builder: (context, wallet, child) {
-          var id = getHolderDidFromCredential(credential.toJson());
+          var id = credential.credentialSubject['id'] ?? '';
           var revState = wallet.revocationState[id];
           if (revState == RevocationState.expired.index ||
               revState == RevocationState.revoked.index ||

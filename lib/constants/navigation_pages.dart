@@ -6,6 +6,7 @@ enum NavigationPage {
   settings,
   webView,
   credentialDetail,
+  identityOverview,
   authorizedApps,
   license,
   searchNewAbo,
@@ -13,5 +14,9 @@ enum NavigationPage {
   topUp,
   paymentOverview,
   ausweis,
-  aboDetail
+  aboDetail,
+  backupOverview,
+  backupCreate,
+  backupRestore,
+  email
 }

@@ -129,7 +129,9 @@ class IdCard extends StatelessWidget {
         layout = wallet.credentialStyling[type];
       }
 
-      var issuer = getIssuerDidFromCredential(credential);
+      var issuer = credential.issuer is String
+          ? credential.issuer
+          : credential.issuer['id'];
       var cCreds = wallet?.getConfig('certCreds:$issuer');
       if (cCreds != null) {
         certCred =

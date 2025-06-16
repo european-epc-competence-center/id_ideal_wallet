@@ -3,11 +3,9 @@ import 'package:dart_ssi/didcomm.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/currency_display.dart';
 import 'package:id_ideal_wallet/basicUi/standard/modal_dismiss_wrapper.dart';
 import 'package:id_ideal_wallet/basicUi/standard/payment_finished.dart';
-import 'package:id_ideal_wallet/constants/kaprion_context.dart';
 import 'package:id_ideal_wallet/functions/payment_utils.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/views/credential_offer_new.dart';
@@ -15,6 +13,7 @@ import 'package:id_ideal_wallet/views/payment_method_selection.dart';
 import 'package:uuid/uuid.dart';
 
 import '../constants/server_address.dart';
+import '../l10n/app_localizations.dart';
 import '../provider/wallet_provider.dart';
 import 'didcomm_message_handler.dart';
 
@@ -250,14 +249,14 @@ Future<bool> handleOfferCredential(
       var subject = credDetail.credential.credentialSubject;
       if (subject.containsKey('id')) {
         String id = subject['id'];
-        String? private;
-        try {
-          private = await wallet.getPrivateKeyForCredentialDid(id);
-        } catch (e) {
-          _sendProposeCredential(message, wallet, myDid, paymentDetails);
-          return false;
-        }
-        if (private == null) {
+        //String? private;
+        // try {
+        //   private = await wallet.getPrivateKeyForCredentialDid(id);
+        // } catch (e) {
+        //   _sendProposeCredential(message, wallet, myDid, paymentDetails);
+        //   return false;
+        // }
+        if (!(await wallet.wallet.containsKey(id))) {
           _sendProposeCredential(message, wallet, myDid, paymentDetails);
           return false;
         }
@@ -394,7 +393,8 @@ Future<bool> handleIssueCredential(
         var challenge = req.detail![i].options.challenge;
         var verified = true;
         try {
-          verified = await verifyCredential(cred, expectedChallenge: challenge);
+          printWrapped(cred.toString());
+          verified = await cred.verify(expectedChallenge: challenge);
         } catch (e) {
           showErrorMessage(
               AppLocalizations.of(navigatorKey.currentContext!)!
@@ -404,27 +404,30 @@ Future<bool> handleIssueCredential(
           return false;
         }
         if (verified) {
-          var credDid = getHolderDidFromCredential(cred.toJson());
+          String? credDid = cred.credentialSubject['id'] ?? '';
           Credential? storageCred;
           if (credDid != '') {
-            storageCred = wallet.getCredential(credDid);
-            if (storageCred == null) {
-              throw Exception(
-                  'No hd path for credential found. Sure we control it?');
-            }
+            // storageCred = wallet.getCredential(credDid);
+            // if (storageCred == null) {
+            //   throw Exception(
+            //       'No hd path for credential found. Sure we control it?');
+            // }
           }
 
           var type = getTypeToShow(cred.type);
-          if (credDid == '') {
+          if (credDid == '' || credDid == null) {
             credDid = '${cred.issuanceDate.toIso8601String()}$type';
           }
 
+          logger.d(credDid);
+
           if (type == 'PaymentReceipt') {
-            wallet.storeCredential(cred.toString(), storageCred?.hdPath ?? '',
-                newDid: cred.credentialSubject['receiptId']);
+            wallet.storeCredential(
+              cred,
+              credDid,
+            );
           } else {
-            wallet.storeCredential(cred.toString(), storageCred?.hdPath ?? '',
-                newDid: credDid);
+            wallet.storeCredential(cred, credDid);
             wallet.storeExchangeHistoryEntry(
                 credDid, DateTime.now(), 'issue', message.from!);
 
@@ -436,7 +439,12 @@ Future<bool> handleIssueCredential(
                 type);
           }
         } else {
-          throw Exception('Credential signature is wrong');
+          showErrorMessage(
+              AppLocalizations.of(navigatorKey.currentContext!)!
+                  .wrongCredential,
+              AppLocalizations.of(navigatorKey.currentContext!)!
+                  .wrongCredentialNote);
+          return false;
         }
 
         wallet.storeConversation(message, entry.myDid);
@@ -455,89 +463,6 @@ Future<bool> handleIssueCredential(
               ack,
               message.from!);
         }
-      }
-    } else if (message.credentialFulfillment != null) {
-      var myDid = message.to!.first;
-      var connection = wallet.getConnection(myDid);
-      logger.d(connection);
-      logger.d(message.credentialFulfillment!.toJson());
-
-      VerifiableCredential? myCred;
-      String? issuerDid;
-      VerifiableCredential? issuerCertCredential;
-
-      if (connection == null) {
-        showErrorMessage(
-            AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
-            AppLocalizations.of(navigatorKey.currentContext!)!
-                .wrongCredentialNote);
-        throw Exception('Big Problem: no connection');
-      }
-
-      for (var v in message.credentialFulfillment!.verifiableCredential!) {
-        logger.d(v.toJson());
-        var holderDid = getHolderDidFromCredential(v.toJson());
-        logger.d('$holderDid ?== $myDid');
-        if (holderDid == myDid) {
-          myCred = v;
-          issuerDid = getIssuerDidFromCredential(myCred);
-          //break;
-          //message.credentialFulfillment!.verifiableCredential!.remove(v);
-        }
-        logger.d('$holderDid ?== $issuerDid');
-        if (issuerDid != null && holderDid == issuerDid) {
-          issuerCertCredential = v;
-        }
-        if (issuerCertCredential != null && myCred != null) {
-          break;
-        }
-      }
-
-      if (myCred == null && issuerCertCredential == null) {
-        showErrorMessage(
-            AppLocalizations.of(navigatorKey.currentContext!)!.saveError,
-            AppLocalizations.of(navigatorKey.currentContext!)!.saveErrorNote);
-        throw Exception('Cant find my Credential');
-      }
-
-      Map? issuerJwk =
-          issuerCertCredential?.credentialSubject['publicKey']['publicKeyJwk'];
-      if (issuerJwk == null) {
-        showErrorMessage(
-            AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
-            AppLocalizations.of(navigatorKey.currentContext!)!
-                .wrongCredentialNote);
-        throw Exception('no issuer jwk');
-      }
-
-      try {
-        await verifyCredential(myCred,
-            issuerJwk: issuerJwk.cast<String, dynamic>(),
-            loadDocumentFunction: loadDocumentKaprion);
-
-        wallet.storeCredential(myCred.toString(), connection.hdPath,
-            keyType: KeyType.p384);
-
-        // wallet.storeConfig(
-        //     'certCreds:$issuerDid',
-        //     jsonEncode(message.credentialFulfillment!.verifiableCredential!
-        //         .sublist(1)
-        //         .map((e) => e.toJson())
-        //         .toList()));
-
-        wallet.storeExchangeHistoryEntry(
-            myDid, DateTime.now(), 'issue', message.from!);
-
-        showSuccessMessage(
-            AppLocalizations.of(navigatorKey.currentContext!)!
-                .credentialReceived,
-            getTypeToShow(myCred!.type));
-      } catch (e) {
-        logger.d(e);
-        showErrorMessage(
-            AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
-            AppLocalizations.of(navigatorKey.currentContext!)!
-                .wrongCredentialNote);
       }
     }
   } else {

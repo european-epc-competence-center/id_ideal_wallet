@@ -1,16 +1,18 @@
 import 'package:dart_ssi/credentials.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/currency_display.dart';
 import 'package:id_ideal_wallet/basicUi/standard/heading.dart';
 import 'package:id_ideal_wallet/basicUi/standard/styled_scaffold_title.dart';
 import 'package:id_ideal_wallet/basicUi/standard/transaction_preview.dart';
 import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/functions/payment_utils.dart';
+import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/credential_page.dart';
 import 'package:provider/provider.dart';
+
+import '../l10n/app_localizations.dart';
 
 class PaymentCardOverview extends StatefulWidget {
   const PaymentCardOverview({super.key});
@@ -95,11 +97,11 @@ class PaymentCardOverviewState extends State<PaymentCardOverview> {
                         .lastPayments[currentSelection]![index]
                         .shownAttributes
                         .first);
-                    if (cred != null && cred.w3cCredential.isNotEmpty) {
+                    if (cred != null && cred.verifiableCredential.isNotEmpty) {
                       Provider.of<NavigationProvider>(context, listen: false)
                           .changePage([NavigationPage.credentialDetail],
                               credential: VerifiableCredential.fromJson(
-                                  cred.w3cCredential));
+                                  cred.verifiableCredential));
                     }
                   }
                 },
@@ -200,13 +202,12 @@ Future<void> issueLNPaymentCard(
       },
       issuanceDate: DateTime.now());
 
-  var signed = await signCredential(wallet.wallet, contextCred.toJson());
+  var (signer, proofType) = await getCredentialSigningStuff(wallet, did);
+  await contextCred.sign(signer, proofType);
 
   await createLNWallet(did);
   await Future.delayed(const Duration(seconds: 1));
 
-  var storageCred = wallet.getCredential(did);
-
-  wallet.storeCredential(signed, storageCred!.hdPath);
+  wallet.storeCredential(contextCred, did);
   wallet.storeExchangeHistoryEntry(did, DateTime.now(), 'issue', did);
 }

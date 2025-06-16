@@ -1,12 +1,13 @@
 import 'package:dart_ssi/credentials.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/currency_display.dart';
 import 'package:id_ideal_wallet/basicUi/standard/footer_buttons.dart';
 import 'package:id_ideal_wallet/basicUi/standard/receipt.dart';
 import 'package:id_ideal_wallet/basicUi/standard/secured_widget.dart';
 import 'package:id_ideal_wallet/views/credential_detail.dart';
 import 'package:id_ideal_wallet/views/credential_page.dart';
+
+import '../l10n/app_localizations.dart';
 
 class CredentialOfferDialogNew extends StatefulWidget {
   const CredentialOfferDialogNew(
@@ -86,7 +87,33 @@ class CredentialOfferDialogNewState extends State<CredentialOfferDialogNew> {
                         amount: CurrencyDisplay(
                             amount: widget.toPay, symbol: "sat"),
                       ),
-                    )
+                    ),
+                  if (widget.requestOidcTan)
+                    ExpansionTile(
+                        initiallyExpanded: true,
+                        title: Text(
+                          AppLocalizations.of(context)!.oidcTan,
+                          style: Theme.of(context).primaryTextTheme.titleLarge,
+                        ),
+                        subtitle: Text(
+                            AppLocalizations.of(context)!.oidcTanInfo,
+                            style:
+                                Theme.of(context).primaryTextTheme.titleMedium),
+                        children: [
+                          TextField(
+                            onChanged: (text) {
+                              controller.text = text;
+                              setState(() {});
+                            },
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(
+                                borderSide:
+                                    BorderSide(width: 2, color: Colors.grey),
+                              ),
+                            ),
+                            controller: controller,
+                          )
+                        ]),
                 ],
               ),
             ),
@@ -94,33 +121,6 @@ class CredentialOfferDialogNewState extends State<CredentialOfferDialogNew> {
         ),
       ),
       persistentFooterButtons: [
-        if (widget.requestOidcTan)
-          ExpansionTile(
-              initiallyExpanded: true,
-              title: Text(
-                AppLocalizations.of(context)!.oidcTan,
-                style: Theme.of(context).primaryTextTheme.titleLarge,
-              ),
-              subtitle: Text(AppLocalizations.of(context)!.oidcTanInfo,
-                  style: Theme.of(context).primaryTextTheme.titleMedium),
-              children: [
-                TextField(
-                  onChanged: (text) {
-                    controller.text = text;
-                    setState(() {});
-                  },
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(width: 2, color: Colors.grey),
-                    ),
-                  ),
-                  controller: controller,
-                )
-              ]),
-        if (widget.requestOidcTan)
-          const SizedBox(
-            height: 5,
-          ),
         FooterButtons(
             positiveText: widget.toPay != null
                 ? AppLocalizations.of(context)!.orderWithPayment
