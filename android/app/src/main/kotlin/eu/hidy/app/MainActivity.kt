@@ -304,7 +304,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         // No Screenshots
-        // window.addFlags(LayoutParams.FLAG_SECURE)
+        window.addFlags(LayoutParams.FLAG_SECURE)
 
         // Flutter
         GeneratedPluginRegistrant.registerWith(flutterEngine)
