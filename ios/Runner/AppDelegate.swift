@@ -1,7 +1,6 @@
 import UIKit
 import Flutter
 import AusweisApp2SDKWrapper
-import restart
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -63,10 +62,6 @@ import restart
       })
       
     GeneratedPluginRegistrant.register(with: self)
-      
-    RestartPlugin.generatedPluginRegistrantRegisterCallback = { [weak self] in
-            GeneratedPluginRegistrant.register(with: self!)
-    }
       
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
