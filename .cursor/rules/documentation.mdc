@@ -1,0 +1,22 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+# Keep track and note of important build steps
+Take notes of key steps and commands so other developers can setup their systems accordingly.
+
+- take notes of build steps by developer platform (MacOS, Linux, Windows)
+- take notes of key steps by target (iOS, Android, MacOS Desktop, Linux, Windows)
+- Write all notes into the README.md file located within this repostory
+
+# Keep track of key changes in CHANGELOG
+When making changes such as adding new or changing key functionality (UI) wise or extending a function (adding a new feature):
+
+- Check and update the CHANGELOG file located in the root of this repository 
+- First check if the intended addition already exist within the last 10 lines
+- General do not bump versions or create new versions records
+- Add items to the latest version records
+- Mark new lines as *proposed* 
+- Make us of the following prefixes "Bugfix:", "Feature:", "Security:" and "Important:"

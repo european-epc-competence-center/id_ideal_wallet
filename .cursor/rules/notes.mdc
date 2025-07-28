@@ -1,0 +1,133 @@
+---
+description: Unified notes management for AI agents - combines persistent memory and project knowledge base
+globs:
+alwaysApply: true
+---
+
+# AI Notes Management System
+
+The `.cursor/notes` folder contains both persistent AI memory and project knowledge base. This system enables AI agents to maintain session continuity and organize project knowledge effectively.
+
+**Always find and read relevant notes before executing any task and update your notes afterwards!**
+
+## 1. Persistent AI Memory (Session Continuity)
+
+### Purpose & Location
+Maintain persistent memory across AI sessions in `.cursor/notes/ai-notes.md` to track progress, context, and next steps.
+
+### Key Uses
+- **Track Progress:** Record completed tasks, ongoing work, obstacles encountered, and decisions made
+- **Capture Context:** Store essential information like key variables, file paths, user preferences, partial results, or open questions that need to carry over
+- **Outline Next Steps:** Clearly define immediate actions planned for current or next session
+- **Reference Files:** Use markdown links with `mdc:` scheme (e.g., `[Chat.tsx](mdc:components/Chat/Chat.tsx)`)
+
+### Operational Guidelines
+1. **Review First:** Always review `.cursor/notes/ai-notes.md` at the beginning of each interaction
+2. **Update Regularly:** Actively update notes as you progress through tasks, make decisions, or plan actions
+3. **Be Concise but Precise:** Brief yet detailed enough to be useful later
+4. **Structure for Clarity:**
+   - Use Markdown headings (e.g., `## Project/Task - YYYY-MM-DD`)
+   - Employ bullet points for lists
+   - Use sections: `Status:`, `Findings:`, `Decisions:`, `Next Steps:`, `Open Questions:`, `Completed Tasks:`
+5. **Session Wrap-up:** Comprehensively summarize current state and outline next steps when context switching
+6. **AI-Focused:** This file is primarily for AI internal use to maintain continuity
+
+### Example AI Notes Structure
+```markdown
+## Project: Feature Implementation - 2024-12-19
+
+**Status:**
+- ✅ Completed: Initial analysis
+- 📋 Current: Implementing feature X
+
+**Findings:**
+- Library Y has compatibility issues
+- User prefers approach Z
+
+**Decisions:**
+- Will use alternative library W
+- Implement in modular fashion
+
+**Next Steps:**
+1. Install library W
+2. Create component structure
+3. Test integration
+
+**Open Questions:**
+- Should we support legacy browsers?
+
+**Key Files:**
+- `[component.tsx](mdc:src/components/component.tsx)`
+```
+
+## 2. Project Knowledge Base
+
+### Purpose & Structure
+Organize comprehensive project knowledge across multiple notes files with `index.md` as the main navigation hub.
+
+### Core Requirements
+- **Before Analysis:** Always consult notes before searching files or analyzing project structure
+- **Index Navigation:** Use `index.md` to quickly find relevant information and notes files for specific topics
+- **Knowledge Capture:** After learning about the codebase, update or create topic-specific notes files
+- **Deduplication:** Regularly consolidate content across multiple notes files
+
+### Index Management (`index.md`)
+The index should contain:
+- Brief summary of project folder structure
+- Information about files/folders related to sub-projects/features/functionality
+- Links to every notes file with brief descriptions of purpose and content
+
+### Knowledge Organization Rules
+1. **Topic-Specific Files:** Create markdown files with suitable topic-related names
+2. **Concise Summaries:** Add learned knowledge to appropriate notes files
+3. **Reference-Based:** Rather reference source files than include too many details
+4. **Current State Focus:** Describe current state, not historical changes (use CHANGELOG for history)
+5. **Utility-Focused:** Only add content that will help understand the project more quickly
+
+## 3. Rules and Notes Synchronization
+
+### Consistency Management
+- When updating Cursor Rules, check if related notes need updates
+- If rule information is replicated in notes, ensure consistency or remove duplication from notes
+- When information exists in both rules and notes, prefer keeping detailed information in rules and having notes reference rules
+- For project structure information (like changelog conventions), ensure notes reflect the same information
+
+## 4. Housekeeping Guidelines
+
+### Content Quality
+- Keep notes tidy, well-structured, and concise
+- Include general notes about styles, strategies, code structures, and behavioral hints
+- Avoid too much detail - reference source files instead
+- No individual changelogs - use dedicated CHANGELOG files
+- Only describe current state, not historical changes
+
+### Organization Maintenance
+- Before adding content, consider if it will be helpful for future project understanding
+- Avoid polluting notes with distracting or superficial information
+- After adding notes, consolidate all `.cursor/notes` files
+- Keep summaries and keywords rather than long text
+- Reduce number of notes files by joining similar topics
+- Always keep `index.md` up to date
+
+### File Management
+- Prefer editing existing files over creating new ones
+- Only create new notes files when absolutely necessary for organization
+- Regular cleanup of outdated or redundant information
+- Maintain clear separation between AI session memory and project knowledge
+
+## 5. Workflow Integration
+
+### Start of Session
+1. Read `ai-notes.md` for session context
+2. Check `index.md` for project navigation
+3. Review relevant topic-specific notes
+
+### During Work
+1. Update `ai-notes.md` with progress and decisions
+2. Add new knowledge to appropriate topic notes
+3. Update `index.md` when creating new notes files
+
+### End of Session
+1. Comprehensive update to `ai-notes.md` with status and next steps
+2. Consolidate any new knowledge into organized notes
+3. Clean up and deduplicate content as needed
