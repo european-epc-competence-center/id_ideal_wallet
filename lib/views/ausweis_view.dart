@@ -10,7 +10,7 @@ import 'package:id_ideal_wallet/basicUi/ausweis/insert_card.dart';
 import 'package:id_ideal_wallet/basicUi/ausweis/main_content.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:id_ideal_wallet/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 class AusweisView extends StatefulWidget {

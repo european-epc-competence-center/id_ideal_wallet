@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:dart_ssi/credentials.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:id_ideal_wallet/l10n/app_localizations.dart';
 
 Widget buildPresentationProposalDialog(
     BuildContext context, PresentationDefinition definition) {

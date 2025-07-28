@@ -4,7 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/didcomm.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:id_ideal_wallet/l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:uuid/uuid.dart';
 import '../constants/server_address.dart';
