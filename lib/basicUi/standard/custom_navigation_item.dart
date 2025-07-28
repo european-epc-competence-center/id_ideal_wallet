@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
+import 'package:id_ideal_wallet/views/ausweis_view.dart';
+import 'package:id_ideal_wallet/functions/util.dart';
 
 class CustomNavigationItem extends StatelessWidget {
   final String text;
@@ -20,7 +22,14 @@ class CustomNavigationItem extends StatelessWidget {
   Widget build(BuildContext context) {
     bool active = activeIndices.contains(navigator.activeIndex);
     return InkWell(
-      onTap: () => navigator.changePage(activeIndices),
+      onTap: () {
+        // Special handling for ID Card (ausweis) to open as a new full-screen view
+        if (activeIndices.contains(NavigationPage.ausweis)) {
+          navigateClassic(const AusweisView());
+        } else {
+          navigator.changePage(activeIndices);
+        }
+      },
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
           decoration: BoxDecoration(

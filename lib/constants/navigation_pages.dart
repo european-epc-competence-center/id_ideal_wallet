@@ -12,7 +12,6 @@ enum NavigationPage {
   sendSatoshi,
   topUp,
   paymentOverview,
-  ausweisStart,
   ausweis,
   aboDetail,
 }

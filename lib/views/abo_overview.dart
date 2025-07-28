@@ -7,6 +7,7 @@ import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/web_view.dart';
+import 'package:id_ideal_wallet/views/ausweis_view.dart';
 import 'package:provider/provider.dart';
 
 class AboOverview extends StatefulWidget {
@@ -28,7 +29,7 @@ class AboOverviewState extends State<AboOverview>
   void initState() {
     super.initState();
     var wallet = Provider.of<WalletProvider>(context, listen: false);
-    for (int i = 0; i < wallet.aboList.length + 3; i++) {
+    for (int i = 0; i < wallet.aboList.length + 4; i++) {
       var controller = AnimationController(
         duration: const Duration(milliseconds: 250),
         vsync: this,
@@ -70,7 +71,7 @@ class AboOverviewState extends State<AboOverview>
                           crossAxisSpacing: 15,
                           crossAxisCount: 3,
                           children:
-                              List.generate(wallet.aboList.length + 1, (index) {
+                              List.generate(wallet.aboList.length + 2, (index) {
                             if (index == 0) {
                               return InkWell(
                                 onTap: () {
@@ -97,21 +98,50 @@ class AboOverviewState extends State<AboOverview>
                                   Text(AppLocalizations.of(context)!.add)
                                 ]),
                               );
+                            } else if (index == 1) {
+                              // ID Card button
+                              return InkWell(
+                                onTap: () {
+                                  navigateClassic(const AusweisView());
+                                },
+                                child: Column(children: [
+                                  Container(
+                                    width:
+                                        MediaQuery.of(context).size.width * 0.2,
+                                    height:
+                                        MediaQuery.of(context).size.width * 0.2,
+                                    decoration: BoxDecoration(
+                                        color: Colors.blue.shade100,
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
+                                    child: const Icon(
+                                      Icons.credit_card,
+                                      size: 45,
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                  Text(
+                                    AppLocalizations.of(context)!.idCard,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  )
+                                ]),
+                              );
                             }
-                            var e = wallet.aboList[index - 1];
+                            var e = wallet.aboList[index - 2];
                             return GestureDetector(
                               onTapDown: (details) {
                                 tapPosition = details.globalPosition;
                               },
                               onLongPress: () {
-                                controllers[index - 1].forward();
-                                controllers[index - 1].repeat(reverse: true);
+                                controllers[index - 2].forward();
+                                controllers[index - 2].repeat(reverse: true);
 
                                 final RenderBox overlay = Overlay.of(context)
                                     .context
                                     .findRenderObject() as RenderBox;
 
-                                final RenderBox card = cardKeys[index - 1]
+                                final RenderBox card = cardKeys[index - 2]
                                     .currentContext!
                                     .findRenderObject() as RenderBox;
 
@@ -173,7 +203,7 @@ class AboOverviewState extends State<AboOverview>
                                                       .cancel)),
                                           TextButton(
                                               onPressed: () async {
-                                                wallet.deleteAbo(index - 1);
+                                                wallet.deleteAbo(index - 2);
                                                 Navigator.of(context).pop();
                                               },
                                               child: Text(
@@ -183,7 +213,7 @@ class AboOverviewState extends State<AboOverview>
                                       ),
                                     );
                                   }
-                                  controllers[index - 1].reset();
+                                  controllers[index - 2].reset();
                                   deleteSelected = false;
                                 });
                               },
@@ -196,10 +226,10 @@ class AboOverviewState extends State<AboOverview>
                                 ));
                               },
                               child: SlideTransition(
-                                position: animations[index - 1],
+                                position: animations[index - 2],
                                 child: Column(children: [
-                                  SizedBox(
-                                    key: cardKeys[index - 1],
+                                                                      SizedBox(
+                                      key: cardKeys[index - 2],
                                     width:
                                         MediaQuery.of(context).size.width * 0.2,
                                     height:
@@ -230,26 +260,55 @@ class AboOverviewState extends State<AboOverview>
                   : Padding(
                       padding: const EdgeInsets.symmetric(
                           vertical: 15, horizontal: 20),
-                      child: InkWell(
-                        onTap: () {
-                          Provider.of<NavigationProvider>(context,
-                                  listen: false)
-                              .changePage([NavigationPage.searchNewAbo]);
-                        },
-                        child: Column(children: [
-                          Container(
-                            width: MediaQuery.of(context).size.width * 0.2,
-                            height: MediaQuery.of(context).size.width * 0.2,
-                            decoration: BoxDecoration(
-                                color: Colors.black12,
-                                borderRadius: BorderRadius.circular(10)),
-                            child: const Icon(
-                              Icons.add,
-                              size: 45,
-                            ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          InkWell(
+                            onTap: () {
+                              Provider.of<NavigationProvider>(context,
+                                      listen: false)
+                                  .changePage([NavigationPage.searchNewAbo]);
+                            },
+                            child: Column(children: [
+                              Container(
+                                width: MediaQuery.of(context).size.width * 0.2,
+                                height: MediaQuery.of(context).size.width * 0.2,
+                                decoration: BoxDecoration(
+                                    color: Colors.black12,
+                                    borderRadius: BorderRadius.circular(10)),
+                                child: const Icon(
+                                  Icons.add,
+                                  size: 45,
+                                ),
+                              ),
+                              Text(AppLocalizations.of(context)!.add)
+                            ]),
                           ),
-                          Text(AppLocalizations.of(context)!.add)
-                        ]),
+                          InkWell(
+                            onTap: () {
+                              navigateClassic(const AusweisView());
+                            },
+                            child: Column(children: [
+                              Container(
+                                width: MediaQuery.of(context).size.width * 0.2,
+                                height: MediaQuery.of(context).size.width * 0.2,
+                                decoration: BoxDecoration(
+                                    color: Colors.blue.shade100,
+                                    borderRadius: BorderRadius.circular(10)),
+                                child: const Icon(
+                                  Icons.credit_card,
+                                  size: 45,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                              Text(
+                                AppLocalizations.of(context)!.idCard,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              )
+                            ]),
+                          ),
+                        ],
                       ),
                     );
             }),

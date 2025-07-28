@@ -15,7 +15,6 @@ import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/StartScreen.dart';
 import 'package:id_ideal_wallet/views/abo_overview.dart';
-import 'package:id_ideal_wallet/views/ausweis_start.dart';
 import 'package:id_ideal_wallet/views/ausweis_view.dart';
 import 'package:id_ideal_wallet/views/authorized_apps.dart';
 import 'package:id_ideal_wallet/views/credential_detail.dart';
@@ -139,7 +138,7 @@ class HomeScreen extends StatelessWidget {
                     text: AppLocalizations.of(context)!.idCard,
                     activeIcon: Icons.credit_card,
                     inactiveIcon: Icons.credit_card_outlined,
-                    activeIndices: const [NavigationPage.ausweisStart],
+                    activeIndices: const [NavigationPage.ausweis],
                     navigator: navigator),
                 CustomNavigationItem(
                     text: AppLocalizations.of(context)!.options,
@@ -199,8 +198,6 @@ class HomeScreen extends StatelessWidget {
         return const PaymentCardOverview();
       case NavigationPage.settings:
         return const SettingsPage();
-      case NavigationPage.ausweisStart:
-        return const AusweisStart();
       case NavigationPage.webView:
         return WebViewWindow(initialUrl: navigator.webViewUrl, title: '');
       case NavigationPage.credentialDetail:
