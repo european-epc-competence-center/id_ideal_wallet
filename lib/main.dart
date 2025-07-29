@@ -14,7 +14,7 @@ import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/StartScreen.dart';
-import 'package:id_ideal_wallet/views/abo_overview.dart';
+
 import 'package:id_ideal_wallet/views/ausweis_view.dart';
 import 'package:id_ideal_wallet/views/authorized_apps.dart';
 import 'package:id_ideal_wallet/views/credential_detail.dart';
@@ -104,14 +104,9 @@ class HomeScreen extends StatelessWidget {
         children: [
           Expanded(
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                CustomNavigationItem(
-                    text: AppLocalizations.of(context)!.home,
-                    activeIcon: Icons.home,
-                    inactiveIcon: Icons.home_outlined,
-                    activeIndices: const [NavigationPage.abo],
-                    navigator: navigator),
+                const Spacer(),
                 CustomNavigationItem(
                     text: 'Wallet',
                     activeIcon: Icons.co_present,
@@ -121,36 +116,22 @@ class HomeScreen extends StatelessWidget {
                       NavigationPage.credentialDetail
                     ],
                     navigator: navigator),
-                const SizedBox(
-                  width: 20,
-                )
+                const Spacer(flex: 2),
               ],
             ),
           ),
           Expanded(
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const SizedBox(
-                  width: 20,
-                ),
+                const Spacer(flex: 2),
                 CustomNavigationItem(
                     text: AppLocalizations.of(context)!.idCard,
                     activeIcon: Icons.credit_card,
                     inactiveIcon: Icons.credit_card_outlined,
                     activeIndices: const [NavigationPage.ausweis],
                     navigator: navigator),
-                CustomNavigationItem(
-                    text: AppLocalizations.of(context)!.options,
-                    activeIcon: Icons.settings,
-                    inactiveIcon: Icons.settings_outlined,
-                    activeIndices: const [
-                      NavigationPage.settings,
-                      NavigationPage.authorizedApps,
-                      NavigationPage.license,
-                      NavigationPage.searchNewAbo,
-                    ],
-                    navigator: navigator),
+                const Spacer(),
               ],
             ),
           )
@@ -188,16 +169,12 @@ class HomeScreen extends StatelessWidget {
 
   Widget getContent(NavigationProvider navigator, WalletProvider wallet) {
     switch (navigator.activeIndex) {
-      case NavigationPage.abo:
-        return const AboOverview();
       case NavigationPage.credential:
         return const CredentialPage(initialSelection: 'all');
       case NavigationPage.qrScanner:
         return const QrScanner();
       case NavigationPage.paymentCard:
         return const PaymentCardOverview();
-      case NavigationPage.settings:
-        return const SettingsPage();
       case NavigationPage.webView:
         return WebViewWindow(initialUrl: navigator.webViewUrl, title: '');
       case NavigationPage.credentialDetail:
@@ -224,7 +201,7 @@ class HomeScreen extends StatelessWidget {
       case NavigationPage.ausweis:
         return const AusweisView();
       default:
-        return const AboOverview();
+        return const CredentialPage(initialSelection: 'all');
     }
   }
 

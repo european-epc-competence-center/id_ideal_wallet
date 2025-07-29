@@ -1,5 +1,4 @@
 enum NavigationPage {
-  abo,
   credential,
   qrScanner,
   paymentCard,
@@ -13,5 +12,4 @@ enum NavigationPage {
   topUp,
   paymentOverview,
   ausweis,
-  aboDetail,
 }

@@ -9,9 +9,11 @@ class StyledScaffoldTitle extends StatelessWidget {
       this.footerButtons,
       this.appBarActions,
       this.fab,
-      this.useBackSwipe = true});
+      this.useBackSwipe = true,
+      this.leftTitle});
 
   final dynamic title;
+  final String? leftTitle;
   final Widget child;
   final int? currentlyActive;
   final FloatingActionButton? fab;
@@ -24,14 +26,25 @@ class StyledScaffoldTitle extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        centerTitle: true,
+        centerTitle: leftTitle == null,
         automaticallyImplyLeading: false,
-        title: title is String
-            ? Text(
-                title,
-                style: Theme.of(context).primaryTextTheme.headlineLarge,
+        title: leftTitle != null 
+            ? Row(
+                children: [
+                  Text(
+                    leftTitle!,
+                    style: Theme.of(context).primaryTextTheme.headlineLarge,
+                  ),
+                  const Spacer(),
+                  if (title is Widget) title,
+                ],
               )
-            : title,
+            : title is String
+                ? Text(
+                    title,
+                    style: Theme.of(context).primaryTextTheme.headlineLarge,
+                  )
+                : title,
         actions: appBarActions,
       ),
       body: Container(

@@ -358,7 +358,7 @@ class AusweisProvider extends ChangeNotifier {
         : MaterialPageRoute(builder: (context) => const HomeScreen()));
 
     Provider.of<NavigationProvider>(context, listen: false)
-        .changePage([NavigationPage.abo]);
+        .changePage([NavigationPage.credential]);
   }
 
   void accept() {

@@ -18,7 +18,7 @@ import 'package:id_ideal_wallet/views/web_view.dart';
 import 'package:provider/provider.dart';
 
 class NavigationProvider extends ChangeNotifier {
-  NavigationPage activeIndex = NavigationPage.abo;
+  NavigationPage activeIndex = NavigationPage.credential;
   List<NavigationPage> pageStack = [];
   String webViewUrl = 'https://hidy.app';
   String? redirectWebViewUrl;
@@ -201,11 +201,11 @@ class NavigationProvider extends ChangeNotifier {
       pageStack.removeLast();
     }
     if (pageStack.isEmpty) {
-      if (activeIndex == NavigationPage.abo) {
+      if (activeIndex == NavigationPage.credential) {
         Navigator.of(navigatorKey.currentContext!).pop();
       } else {
         canPop = true;
-        activeIndex = NavigationPage.abo;
+        activeIndex = NavigationPage.credential;
       }
     } else {
       activeIndex = pageStack.last;

@@ -7,6 +7,135 @@
 - ✅ Completed: ID Card flow technical analysis
 - ✅ Completed: eID flow standardization and code quality improvements
 - ✅ Completed: Fixed automatic screen skipping and enhanced information display
+- ✅ Completed: Comprehensive eID flow analysis and documentation
+- ✅ Completed: Home and Wallet screen merge - removed home screen, made wallet default
+- ✅ Completed: Added "Wallet" header to top left of credential page
+- ✅ Completed: Added settings icon to wallet page top right and removed from bottom navigation
+- ✅ Completed: Fixed settings page black background issue and added close button
+- ✅ Completed: Fixed bottom navigation spacing to make ID Card button symmetric with Wallet button
+
+**Latest Task - Bottom Navigation Spacing Fix:**
+
+**Problem Identified:**
+- ID Card button had inconsistent spacing to QR FAB compared to Wallet button
+- Left side (Wallet) used `Spacer(flex: 2)` creating flexible space
+- Right side (ID Card) used fixed `SizedBox(width: 20)` creating asymmetric layout
+
+**What was done:**
+1. **Made Spacing Symmetric**: Changed right side to mirror left side spacing pattern
+2. **Used Consistent Spacers**: Replaced `SizedBox(width: 20)` with `Spacer(flex: 2)` and `Spacer()`
+3. **Updated Alignment**: Changed from `MainAxisAlignment.spaceAround` to `MainAxisAlignment.end`
+4. **Perfect Symmetry**: Now both sides have identical spacing patterns around the QR FAB
+
+**Technical Changes:**
+- `main.dart`: Right side now uses `Spacer(flex: 2)` + button + `Spacer()` pattern
+- Matches left side: `Spacer()` + button + `Spacer(flex: 2)` pattern
+- Creates balanced visual spacing on both sides of the floating action button
+
+**Previous Task - Settings Page Background Fix:**
+
+**Problem Identified:**
+- Settings page showed black/transparent background when opened via navigateClassic()
+- Root cause: StyledScaffoldTitle uses `backgroundColor: Colors.transparent` which works embedded but fails standalone
+- Missing close button for proper navigation back
+
+**What was done:**
+1. **Replaced StyledScaffoldTitle**: Changed SettingsPage to use standard Scaffold instead of StyledScaffoldTitle
+2. **Added Close Button**: Added X (close) button in top left of AppBar following AusweisView pattern
+3. **Fixed Background**: Removed transparent background, now uses default Material Design background
+4. **Maintained Layout**: Preserved same margin and structure as before
+5. **Consistent Navigation**: Follows same pattern as other full-screen views (AusweisView, WebView)
+
+**Technical Changes:**
+- `SettingsPage.dart`: Replaced StyledScaffoldTitle with Scaffold + AppBar + SafeArea
+- Added IconButton with Icons.close in AppBar leading position
+- Removed StyledScaffoldTitle import
+- Used same Container margin (left: 10, right: 10, top: 0) for consistency
+- Title styling matches other full-screen views
+
+**Previous Task - Settings Icon to Wallet Header:**
+
+**What was done:**
+1. **Added Settings Icon**: Added settings icon to wallet page app bar actions (top right)
+2. **Removed Bottom Navigation**: Removed settings option from bottom navigation bar entirely
+3. **Updated Navigation Logic**: Removed NavigationPage.settings case from main switch statement
+4. **Preserved Sub-Navigation**: Kept license and searchNewAbo navigation cases for internal settings navigation
+5. **Full-Screen Navigation**: Settings now opens as a new full-screen view using navigateClassic()
+
+**Technical Changes:**
+- `CredentialPage.dart`: Added settings icon to appBarActions using navigateClassic(SettingsPage())
+- `main.dart`: Removed CustomNavigationItem for settings from bottom bar
+- `main.dart`: Removed NavigationPage.settings case from getContent() switch
+- Settings icon always visible, QR code icon conditional on ISO mDoc credentials
+- Used same navigation pattern as other full-screen views (ID card, etc.)
+
+**Previous Task - Wallet Header Addition:**
+
+**What was done:**
+1. **Modified StyledScaffoldTitle**: Added `leftTitle` parameter to support left-aligned titles
+2. **Updated AppBar Layout**: When `leftTitle` is provided, creates a Row with title on left and widgets on right
+3. **Updated CredentialPage**: Added `leftTitle: "Wallet"` to display "Wallet" header on top left
+4. **Preserved Functionality**: Dropdown menu still works and appears on the right side of the app bar
+
+**Technical Changes:**
+- `StyledScaffoldTitle.dart`: Added `leftTitle` parameter and conditional layout logic
+- `CredentialPage.dart`: Added `leftTitle: "Wallet"` parameter to show header
+- Layout uses Row with Spacer to position "Wallet" on left and dropdown on right
+- Maintains responsive design and existing styling
+
+**Previous Task - Home/Wallet Screen Merge:**
+
+**What was done:**
+1. **Removed Home Screen**: Changed default page from `NavigationPage.abo` to `NavigationPage.credential`
+2. **Updated Navigation**: Removed `abo` case from navigation switch, made wallet the default content
+3. **Cleaned Up References**: Updated all references from `abo` to `credential` in navigation providers
+4. **Removed Unused Code**: Deleted unused enum values (`abo`, `aboDetail`) and import statements
+5. **Centered Wallet Tab**: Updated bottom navigation layout to center the Wallet tab on the left side
+
+**Navigation Structure Now:**
+- **Left:** Wallet tab (centered) - navigates to CredentialPage
+- **Center:** QR Scanner FAB (floating action button)
+- **Right:** ID Card + Settings tabs
+
+**Technical Changes:**
+- `NavigationProvider.activeIndex` default changed from `abo` to `credential`
+- Removed `NavigationPage.abo` and `NavigationPage.aboDetail` from enum
+- Updated `getContent()` switch statement to remove abo case
+- Updated back navigation logic to use `credential` instead of `abo`
+- Centered Wallet tab using `MainAxisAlignment.center` instead of `spaceAround`
+- Removed unnecessary `SizedBox` spacing in left navigation area
+
+**eID Flow Analysis - Complete Technical Overview:**
+
+**Architecture Overview:**
+- Uses AusweisApp2 SDK (German federal eID solution) integrated via native Android/iOS bridge
+- Flutter app communicates with native AusweisApp2 service via MethodChannel/EventChannel
+- Two main flows: Self-initiated credential creation and External authentication requests
+- Certificate validation uses hardcoded root certificates in `root_certificates.dart`
+
+**eID Flow Components:**
+1. **Native Integration**: AusweisApp2 SDK handles actual eID communication and NFC operations
+2. **Flutter Bridge**: `AusweisProvider` manages state and communicates with native layer
+3. **UI Flow**: Series of screens (start → NFC → PIN → completion) managed by `AusweisView`
+4. **Certificate Handling**: X.509 certificates validated against embedded root CAs
+5. **Data Processing**: Personal data extracted and processed for credential issuance
+
+**Deep Link Trigger:**
+- `eid://` URLs trigger external authentication flow
+- Contains `tcTokenURL` parameter pointing to service provider
+- Handled in `NavigationProvider.handleLink()` around line 130-139
+
+**Certificate Management:**
+- Root certificates hardcoded in `lib/constants/root_certificates.dart`
+- Contains CA certificates for Hochschule Mittweida (development/testing environment)
+- Apple certificates for PKPass validation
+- Certificate validation happens in native AusweisApp2 SDK
+
+**Key Technical Details:**
+- NFC communication handled entirely by AusweisApp2 SDK
+- PIN verification, CAN/PUK handling managed by SDK
+- Data extraction returns structured personal information
+- Age verification backend integration at `https://eatfresh.ssi.eecc.de/verify-age`
 
 **Findings:**
 - Project had only structure.md in notes folder, missing required index.md and ai-notes.md

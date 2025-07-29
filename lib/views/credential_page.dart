@@ -18,6 +18,7 @@ import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/iso_credential_request.dart';
+import 'package:id_ideal_wallet/views/settings_page.dart';
 import 'package:json_path/fun_sdk.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
@@ -51,6 +52,7 @@ class CredentialPageState extends State<CredentialPage> {
                 .toList();
         return StyledScaffoldTitle(
             currentlyActive: 0,
+            leftTitle: "Wallet",
             title: DropdownMenu<String>(
                 initialSelection: AppLocalizations.of(context)!.allCredentials,
                 inputDecorationTheme:
@@ -63,16 +65,22 @@ class CredentialPageState extends State<CredentialPage> {
                 dropdownMenuEntries: wallet.credentialsTypes
                     .map((e) => DropdownMenuEntry(value: e, label: e))
                     .toList()),
-            appBarActions: wallet.isoMdocCredentials.isNotEmpty
-                ? [
-                    InkWell(
-                        onTap: () =>
-                            navigateClassic(const IsoCredentialRequest()),
-                        child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10),
-                            child: Icon(Icons.qr_code_2, size: 30)))
-                  ]
-                : [],
+            appBarActions: [
+                // Settings icon - always visible
+                InkWell(
+                    onTap: () => navigateClassic(const SettingsPage()),
+                    child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 10),
+                        child: Icon(Icons.settings, size: 30))),
+                // QR code icon - conditional based on ISO mDoc credentials
+                if (wallet.isoMdocCredentials.isNotEmpty)
+                  InkWell(
+                      onTap: () =>
+                          navigateClassic(const IsoCredentialRequest()),
+                      child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 10),
+                          child: Icon(Icons.qr_code_2, size: 30)))
+              ],
             child: credentialList.isEmpty
                 ? Center(
                     child:
