@@ -4,6 +4,7 @@ import 'package:id_ideal_wallet/l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/basicUi/standard/issuer_info.dart';
 import 'package:id_ideal_wallet/basicUi/standard/styled_scaffold_title.dart';
 import 'package:id_ideal_wallet/constants/colors.dart';
+import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
@@ -175,17 +176,33 @@ class CredentialDetailState extends State<CredentialDetailView> {
 
   @override
   Widget build(BuildContext context) {
-    return StyledScaffoldTitle(
-      useBackSwipe: false,
-      title: '',
-      appBarActions: [
-        InkWell(
-            onTap: _deleteCredential,
-            child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10),
-                child: Icon(Icons.delete_outline_sharp, size: 30)))
-      ],
-      child: _buildBody(),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+        title: const Text(''),
+        leading: InkWell(
+          onTap: () {
+            Provider.of<NavigationProvider>(context, listen: false)
+                .changePage([NavigationPage.credential]);
+          },
+          child: const Padding(
+            padding: EdgeInsets.all(12),
+            child: Icon(Icons.arrow_back, size: 24),
+          ),
+        ),
+        actions: [
+          InkWell(
+              onTap: _deleteCredential,
+              child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10),
+                  child: Icon(Icons.delete_outline_sharp, size: 30)))
+        ],
+      ),
+      body: Container(
+          margin: const EdgeInsets.only(left: 10, right: 10, top: 0),
+          child: _buildBody()),
     );
   }
 }
