@@ -154,6 +154,26 @@ flutter:
         - asset: assets/fonts/Outfit/Outfit-Regular.ttf
         - asset: assets/fonts/Outfit/Outfit-SemiBold.ttf
         - asset: assets/fonts/Outfit/Outfit-Thin.ttf
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter/Inter_18pt-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/Inter/Inter_18pt-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/Inter/Inter_18pt-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Inter/Inter_18pt-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter/Inter_18pt-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter/Inter_18pt-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter/Inter_18pt-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Inter/Inter_18pt-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Inter/Inter_18pt-Black.ttf
+          weight: 900
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.

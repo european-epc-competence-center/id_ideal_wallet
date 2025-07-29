@@ -4,7 +4,7 @@ class IdWalletDesignTheme {
   final ThemeData theme = ThemeData(
       colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       cardColor: Colors.white,
-      fontFamily: 'Outfit',
+      fontFamily: 'Inter',
       primaryTextTheme: const TextTheme(
           headlineLarge: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
           bodyMedium: TextStyle(
