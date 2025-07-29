@@ -108,13 +108,8 @@ class CredentialDetailState extends State<CredentialDetailView> {
                 wallet.deleteCredential(credId, true);
                 Navigator.of(context).pop();
                 //Navigator.of(context).pop();
-                if (widget.credential.type.contains('ContextCredential')) {
-                  Provider.of<NavigationProvider>(context, listen: false)
-                      .goBack();
-                } else {
-                  Provider.of<NavigationProvider>(context, listen: false)
-                      .goBack();
-                }
+                Provider.of<NavigationProvider>(context, listen: false)
+                    .changePage([NavigationPage.credential]);
               },
               child: Text(AppLocalizations.of(context)!.delete))
         ],

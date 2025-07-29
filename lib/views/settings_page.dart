@@ -54,8 +54,14 @@ class SettingsPageState extends State<SettingsPage> {
               ),
               ListTile(
                 title: Text(AppLocalizations.of(context)!.license),
-                onTap: () => Provider.of<NavigationProvider>(context, listen: false)
-                    .changePage([NavigationPage.license]),
+                onTap: () => navigateClassic(LicensePage(
+                  applicationName: 'EECC Identity Wallet',
+                  applicationVersion: versionNumber,
+                  applicationIcon: Image.asset(
+                    'assets/icons/app_icon-playstore.png',
+                    height: 100,
+                  ),
+                )),
               ),
               ListTile(
                 title: Text(AppLocalizations.of(context)!.about),
