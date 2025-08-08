@@ -17,8 +17,27 @@
 - ✅ Completed: Inter font installation - replaced Outfit with Inter throughout the app
 - ✅ Completed: Fixed credential deletion navigation to go to credential page like back arrow
 - ✅ Completed: Changed wallet icon from co_present to account_balance_wallet in bottom navigation
+- ✅ Completed: Modernized AusweisView start screen with clear eID reading and credential issuance info
 
 **Latest Task - Wallet Icon Change:**
+**Latest Task - AusweisView Modernization:**
+
+**What was done:**
+1. Updated the ID card (`AusweisView`) start screen to a more modern layout
+2. Added explicit copy: we will read the eID (via NFC) and create two credentials – an ID Card credential and an age credential (16+ or 18+ based on actual age)
+3. Introduced a "Sie erhalten" section and later enlarged it, stacking ID Card and Age credentials vertically for emphasis
+4. Removed the "Ablauf" section per UX direction, simplifying the screen
+5. Updated CTA button text for clearer action phrasing
+
+**Technical Changes:**
+- `lib/views/ausweis_view.dart`: Updated hero title/description, added "Sie erhalten" section, refined steps, updated CTA labels
+- No changes to flow/state; only UI/copy updates
+
+**Impact:**
+- Clearer user expectations before starting NFC
+- Explicitly communicates that ID Card and age credentials are issued from eID data
+- More modern hierarchy and visuals without affecting business logic
+
 
 **What was done:**
 1. **Updated Wallet Icon**: Changed bottom navigation wallet icon from `Icons.co_present`/`co_present_outlined` to `Icons.account_balance_wallet`/`account_balance_wallet_outlined`
