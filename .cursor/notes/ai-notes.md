@@ -16,8 +16,19 @@
 - ✅ Completed: Fixed license navigation bug and settings page syntax error
 - ✅ Completed: Inter font installation - replaced Outfit with Inter throughout the app
 - ✅ Completed: Fixed credential deletion navigation to go to credential page like back arrow
+- ✅ Completed: Changed wallet icon from co_present to account_balance_wallet in bottom navigation
 
-**Latest Task - Credential Deletion Navigation Fix:**
+**Latest Task - Wallet Icon Change:**
+
+**What was done:**
+1. **Updated Wallet Icon**: Changed bottom navigation wallet icon from `Icons.co_present`/`co_present_outlined` to `Icons.account_balance_wallet`/`account_balance_wallet_outlined`
+2. **Located Oval Border Styling**: Identified that the oval border around navigation icons is defined in `CustomNavigationItem` widget with `BorderRadius.circular(15)` and grey background colors
+
+**Technical Changes:**
+- `main.dart`: Updated CustomNavigationItem for wallet to use account_balance_wallet icons
+- Oval border styling located in `lib/basicUi/standard/custom_navigation_item.dart` lines 34-44
+
+**Previous Task - Credential Deletion Navigation Fix:**
 
 **Problem Identified:**
 - When deleting a credential from credential detail page, it used `goBack()` method

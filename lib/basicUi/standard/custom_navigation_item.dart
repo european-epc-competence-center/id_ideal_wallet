@@ -31,18 +31,20 @@ class CustomNavigationItem extends StatelessWidget {
         }
       },
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            shape: BoxShape.rectangle,
-            color: active ? Colors.grey.shade400 : Colors.grey.shade100,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 2),
-            child: Icon(active ? activeIcon : inactiveIcon),
+        Icon(
+          active ? activeIcon : inactiveIcon,
+          size: 32,
+          color: Colors.black,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.black,
+            fontWeight: FontWeight.w500,
           ),
         ),
-        Text(text),
       ]),
     );
   }

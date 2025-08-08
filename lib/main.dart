@@ -109,8 +109,8 @@ class HomeScreen extends StatelessWidget {
                 const Spacer(),
                 CustomNavigationItem(
                     text: 'Wallet',
-                    activeIcon: Icons.co_present,
-                    inactiveIcon: Icons.co_present_outlined,
+                    activeIcon: Icons.account_balance_wallet,
+                    inactiveIcon: Icons.account_balance_wallet_outlined,
                     activeIndices: const [
                       NavigationPage.credential,
                       NavigationPage.credentialDetail
@@ -126,9 +126,9 @@ class HomeScreen extends StatelessWidget {
               children: [
                 const Spacer(flex: 2),
                 CustomNavigationItem(
-                    text: AppLocalizations.of(context)!.idCard,
-                    activeIcon: Icons.credit_card,
-                    inactiveIcon: Icons.credit_card_outlined,
+                    text: 'eID Reader',
+                    activeIcon: Icons.perm_identity,
+                    inactiveIcon: Icons.perm_identity_outlined,
                     activeIndices: const [NavigationPage.ausweis],
                     navigator: navigator),
                 const Spacer(),
