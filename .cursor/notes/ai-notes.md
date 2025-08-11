@@ -20,7 +20,37 @@
 - ✅ Completed: Modernized AusweisView start screen with clear eID reading and credential issuance info
 
 **Latest Task - Wallet Icon Change:**
-**Latest Task - AusweisView Modernization:**
+**Latest Task - Empty Credential Page Modernization:**
+
+**What was done:**
+1. **Modernized Empty State**: Replaced simple "No Credentials" text with informative, modern layout
+2. **Added New Localization Strings**: Created emptyCredentialTitle, emptyCredentialEidInfo, emptyCredentialQrInfo in both German and English
+3. **Informative Content**: Added clear descriptions about eID functionality and QR code scanning
+4. **Modern Design**: Used clean layout with icons, proper spacing, and typography hierarchy
+5. **User Guidance**: Explains both main app functions without buttons (as requested)
+
+**Technical Changes:**
+- `lib/l10n/app_de.arb`: Added 3 new German localization strings for empty state
+- `lib/l10n/app_en.arb`: Added 3 new English localization strings for empty state  
+- `lib/views/credential_page.dart`: Replaced Center/Text with Padding/Column layout including NFC and QR scanner icons with descriptions
+- Used blue icons (Color(0xFF2563EB)) for visual consistency
+- Maintained responsive design with Expanded widgets
+
+**Design Details:**
+- **Welcome Title**: "Willkommen in Ihrer digitalen Wallet" / "Welcome to your digital wallet"
+- **eID Info**: Explains NFC reading of electronic ID card for credential creation
+- **QR Info**: Explains QR code scanning for receiving/presenting credentials
+- **Layout**: Centered column with 40px spacing, icon+text rows with 24px between sections
+- **Typography**: 24px title (w600), 16px body text with 1.5 line height
+- **Icons**: 32px NFC and QR scanner icons in blue theme color
+
+**Impact:**
+- Landing page now educates users about key app functionality
+- Clean, modern appearance without being bloated
+- Clear user expectations about eID reading and QR scanning capabilities
+- No action buttons added (as requested) - information only
+
+**Previous Task - AusweisView Modernization:**
 
 **What was done:**
 1. Updated the ID card (`AusweisView`) start screen to a more modern layout

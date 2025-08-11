@@ -378,6 +378,17 @@ class AppLocalizationsDe extends AppLocalizations {
   String get noteNoCredentials => 'Keine Nachweise vorhanden';
 
   @override
+  String get emptyCredentialTitle => 'Willkommen in Ihrer\nEECC Wallet';
+
+  @override
+  String get emptyCredentialEidInfo =>
+      'Nutzen Sie Ihren elektronischen Personalausweis, um digitale Nachweise zu erstellen. Die Wallet liest Ihre eID-Daten sicher über NFC aus.';
+
+  @override
+  String get emptyCredentialQrInfo =>
+      'Scannen Sie QR-Codes, um neue Nachweise zu empfangen oder vorhandene Nachweise zu präsentieren.';
+
+  @override
   String get allCredentials => 'Alle Nachweise';
 
   @override

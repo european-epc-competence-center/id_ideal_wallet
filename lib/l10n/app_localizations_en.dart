@@ -377,6 +377,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noteNoCredentials => 'No Credentials';
 
   @override
+  String get emptyCredentialTitle => 'Welcome to your\nEECC Wallet';
+
+  @override
+  String get emptyCredentialEidInfo =>
+      'Use your electronic ID card to create digital credentials. The wallet securely reads your eID data via NFC.';
+
+  @override
+  String get emptyCredentialQrInfo =>
+      'Scan QR codes to receive new credentials or present existing credentials.';
+
+  @override
   String get allCredentials => 'All Credentials';
 
   @override

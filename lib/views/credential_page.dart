@@ -82,9 +82,69 @@ class CredentialPageState extends State<CredentialPage> {
                           child: Icon(Icons.qr_code_2, size: 30)))
               ],
             child: credentialList.isEmpty
-                ? Center(
-                    child:
-                        Text(AppLocalizations.of(context)!.noteNoCredentials))
+                ? Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 40),
+                        Text(
+                          AppLocalizations.of(context)!.emptyCredentialTitle,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black.withOpacity(0.7),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 40),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.perm_identity,
+                              size: 32,
+                              color: Color(0xFF2563EB),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                AppLocalizations.of(context)!.emptyCredentialEidInfo,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  height: 1.5,
+                                  color: Colors.black.withOpacity(0.6),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.qr_code_scanner,
+                              size: 32,
+                              color: Color(0xFF2563EB),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                AppLocalizations.of(context)!.emptyCredentialQrInfo,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  height: 1.5,
+                                  color: Colors.black.withOpacity(0.6),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  )
                 : ListView.builder(
                     padding: const EdgeInsets.only(bottom: bottomPadding),
                     itemCount: credentialList.length,
