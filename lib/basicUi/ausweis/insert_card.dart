@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
+import 'package:id_ideal_wallet/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 class InsertCard extends StatelessWidget {
@@ -13,12 +14,11 @@ class InsertCard extends StatelessWidget {
           child: Column(
             children: [
               Text(
-                'Ausweis lesen',
+                AppLocalizations.of(context)!.readIdCardData,
                 style: Theme.of(context).primaryTextTheme.headlineLarge,
               ),
               const SizedBox(height: 10),
-              const Text(
-                  'Bitte halte deinen Ausweis an die NFC-Schnittstelle deines Gerätes. Diese befindet sich meistens an der Rückseite des Gerätes.'),
+              Text(AppLocalizations.of(context)!.insertCardInstruction),
             ],
           )),
       persistentFooterButtons: [
@@ -30,7 +30,7 @@ class InsertCard extends StatelessWidget {
               foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(45),
             ),
-            child: const Text('Vorgang Abbrechen')),
+            child: Text(AppLocalizations.of(context)!.cancelProcess)),
       ],
     );
   }

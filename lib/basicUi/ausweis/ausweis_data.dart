@@ -3,6 +3,7 @@ import 'package:id_ideal_wallet/basicUi/standard/footer_buttons.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
 import 'package:id_ideal_wallet/views/credential_page.dart';
+import 'package:id_ideal_wallet/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 class AusweisData extends StatelessWidget {
@@ -17,7 +18,7 @@ class AusweisData extends StatelessWidget {
           child: Column(
             children: [
               Text(
-                'Ausweisdaten',
+                AppLocalizations.of(context)!.idCardData,
                 style: Theme.of(context).primaryTextTheme.headlineLarge,
               ),
               const SizedBox(
@@ -31,7 +32,7 @@ class AusweisData extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: ausweis.statusProgress,
                     minHeight: 7,
-                    semanticsLabel: 'Lese Daten',
+                    semanticsLabel: AppLocalizations.of(context)!.readingData,
                   ),
                 )
             ],
@@ -40,7 +41,7 @@ class AusweisData extends StatelessWidget {
         persistentFooterButtons: ausweis.selfInfo
             ? [
                 FooterButtons(
-                    positiveText: 'Als Nachweis speichern',
+                    positiveText: AppLocalizations.of(context)!.saveAsCredential,
                     positiveFunction: () {
                       if (ausweis.readData != null) {
                         ausweis.storeAsCredential();

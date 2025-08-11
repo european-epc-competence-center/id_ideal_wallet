@@ -71,7 +71,7 @@ class AusweisViewState extends State<AusweisView> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'eID auslesen & Nachweise erstellen',
+                    AppLocalizations.of(context)!.eidReadAndCreateCredentials,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: Colors.grey.shade800,
@@ -80,7 +80,7 @@ class AusweisViewState extends State<AusweisView> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Wir lesen Ihren Personalausweis (eID) per NFC aus und erstellen daraus digitale Nachweise: einen Ausweis-Nachweis (ID Card) sowie – je nach tatsächlichem Alter – einen Altersnachweis 16+ oder 18+.',
+                    AppLocalizations.of(context)!.eidDescription,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.grey.shade600,
                       height: 1.3,
@@ -114,7 +114,7 @@ class AusweisViewState extends State<AusweisView> {
                       Icon(Icons.badge, size: 20, color: Colors.blue.shade600),
                       const SizedBox(width: 8),
                       Text(
-                        'Sie erhalten',
+                        AppLocalizations.of(context)!.youWillReceive,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: Colors.grey.shade800,
@@ -136,7 +136,7 @@ class AusweisViewState extends State<AusweisView> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'ID Card Credential',
+                            AppLocalizations.of(context)!.idCardCredential,
                             style: TextStyle(
                               color: Colors.blue.shade800,
                               fontWeight: FontWeight.w700,
@@ -161,7 +161,7 @@ class AusweisViewState extends State<AusweisView> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Altersnachweis 16+ oder 18+',
+                            AppLocalizations.of(context)!.ageVerification16Or18,
                             style: TextStyle(
                               color: Colors.green.shade800,
                               fontWeight: FontWeight.w700,
@@ -193,7 +193,7 @@ class AusweisViewState extends State<AusweisView> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Externe Anfrage erkannt',
+                        AppLocalizations.of(context)!.externalRequestDetected,
                         style: TextStyle(
                           color: Colors.orange.shade800,
                           fontWeight: FontWeight.w600,
@@ -232,8 +232,8 @@ class AusweisViewState extends State<AusweisView> {
                 icon: const Icon(Icons.nfc, size: 20),
                 label: Text(
                   ausweis.selfInfo 
-                    ? 'Jetzt starten – eID auslesen'
-                    : 'Jetzt starten – authentifizieren',
+                    ? AppLocalizations.of(context)!.startNowReadEid
+                    : AppLocalizations.of(context)!.startNowAuthenticate,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,

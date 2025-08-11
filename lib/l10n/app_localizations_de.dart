@@ -678,4 +678,180 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get backupNotFound =>
       'Kein passendes Backup gefunden! Falsche Wortfolge?';
+
+  @override
+  String get eidReadAndCreateCredentials =>
+      'eID auslesen & Nachweise erstellen';
+
+  @override
+  String get eidDescription =>
+      'Wir lesen Ihren Personalausweis (eID) per NFC aus und erstellen daraus digitale Nachweise: einen Ausweis-Nachweis (ID Card) sowie – je nach tatsächlichem Alter – einen Altersnachweis 16+ oder 18+.';
+
+  @override
+  String get youWillReceive => 'Sie erhalten';
+
+  @override
+  String get idCardCredential => 'ID Card Credential';
+
+  @override
+  String get ageVerification16Or18 => 'Altersnachweis 16+ oder 18+';
+
+  @override
+  String get externalRequestDetected => 'Externe Anfrage erkannt';
+
+  @override
+  String get startNowReadEid => 'Jetzt starten – eID auslesen';
+
+  @override
+  String get startNowAuthenticate => 'Jetzt starten – authentifizieren';
+
+  @override
+  String get authenticate => 'Ausweisen';
+
+  @override
+  String get readIdCardData => 'Ausweis lesen';
+
+  @override
+  String get insertCardInstruction =>
+      'Bitte halte deinen Ausweis an die NFC-Schnittstelle deines Gerätes. Diese befindet sich meistens an der Rückseite des Gerätes.';
+
+  @override
+  String get cancelProcess => 'Vorgang Abbrechen';
+
+  @override
+  String get canEntry => 'CAN-Eingabe';
+
+  @override
+  String get enterCanInstruction =>
+      'Bitte gib die 6-stellige CAN von der Vorderseite deines Ausweises ein:';
+
+  @override
+  String get canMustBe6Digits => 'Die CAN muss genau 6 Stellen haben';
+
+  @override
+  String get pinEntry => 'PIN-Eingabe';
+
+  @override
+  String get enterPinInstruction =>
+      'Bitte gib deine 6-stellige Ausweis-PIN ein:';
+
+  @override
+  String get pinMustBe6Digits => 'Die PIN muss genau 6 Stellen haben';
+
+  @override
+  String get idCardPin => 'Ausweis-PIN';
+
+  @override
+  String remainingAttempts(int count) {
+    return 'Verbleibende Versuche: $count';
+  }
+
+  @override
+  String get pinRetry2Warning =>
+      'Solltest Du auch bei diesem Versuch eine falsche PIN eingeben, muss vor dem letzten Versuch die CAN eingegeben werden. Das ist die 6-stellige Zahlenfolge auf der Vorderseite deines Ausweises.';
+
+  @override
+  String get pinRetry1Warning =>
+      'Das ist dein letzter Versuch, eine korrekte PIN einzugeben. Sollte auch dieser fehlschlagen, wird die Online-Ausweis-Funktion gesperrt.';
+
+  @override
+  String get fiveDigitPinInfo =>
+      'Du hast nur eine 5-stellige PIN? Dann brich den Vorgang bitte ab und nutze die Funktion \"PIN ändern\" der offiziellen Ausweis-App.';
+
+  @override
+  String get pukEntry => 'PUK-Eingabe';
+
+  @override
+  String get enterPukInstruction =>
+      'Bitte gib die 10-stellige PUK deines Ausweises ein:';
+
+  @override
+  String get pukMustBe10Digits => 'Die PUK muss genau 10 Stellen haben';
+
+  @override
+  String get processFailed => 'Vorgang fehlgeschlagen';
+
+  @override
+  String get idCardData => 'Ausweisdaten';
+
+  @override
+  String get readingData => 'Lese Daten';
+
+  @override
+  String get saveAsCredential => 'Als Nachweis speichern';
+
+  @override
+  String get continueToPin => 'Weiter zur Pin Eingabe';
+
+  @override
+  String get loadingRequest => 'Anfrage wird geladen';
+
+  @override
+  String get attributeAddress => 'Adresse';
+
+  @override
+  String get attributeBirthName => 'Geburtsname';
+
+  @override
+  String get attributeFamilyName => 'Familienname';
+
+  @override
+  String get attributeGivenNames => 'Vorname(n)';
+
+  @override
+  String get attributePlaceOfBirth => 'Geburtsort';
+
+  @override
+  String get attributeDateOfBirth => 'Geburtsdatum';
+
+  @override
+  String get attributeDoctoralDegree => 'Doktortitel';
+
+  @override
+  String get attributeArtisticName => 'Künstlername';
+
+  @override
+  String get attributeValidUntil => 'Ablaufdatum';
+
+  @override
+  String get attributeNationality => 'Staatsangehörigkeit';
+
+  @override
+  String get attributeIssuingCountry => 'Aussteller-Land';
+
+  @override
+  String get attributeDocumentType => 'Dokumententyp';
+
+  @override
+  String get attributeResidencePermitI => 'Aufenthaltserlaubnis 1';
+
+  @override
+  String get attributeResidencePermitII => 'Aufenthaltserlaubnis 2';
+
+  @override
+  String get attributeCommunityID => 'Wohnort-ID';
+
+  @override
+  String get attributeAddressVerification => 'Adressverifikation';
+
+  @override
+  String get attributeAgeVerification => 'Altersverifikation';
+
+  @override
+  String get requester => 'Anfragender';
+
+  @override
+  String get certificateIssuer => 'Aussteller des Berechtigungszertifikats';
+
+  @override
+  String get validity => 'Gültigkeit';
+
+  @override
+  String get reason => 'Grund';
+
+  @override
+  String get providerInformation => 'Anbieterinformationen';
+
+  @override
+  String get requestedData => 'Angefragte Daten';
 }

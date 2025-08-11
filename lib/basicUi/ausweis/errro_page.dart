@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
+import 'package:id_ideal_wallet/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 class ErrorPage extends StatelessWidget {
@@ -14,7 +15,7 @@ class ErrorPage extends StatelessWidget {
           child: Column(
             children: [
               Text(
-                'Vorgang fehlgeschlagen',
+                AppLocalizations.of(context)!.processFailed,
                 style: Theme.of(context).primaryTextTheme.headlineLarge,
               ),
               const SizedBox(
@@ -40,7 +41,7 @@ class ErrorPage extends StatelessWidget {
                 foregroundColor: Colors.white,
                 minimumSize: const Size.fromHeight(45),
               ),
-              child: const Text('Ok')),
+              child: Text(AppLocalizations.of(context)!.ok)),
         ],
       );
     });

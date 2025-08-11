@@ -673,4 +673,178 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupNotFound => 'Backup not found! Wrong Password?';
+
+  @override
+  String get eidReadAndCreateCredentials => 'Read eID & Create Credentials';
+
+  @override
+  String get eidDescription =>
+      'We read your ID card (eID) via NFC and create digital credentials: an ID card credential and - depending on your actual age - an age verification 16+ or 18+.';
+
+  @override
+  String get youWillReceive => 'You will receive';
+
+  @override
+  String get idCardCredential => 'ID Card Credential';
+
+  @override
+  String get ageVerification16Or18 => 'Age Verification 16+ or 18+';
+
+  @override
+  String get externalRequestDetected => 'External request detected';
+
+  @override
+  String get startNowReadEid => 'Start now – Read eID';
+
+  @override
+  String get startNowAuthenticate => 'Start now – Authenticate';
+
+  @override
+  String get authenticate => 'Authenticate';
+
+  @override
+  String get readIdCardData => 'Read ID card data';
+
+  @override
+  String get insertCardInstruction =>
+      'Please hold your ID card to the NFC interface of your device. This is usually located on the back of the device.';
+
+  @override
+  String get cancelProcess => 'Cancel Process';
+
+  @override
+  String get canEntry => 'CAN Entry';
+
+  @override
+  String get enterCanInstruction =>
+      'Please enter the 6-digit CAN from the front of your ID card:';
+
+  @override
+  String get canMustBe6Digits => 'The CAN must be exactly 6 digits';
+
+  @override
+  String get pinEntry => 'PIN Entry';
+
+  @override
+  String get enterPinInstruction => 'Please enter your 6-digit ID card PIN:';
+
+  @override
+  String get pinMustBe6Digits => 'The PIN must be exactly 6 digits';
+
+  @override
+  String get idCardPin => 'ID Card PIN';
+
+  @override
+  String remainingAttempts(int count) {
+    return 'Remaining attempts: $count';
+  }
+
+  @override
+  String get pinRetry2Warning =>
+      'If you enter an incorrect PIN on this attempt as well, the CAN must be entered before the last attempt. This is the 6-digit number sequence on the front of your ID card.';
+
+  @override
+  String get pinRetry1Warning =>
+      'This is your last attempt to enter a correct PIN. If this also fails, the online ID card function will be blocked.';
+
+  @override
+  String get fiveDigitPinInfo =>
+      'Do you only have a 5-digit PIN? Then please cancel the process and use the \"Change PIN\" function in the official ID card app.';
+
+  @override
+  String get pukEntry => 'PUK Entry';
+
+  @override
+  String get enterPukInstruction =>
+      'Please enter the 10-digit PUK of your ID card:';
+
+  @override
+  String get pukMustBe10Digits => 'The PUK must be exactly 10 digits';
+
+  @override
+  String get processFailed => 'Process Failed';
+
+  @override
+  String get idCardData => 'ID Card Data';
+
+  @override
+  String get readingData => 'Reading data';
+
+  @override
+  String get saveAsCredential => 'Save as Credential';
+
+  @override
+  String get continueToPin => 'Continue to PIN entry';
+
+  @override
+  String get loadingRequest => 'Loading request';
+
+  @override
+  String get attributeAddress => 'Address';
+
+  @override
+  String get attributeBirthName => 'Birth Name';
+
+  @override
+  String get attributeFamilyName => 'Family Name';
+
+  @override
+  String get attributeGivenNames => 'Given Name(s)';
+
+  @override
+  String get attributePlaceOfBirth => 'Place of Birth';
+
+  @override
+  String get attributeDateOfBirth => 'Date of Birth';
+
+  @override
+  String get attributeDoctoralDegree => 'Doctoral Degree';
+
+  @override
+  String get attributeArtisticName => 'Artistic Name';
+
+  @override
+  String get attributeValidUntil => 'Valid Until';
+
+  @override
+  String get attributeNationality => 'Nationality';
+
+  @override
+  String get attributeIssuingCountry => 'Issuing Country';
+
+  @override
+  String get attributeDocumentType => 'Document Type';
+
+  @override
+  String get attributeResidencePermitI => 'Residence Permit I';
+
+  @override
+  String get attributeResidencePermitII => 'Residence Permit II';
+
+  @override
+  String get attributeCommunityID => 'Community ID';
+
+  @override
+  String get attributeAddressVerification => 'Address Verification';
+
+  @override
+  String get attributeAgeVerification => 'Age Verification';
+
+  @override
+  String get requester => 'Requester';
+
+  @override
+  String get certificateIssuer => 'Certificate Issuer';
+
+  @override
+  String get validity => 'Validity';
+
+  @override
+  String get reason => 'Reason';
+
+  @override
+  String get providerInformation => 'Provider Information';
+
+  @override
+  String get requestedData => 'Requested Data';
 }

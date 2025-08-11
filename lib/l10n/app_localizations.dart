@@ -1321,6 +1321,336 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Kein passendes Backup gefunden! Falsche Wortfolge?'**
   String get backupNotFound;
+
+  /// No description provided for @eidReadAndCreateCredentials.
+  ///
+  /// In de, this message translates to:
+  /// **'eID auslesen & Nachweise erstellen'**
+  String get eidReadAndCreateCredentials;
+
+  /// No description provided for @eidDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Wir lesen Ihren Personalausweis (eID) per NFC aus und erstellen daraus digitale Nachweise: einen Ausweis-Nachweis (ID Card) sowie – je nach tatsächlichem Alter – einen Altersnachweis 16+ oder 18+.'**
+  String get eidDescription;
+
+  /// No description provided for @youWillReceive.
+  ///
+  /// In de, this message translates to:
+  /// **'Sie erhalten'**
+  String get youWillReceive;
+
+  /// No description provided for @idCardCredential.
+  ///
+  /// In de, this message translates to:
+  /// **'ID Card Credential'**
+  String get idCardCredential;
+
+  /// No description provided for @ageVerification16Or18.
+  ///
+  /// In de, this message translates to:
+  /// **'Altersnachweis 16+ oder 18+'**
+  String get ageVerification16Or18;
+
+  /// No description provided for @externalRequestDetected.
+  ///
+  /// In de, this message translates to:
+  /// **'Externe Anfrage erkannt'**
+  String get externalRequestDetected;
+
+  /// No description provided for @startNowReadEid.
+  ///
+  /// In de, this message translates to:
+  /// **'Jetzt starten – eID auslesen'**
+  String get startNowReadEid;
+
+  /// No description provided for @startNowAuthenticate.
+  ///
+  /// In de, this message translates to:
+  /// **'Jetzt starten – authentifizieren'**
+  String get startNowAuthenticate;
+
+  /// No description provided for @authenticate.
+  ///
+  /// In de, this message translates to:
+  /// **'Ausweisen'**
+  String get authenticate;
+
+  /// No description provided for @readIdCardData.
+  ///
+  /// In de, this message translates to:
+  /// **'Ausweis lesen'**
+  String get readIdCardData;
+
+  /// No description provided for @insertCardInstruction.
+  ///
+  /// In de, this message translates to:
+  /// **'Bitte halte deinen Ausweis an die NFC-Schnittstelle deines Gerätes. Diese befindet sich meistens an der Rückseite des Gerätes.'**
+  String get insertCardInstruction;
+
+  /// No description provided for @cancelProcess.
+  ///
+  /// In de, this message translates to:
+  /// **'Vorgang Abbrechen'**
+  String get cancelProcess;
+
+  /// No description provided for @canEntry.
+  ///
+  /// In de, this message translates to:
+  /// **'CAN-Eingabe'**
+  String get canEntry;
+
+  /// No description provided for @enterCanInstruction.
+  ///
+  /// In de, this message translates to:
+  /// **'Bitte gib die 6-stellige CAN von der Vorderseite deines Ausweises ein:'**
+  String get enterCanInstruction;
+
+  /// No description provided for @canMustBe6Digits.
+  ///
+  /// In de, this message translates to:
+  /// **'Die CAN muss genau 6 Stellen haben'**
+  String get canMustBe6Digits;
+
+  /// No description provided for @pinEntry.
+  ///
+  /// In de, this message translates to:
+  /// **'PIN-Eingabe'**
+  String get pinEntry;
+
+  /// No description provided for @enterPinInstruction.
+  ///
+  /// In de, this message translates to:
+  /// **'Bitte gib deine 6-stellige Ausweis-PIN ein:'**
+  String get enterPinInstruction;
+
+  /// No description provided for @pinMustBe6Digits.
+  ///
+  /// In de, this message translates to:
+  /// **'Die PIN muss genau 6 Stellen haben'**
+  String get pinMustBe6Digits;
+
+  /// No description provided for @idCardPin.
+  ///
+  /// In de, this message translates to:
+  /// **'Ausweis-PIN'**
+  String get idCardPin;
+
+  /// No description provided for @remainingAttempts.
+  ///
+  /// In de, this message translates to:
+  /// **'Verbleibende Versuche: {count}'**
+  String remainingAttempts(int count);
+
+  /// No description provided for @pinRetry2Warning.
+  ///
+  /// In de, this message translates to:
+  /// **'Solltest Du auch bei diesem Versuch eine falsche PIN eingeben, muss vor dem letzten Versuch die CAN eingegeben werden. Das ist die 6-stellige Zahlenfolge auf der Vorderseite deines Ausweises.'**
+  String get pinRetry2Warning;
+
+  /// No description provided for @pinRetry1Warning.
+  ///
+  /// In de, this message translates to:
+  /// **'Das ist dein letzter Versuch, eine korrekte PIN einzugeben. Sollte auch dieser fehlschlagen, wird die Online-Ausweis-Funktion gesperrt.'**
+  String get pinRetry1Warning;
+
+  /// No description provided for @fiveDigitPinInfo.
+  ///
+  /// In de, this message translates to:
+  /// **'Du hast nur eine 5-stellige PIN? Dann brich den Vorgang bitte ab und nutze die Funktion \"PIN ändern\" der offiziellen Ausweis-App.'**
+  String get fiveDigitPinInfo;
+
+  /// No description provided for @pukEntry.
+  ///
+  /// In de, this message translates to:
+  /// **'PUK-Eingabe'**
+  String get pukEntry;
+
+  /// No description provided for @enterPukInstruction.
+  ///
+  /// In de, this message translates to:
+  /// **'Bitte gib die 10-stellige PUK deines Ausweises ein:'**
+  String get enterPukInstruction;
+
+  /// No description provided for @pukMustBe10Digits.
+  ///
+  /// In de, this message translates to:
+  /// **'Die PUK muss genau 10 Stellen haben'**
+  String get pukMustBe10Digits;
+
+  /// No description provided for @processFailed.
+  ///
+  /// In de, this message translates to:
+  /// **'Vorgang fehlgeschlagen'**
+  String get processFailed;
+
+  /// No description provided for @idCardData.
+  ///
+  /// In de, this message translates to:
+  /// **'Ausweisdaten'**
+  String get idCardData;
+
+  /// No description provided for @readingData.
+  ///
+  /// In de, this message translates to:
+  /// **'Lese Daten'**
+  String get readingData;
+
+  /// No description provided for @saveAsCredential.
+  ///
+  /// In de, this message translates to:
+  /// **'Als Nachweis speichern'**
+  String get saveAsCredential;
+
+  /// No description provided for @continueToPin.
+  ///
+  /// In de, this message translates to:
+  /// **'Weiter zur Pin Eingabe'**
+  String get continueToPin;
+
+  /// No description provided for @loadingRequest.
+  ///
+  /// In de, this message translates to:
+  /// **'Anfrage wird geladen'**
+  String get loadingRequest;
+
+  /// No description provided for @attributeAddress.
+  ///
+  /// In de, this message translates to:
+  /// **'Adresse'**
+  String get attributeAddress;
+
+  /// No description provided for @attributeBirthName.
+  ///
+  /// In de, this message translates to:
+  /// **'Geburtsname'**
+  String get attributeBirthName;
+
+  /// No description provided for @attributeFamilyName.
+  ///
+  /// In de, this message translates to:
+  /// **'Familienname'**
+  String get attributeFamilyName;
+
+  /// No description provided for @attributeGivenNames.
+  ///
+  /// In de, this message translates to:
+  /// **'Vorname(n)'**
+  String get attributeGivenNames;
+
+  /// No description provided for @attributePlaceOfBirth.
+  ///
+  /// In de, this message translates to:
+  /// **'Geburtsort'**
+  String get attributePlaceOfBirth;
+
+  /// No description provided for @attributeDateOfBirth.
+  ///
+  /// In de, this message translates to:
+  /// **'Geburtsdatum'**
+  String get attributeDateOfBirth;
+
+  /// No description provided for @attributeDoctoralDegree.
+  ///
+  /// In de, this message translates to:
+  /// **'Doktortitel'**
+  String get attributeDoctoralDegree;
+
+  /// No description provided for @attributeArtisticName.
+  ///
+  /// In de, this message translates to:
+  /// **'Künstlername'**
+  String get attributeArtisticName;
+
+  /// No description provided for @attributeValidUntil.
+  ///
+  /// In de, this message translates to:
+  /// **'Ablaufdatum'**
+  String get attributeValidUntil;
+
+  /// No description provided for @attributeNationality.
+  ///
+  /// In de, this message translates to:
+  /// **'Staatsangehörigkeit'**
+  String get attributeNationality;
+
+  /// No description provided for @attributeIssuingCountry.
+  ///
+  /// In de, this message translates to:
+  /// **'Aussteller-Land'**
+  String get attributeIssuingCountry;
+
+  /// No description provided for @attributeDocumentType.
+  ///
+  /// In de, this message translates to:
+  /// **'Dokumententyp'**
+  String get attributeDocumentType;
+
+  /// No description provided for @attributeResidencePermitI.
+  ///
+  /// In de, this message translates to:
+  /// **'Aufenthaltserlaubnis 1'**
+  String get attributeResidencePermitI;
+
+  /// No description provided for @attributeResidencePermitII.
+  ///
+  /// In de, this message translates to:
+  /// **'Aufenthaltserlaubnis 2'**
+  String get attributeResidencePermitII;
+
+  /// No description provided for @attributeCommunityID.
+  ///
+  /// In de, this message translates to:
+  /// **'Wohnort-ID'**
+  String get attributeCommunityID;
+
+  /// No description provided for @attributeAddressVerification.
+  ///
+  /// In de, this message translates to:
+  /// **'Adressverifikation'**
+  String get attributeAddressVerification;
+
+  /// No description provided for @attributeAgeVerification.
+  ///
+  /// In de, this message translates to:
+  /// **'Altersverifikation'**
+  String get attributeAgeVerification;
+
+  /// No description provided for @requester.
+  ///
+  /// In de, this message translates to:
+  /// **'Anfragender'**
+  String get requester;
+
+  /// No description provided for @certificateIssuer.
+  ///
+  /// In de, this message translates to:
+  /// **'Aussteller des Berechtigungszertifikats'**
+  String get certificateIssuer;
+
+  /// No description provided for @validity.
+  ///
+  /// In de, this message translates to:
+  /// **'Gültigkeit'**
+  String get validity;
+
+  /// No description provided for @reason.
+  ///
+  /// In de, this message translates to:
+  /// **'Grund'**
+  String get reason;
+
+  /// No description provided for @providerInformation.
+  ///
+  /// In de, this message translates to:
+  /// **'Anbieterinformationen'**
+  String get providerInformation;
+
+  /// No description provided for @requestedData.
+  ///
+  /// In de, this message translates to:
+  /// **'Angefragte Daten'**
+  String get requestedData;
 }
 
 class _AppLocalizationsDelegate

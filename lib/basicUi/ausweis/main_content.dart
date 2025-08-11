@@ -3,24 +3,26 @@ import 'package:id_ideal_wallet/basicUi/standard/footer_buttons.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
 import 'package:provider/provider.dart';
 
-Map<String, String> translationAttributes = {
-  'Address': 'Adresse',
-  'BirthName': 'Geburtsname',
-  'FamilyName': 'Familienname',
-  'GivenNames': 'Vorname(n)',
-  'PlaceOfBirth': 'Geburtsort',
-  'DateOfBirth': 'Geburtsdatum',
-  'DoctoralDegree': 'Doktortitel',
-  'ArtisticName': 'Künstlername',
-  'ValidUntil': 'Ablaufdatum',
-  'Nationality': 'Staatsangehörigkeit',
-  'IssuingCountry': 'Aussteller-Land',
-  'DocumentType': 'Dokumententyp',
-  'ResidencePermitI': 'Aufenthaltserlaubnis 1',
-  'ResidencePermitII': 'Aufenthaltserlaubnis 2',
-  'CommunityID': 'Wohnort-ID',
-  'AddressVerification': 'Adressverifikation',
-  'AgeVerification': 'Altersverifikation'
+import 'package:id_ideal_wallet/l10n/app_localizations.dart';
+
+Map<String, String> getTranslationAttributes(BuildContext context) => {
+  'Address': AppLocalizations.of(context)!.attributeAddress,
+  'BirthName': AppLocalizations.of(context)!.attributeBirthName,
+  'FamilyName': AppLocalizations.of(context)!.attributeFamilyName,
+  'GivenNames': AppLocalizations.of(context)!.attributeGivenNames,
+  'PlaceOfBirth': AppLocalizations.of(context)!.attributePlaceOfBirth,
+  'DateOfBirth': AppLocalizations.of(context)!.attributeDateOfBirth,
+  'DoctoralDegree': AppLocalizations.of(context)!.attributeDoctoralDegree,
+  'ArtisticName': AppLocalizations.of(context)!.attributeArtisticName,
+  'ValidUntil': AppLocalizations.of(context)!.attributeValidUntil,
+  'Nationality': AppLocalizations.of(context)!.attributeNationality,
+  'IssuingCountry': AppLocalizations.of(context)!.attributeIssuingCountry,
+  'DocumentType': AppLocalizations.of(context)!.attributeDocumentType,
+  'ResidencePermitI': AppLocalizations.of(context)!.attributeResidencePermitI,
+  'ResidencePermitII': AppLocalizations.of(context)!.attributeResidencePermitII,
+  'CommunityID': AppLocalizations.of(context)!.attributeCommunityID,
+  'AddressVerification': AppLocalizations.of(context)!.attributeAddressVerification,
+  'AgeVerification': AppLocalizations.of(context)!.attributeAgeVerification
 };
 
 class MainContent extends StatelessWidget {
@@ -35,7 +37,7 @@ class MainContent extends StatelessWidget {
             subtitle: Text(
               ausweis.requesterCert!.subjectName,
             ),
-            title: const Text('Anfragender'),
+            title: Text(AppLocalizations.of(context)!.requester),
             onTap: () => showDialog(
                 context: context,
                 builder: (BuildContext context) {
@@ -47,28 +49,27 @@ class MainContent extends StatelessWidget {
                           shrinkWrap: true,
                           children: [
                             ListTile(
-                              title: const Text('Anfragender'),
+                              title: Text(AppLocalizations.of(context)!.requester),
                               subtitle: Text(
                                   '${ausweis.requesterCert!.subjectName}\n${ausweis.requesterCert!.subjectUrl}'),
                             ),
                             ListTile(
-                              title: const Text(
-                                  'Aussteller des Berechtigungszertifikats'),
+                              title: Text(AppLocalizations.of(context)!.certificateIssuer),
                               subtitle: Text(
                                   '${ausweis.requesterCert!.issuerName}\n${ausweis.requesterCert!.issuerUrl}'),
                             ),
                             ListTile(
-                              title: const Text('Gültigkeit'),
+                              title: Text(AppLocalizations.of(context)!.validity),
                               subtitle: Text(
                                   '${ausweis.requesterCert!.effectiveDate.day.toString().padLeft(2, '0')}.${ausweis.requesterCert!.effectiveDate.month.toString().padLeft(2, '0')}.${ausweis.requesterCert!.effectiveDate.year} - ${ausweis.requesterCert!.expirationDate.day.toString().padLeft(2, '0')}.${ausweis.requesterCert!.expirationDate.month.toString().padLeft(2, '0')}.${ausweis.requesterCert!.expirationDate.year}'),
                             ),
                             if (ausweis.requesterCert!.purpose.isNotEmpty)
                               ListTile(
-                                title: const Text('Grund'),
+                                title: Text(AppLocalizations.of(context)!.reason),
                                 subtitle: Text(ausweis.requesterCert!.purpose),
                               ),
                             ListTile(
-                              title: const Text('Anbieterinformationen'),
+                              title: Text(AppLocalizations.of(context)!.providerInformation),
                               subtitle:
                                   Text(ausweis.requesterCert!.termsOfUsage),
                             )
@@ -89,7 +90,7 @@ class MainContent extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 15),
         child: Card(
           child:
-              ExpansionTile(title: const Text('Angefragte Daten:'), children: [
+              ExpansionTile(title: Text('${AppLocalizations.of(context)!.requestedData}:'), children: [
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -98,7 +99,7 @@ class MainContent extends StatelessWidget {
                 return ListTile(
                   visualDensity:
                       const VisualDensity(horizontal: 0, vertical: -4),
-                  subtitle: Text(translationAttributes[
+                  subtitle: Text(getTranslationAttributes(context)[
                           ausweis.requestedAttributes[index]] ??
                       ausweis.requestedAttributes[index]),
                 );
@@ -123,7 +124,7 @@ class MainContent extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: <Widget>[
               Text(
-                'Ausweisen',
+                AppLocalizations.of(context)!.authenticate,
                 style: Theme.of(context).primaryTextTheme.headlineLarge,
               ),
               const SizedBox(
@@ -138,8 +139,8 @@ class MainContent extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: ausweis.statusProgress,
                     minHeight: 7,
-                    semanticsLabel: 'Anfrage wird geladen',
-                    semanticsValue: 'Anfrage wird geladen',
+                    semanticsLabel: AppLocalizations.of(context)!.loadingRequest,
+                    semanticsValue: AppLocalizations.of(context)!.loadingRequest,
                   ),
                 ),
             ])),
@@ -147,7 +148,7 @@ class MainContent extends StatelessWidget {
                 ausweis.requesterCert != null
             ? [
                 FooterButtons(
-                  positiveText: 'Weiter zur Pin Eingabe',
+                  positiveText: AppLocalizations.of(context)!.continueToPin,
                   positiveFunction: () =>
                       Provider.of<AusweisProvider>(context, listen: false)
                           .accept(),

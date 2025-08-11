@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:id_ideal_wallet/basicUi/standard/footer_buttons.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
+import 'package:id_ideal_wallet/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 class EnterPuk extends StatefulWidget {
@@ -22,10 +23,10 @@ class EnterPukState extends State<EnterPuk> {
         child: Column(
           children: [
             Text(
-              'PUK-Eingabe',
+              AppLocalizations.of(context)!.pukEntry,
               style: Theme.of(context).primaryTextTheme.headlineLarge,
             ),
-            const Text('Bitte gib die 10-stellige PUK deines Ausweises ein:'),
+            Text(AppLocalizations.of(context)!.enterPukInstruction),
             const SizedBox(
               height: 10,
             ),
@@ -40,7 +41,7 @@ class EnterPukState extends State<EnterPuk> {
                   maxLength: 10,
                   validator: (input) {
                     if (input == null || input.length != 10) {
-                      return 'Die PUK muss genau 10 Stellen haben';
+                      return AppLocalizations.of(context)!.pukMustBe10Digits;
                     }
                     return null;
                   },
