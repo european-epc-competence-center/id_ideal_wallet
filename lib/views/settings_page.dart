@@ -71,20 +71,7 @@ class SettingsPageState extends State<SettingsPage> {
                       mode: LaunchMode.externalApplication);
                 },
               ),
-              ListTile(
-                title: Text(AppLocalizations.of(context)!.newAppTitle),
-                onTap: () => Provider.of<NavigationProvider>(context, listen: false)
-                    .changePage([NavigationPage.searchNewAbo]),
-              ),
-              ListTile(
-                title: Text(AppLocalizations.of(context)!.backup),
-                onTap: () => Navigator.of(navigatorKey.currentContext!).push(
-                    MaterialPageRoute(builder: (context) => BackupWidget())),
-              ),
-              ListTile(
-                title: Text(AppLocalizations.of(context)!.restoreMenu),
-                onTap: () => showConfirmationDialog(context, applyBackup)
-              ),
+
               ListTile(
                 title: Text(AppLocalizations.of(context)!.openSourceNote), // Neu test
                 subtitle: const Text('https://github.com/european-epc-competence-center/id_ideal_wallet'),
