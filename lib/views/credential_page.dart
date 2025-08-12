@@ -53,10 +53,13 @@ class CredentialPageState extends State<CredentialPage> {
         return StyledScaffoldTitle(
             currentlyActive: 0,
             leftTitle: "Wallet",
-            title: DropdownMenu<String>(
+            title: SizedBox(
+              width: 200,
+              child: DropdownMenu<String>(
                 initialSelection: AppLocalizations.of(context)!.allCredentials,
                 inputDecorationTheme:
                     const InputDecorationTheme(border: InputBorder.none),
+                textStyle: const TextStyle(fontSize: 14),
                 onSelected: (String? item) {
                   setState(() {
                     selectedItem = item ?? '';
@@ -65,6 +68,7 @@ class CredentialPageState extends State<CredentialPage> {
                 dropdownMenuEntries: wallet.credentialsTypes
                     .map((e) => DropdownMenuEntry(value: e, label: e))
                     .toList()),
+            ),
             appBarActions: [
                 // Settings icon - always visible
                 InkWell(

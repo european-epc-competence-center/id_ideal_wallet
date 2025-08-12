@@ -35,8 +35,11 @@ class StyledScaffoldTitle extends StatelessWidget {
                     leftTitle!,
                     style: Theme.of(context).primaryTextTheme.headlineLarge,
                   ),
-                  const Spacer(),
-                  if (title is Widget) title,
+                  const SizedBox(width: 20),
+                  if (title is Widget) 
+                    Flexible(
+                      child: title,
+                    ),
                 ],
               )
             : title is String
