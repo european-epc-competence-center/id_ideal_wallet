@@ -785,19 +785,19 @@ abstract class AppLocalizations {
   /// No description provided for @emptyCredentialTitle.
   ///
   /// In de, this message translates to:
-  /// **'Willkommen in Ihrer\nEECC Wallet'**
+  /// **'Willkommen in Deiner\nEECC Wallet'**
   String get emptyCredentialTitle;
 
   /// No description provided for @emptyCredentialEidInfo.
   ///
   /// In de, this message translates to:
-  /// **'Nutzen Sie Ihren elektronischen Personalausweis, um digitale Nachweise zu erstellen. Die Wallet liest Ihre eID-Daten sicher über NFC aus.'**
+  /// **'Nutze Deinen elektronischen Personalausweis, um digitale Nachweise zu erstellen. Die Wallet liest Deine eID-Daten sicher über NFC aus.'**
   String get emptyCredentialEidInfo;
 
   /// No description provided for @emptyCredentialQrInfo.
   ///
   /// In de, this message translates to:
-  /// **'Scannen Sie QR-Codes, um neue Nachweise zu empfangen oder vorhandene Nachweise zu präsentieren.'**
+  /// **'Scanne QR-Codes, um neue Nachweise zu empfangen oder vorhandene Nachweise zu präsentieren.'**
   String get emptyCredentialQrInfo;
 
   /// No description provided for @allCredentials.
@@ -1025,7 +1025,7 @@ abstract class AppLocalizations {
   /// No description provided for @welcome.
   ///
   /// In de, this message translates to:
-  /// **'Willkommen in Ihrer EECC Identity Wallet'**
+  /// **'Willkommen in Deiner EECC Identity Wallet'**
   String get welcome;
 
   /// No description provided for @welcomeNote.
@@ -1331,7 +1331,7 @@ abstract class AppLocalizations {
   /// No description provided for @eidDescription.
   ///
   /// In de, this message translates to:
-  /// **'Wir lesen Ihren Personalausweis (eID) per NFC aus und erstellen daraus digitale Nachweise: einen Ausweis-Nachweis (ID Card) sowie – je nach tatsächlichem Alter – einen Altersnachweis 16+ oder 18+.'**
+  /// **'Wir lesen Deinen Personalausweis (eID) per NFC aus und erstellen daraus digitale Nachweise: einen Ausweis-Nachweis (ID Card) sowie – je nach tatsächlichem Alter – einen Altersnachweis 16+ oder 18+.'**
   String get eidDescription;
 
   /// No description provided for @youWillReceive.
@@ -1343,7 +1343,7 @@ abstract class AppLocalizations {
   /// No description provided for @idCardCredential.
   ///
   /// In de, this message translates to:
-  /// **'ID Card Credential'**
+  /// **'Personalausweis-Credential'**
   String get idCardCredential;
 
   /// No description provided for @ageVerification16Or18.

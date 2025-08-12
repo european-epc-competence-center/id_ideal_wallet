@@ -378,15 +378,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get noteNoCredentials => 'Keine Nachweise vorhanden';
 
   @override
-  String get emptyCredentialTitle => 'Willkommen in Ihrer\nEECC Wallet';
+  String get emptyCredentialTitle => 'Willkommen in Deiner\nEECC Wallet';
 
   @override
   String get emptyCredentialEidInfo =>
-      'Nutzen Sie Ihren elektronischen Personalausweis, um digitale Nachweise zu erstellen. Die Wallet liest Ihre eID-Daten sicher über NFC aus.';
+      'Nutze Deinen elektronischen Personalausweis, um digitale Nachweise zu erstellen. Die Wallet liest Deine eID-Daten sicher über NFC aus.';
 
   @override
   String get emptyCredentialQrInfo =>
-      'Scannen Sie QR-Codes, um neue Nachweise zu empfangen oder vorhandene Nachweise zu präsentieren.';
+      'Scanne QR-Codes, um neue Nachweise zu empfangen oder vorhandene Nachweise zu präsentieren.';
 
   @override
   String get allCredentials => 'Alle Nachweise';
@@ -509,7 +509,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get license => 'Lizenzen';
 
   @override
-  String get welcome => 'Willkommen in Ihrer EECC Identity Wallet';
+  String get welcome => 'Willkommen in Deiner EECC Identity Wallet';
 
   @override
   String get welcomeNote =>
@@ -685,13 +685,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get eidDescription =>
-      'Wir lesen Ihren Personalausweis (eID) per NFC aus und erstellen daraus digitale Nachweise: einen Ausweis-Nachweis (ID Card) sowie – je nach tatsächlichem Alter – einen Altersnachweis 16+ oder 18+.';
+      'Wir lesen Deinen Personalausweis (eID) per NFC aus und erstellen daraus digitale Nachweise: einen Ausweis-Nachweis (ID Card) sowie – je nach tatsächlichem Alter – einen Altersnachweis 16+ oder 18+.';
 
   @override
   String get youWillReceive => 'Sie erhalten';
 
   @override
-  String get idCardCredential => 'ID Card Credential';
+  String get idCardCredential => 'Personalausweis-Credential';
 
   @override
   String get ageVerification16Or18 => 'Altersnachweis 16+ oder 18+';
