@@ -107,7 +107,7 @@ abstract class AppLocalizations {
   /// No description provided for @forkedFromNote.
   ///
   /// In de, this message translates to:
-  /// **'Von diesem Projekt geforkt'**
+  /// **'Ursprungsprojekt'**
   String get forkedFromNote;
 
   /// No description provided for @readIdCard.
@@ -119,7 +119,7 @@ abstract class AppLocalizations {
   /// No description provided for @about.
   ///
   /// In de, this message translates to:
-  /// **'Über'**
+  /// **'Info'**
   String get about;
 
   /// No description provided for @idCard.

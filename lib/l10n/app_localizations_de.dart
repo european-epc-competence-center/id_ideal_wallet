@@ -12,13 +12,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get openSourceNote => 'Open Source auf GitHub';
 
   @override
-  String get forkedFromNote => 'Von diesem Projekt geforkt';
+  String get forkedFromNote => 'Ursprungsprojekt';
 
   @override
   String get readIdCard => 'Ausweisdaten auslesen';
 
   @override
-  String get about => 'Über';
+  String get about => 'Info';
 
   @override
   String get idCard => 'Ausweis';

@@ -12,7 +12,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openSourceNote => 'Open Source on GitHub';
 
   @override
-  String get forkedFromNote => 'Forked from this project';
+  String get forkedFromNote => 'Upstream project';
 
   @override
   String get readIdCard => 'Extract ID Card data';
