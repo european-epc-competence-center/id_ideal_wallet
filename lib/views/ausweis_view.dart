@@ -36,11 +36,19 @@ class AusweisViewState extends State<AusweisView> {
     } else if (ausweis.screen == AusweisScreen.start) {
       return Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 8),
-            // Compact hero section
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
+                ),
+                child: IntrinsicHeight(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 8),
+                      // Compact hero section
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -249,8 +257,13 @@ class AusweisViewState extends State<AusweisView> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-          ],
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       );
     } else if (ausweis.screen == AusweisScreen.finish) {
