@@ -1337,7 +1337,7 @@ abstract class AppLocalizations {
   /// No description provided for @youWillReceive.
   ///
   /// In de, this message translates to:
-  /// **'Sie erhalten'**
+  /// **'Du erhältst'**
   String get youWillReceive;
 
   /// No description provided for @idCardCredential.

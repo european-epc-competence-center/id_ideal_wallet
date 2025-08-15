@@ -688,7 +688,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wir lesen Deinen Personalausweis (eID) per NFC aus und erstellen daraus digitale Nachweise: einen Ausweis-Nachweis (ID Card) sowie – je nach tatsächlichem Alter – einen Altersnachweis 16+ oder 18+.';
 
   @override
-  String get youWillReceive => 'Sie erhalten';
+  String get youWillReceive => 'Du erhältst';
 
   @override
   String get idCardCredential => 'Personalausweis-Credential';
