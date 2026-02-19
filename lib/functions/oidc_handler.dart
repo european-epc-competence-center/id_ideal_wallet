@@ -90,7 +90,46 @@ Map<String, dynamic> getClaimsFromDescriptionObject(
 }
 
 Future<void> handleOfferOid(String offerUri) async {
-  var offer = OidCredentialOffer.fromUri(offerUri);
+  final asUri = Uri.parse(offerUri);
+  final offerUriParam = asUri.queryParameters['credential_offer_uri'];
+  final OidCredentialOffer offer;
+  if (offerUriParam != null && offerUriParam.isNotEmpty) {
+    // Fetch credential offer from URL (credential_offer_uri parameter)
+    final offerUrl = Uri.tryParse(offerUriParam);
+    if (offerUrl == null || !offerUrl.hasScheme) {
+      logger.d('Invalid credential_offer_uri: $offerUriParam');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .oidMetadataErrorNote);
+      return;
+    }
+    final offerRes = await get(offerUrl, headers: {
+      'Accept': 'application/json',
+    }).timeout(const Duration(seconds: 20), onTimeout: () {
+      return Response('Timeout', 400);
+    });
+    if (offerRes.statusCode != 200) {
+      logger.d('credential_offer_uri fetch failed: ${offerRes.statusCode}');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .oidMetadataErrorNote);
+      return;
+    }
+    try {
+      offer = OidCredentialOffer.fromJson(offerRes.body);
+    } catch (e) {
+      logger.d('Failed parsing credential offer from URI: $e');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .oidMetadataErrorNote);
+      return;
+    }
+  } else {
+    offer = OidCredentialOffer.fromUri(offerUri);
+  }
 
   var issuerString = removeTrailingSlash(offer.credentialIssuer);
   logger.d('$issuerString/.well-known/openid-credential-issuer');
