@@ -235,7 +235,10 @@ Future<void> handleOfferOid(String offerUri) async {
     var authserver = issuerString;
     if (issuerMetadata.authorizationServer != null &&
         issuerMetadata.authorizationServer!.isNotEmpty) {
-      authserver = issuerMetadata.authorizationServer!.first;
+      authserver = issuerMetadata.authorizationServer!;
+    } else if (issuerMetadata.authorizationServers != null &&
+        issuerMetadata.authorizationServers!.isNotEmpty) {
+      authserver = issuerMetadata.authorizationServers!.first;
     }
 
     if (offer.grants != null &&
