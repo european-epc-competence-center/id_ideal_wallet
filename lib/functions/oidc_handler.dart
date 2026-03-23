@@ -90,7 +90,46 @@ Map<String, dynamic> getClaimsFromDescriptionObject(
 }
 
 Future<void> handleOfferOid(String offerUri) async {
-  var offer = OidCredentialOffer.fromUri(offerUri);
+  final asUri = Uri.parse(offerUri);
+  final offerUriParam = asUri.queryParameters['credential_offer_uri'];
+  final OidCredentialOffer offer;
+  if (offerUriParam != null && offerUriParam.isNotEmpty) {
+    // Fetch credential offer from URL (credential_offer_uri parameter)
+    final offerUrl = Uri.tryParse(offerUriParam);
+    if (offerUrl == null || !offerUrl.hasScheme) {
+      logger.d('Invalid credential_offer_uri: $offerUriParam');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .oidMetadataErrorNote);
+      return;
+    }
+    final offerRes = await get(offerUrl, headers: {
+      'Accept': 'application/json',
+    }).timeout(const Duration(seconds: 20), onTimeout: () {
+      return Response('Timeout', 400);
+    });
+    if (offerRes.statusCode != 200) {
+      logger.d('credential_offer_uri fetch failed: ${offerRes.statusCode}');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .oidMetadataErrorNote);
+      return;
+    }
+    try {
+      offer = OidCredentialOffer.fromJson(offerRes.body);
+    } catch (e) {
+      logger.d('Failed parsing credential offer from URI: $e');
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.oidMetadataError,
+          AppLocalizations.of(navigatorKey.currentContext!)!
+              .oidMetadataErrorNote);
+      return;
+    }
+  } else {
+    offer = OidCredentialOffer.fromUri(offerUri);
+  }
 
   var issuerString = removeTrailingSlash(offer.credentialIssuer);
   logger.d('$issuerString/.well-known/openid-credential-issuer');
@@ -196,7 +235,10 @@ Future<void> handleOfferOid(String offerUri) async {
     var authserver = issuerString;
     if (issuerMetadata.authorizationServer != null &&
         issuerMetadata.authorizationServer!.isNotEmpty) {
-      authserver = issuerMetadata.authorizationServer!.first;
+      authserver = issuerMetadata.authorizationServer!;
+    } else if (issuerMetadata.authorizationServers != null &&
+        issuerMetadata.authorizationServers!.isNotEmpty) {
+      authserver = issuerMetadata.authorizationServers!.first;
     }
 
     if (offer.grants != null &&
@@ -1243,6 +1285,100 @@ storeCredential(String format, dynamic credential, String credentialDid,
     showSuccessMessage(
         AppLocalizations.of(navigatorKey.currentContext!)!.credentialReceived,
         type);
+    return;
+  } else if (format == OidCredentialFormat.jwtVcJson) {
+    printWrapped(credential);
+    var parts = (credential as String).split('.');
+    if (parts.length != 3) {
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredentialNote);
+      return;
+    }
+
+    Map<String, dynamic> payload;
+    try {
+      payload = jsonDecode(
+          utf8.decode(base64Decode(addPaddingToBase64(parts[1]))));
+    } catch (e) {
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredentialNote);
+      return;
+    }
+
+    var credSubject = payload['credentialSubject'];
+    if (credSubject == null) {
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredentialNote);
+      return;
+    }
+
+    var subjectId = credSubject['id'];
+    if (subjectId != null && subjectId != credentialDid) {
+      showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredentialNote2);
+      return;
+    }
+
+    var issuanceDateStr = payload['issuanceDate'] ??
+        payload['validFrom'] ??
+        payload['iat']?.toString();
+    DateTime? issuanceDate;
+    if (issuanceDateStr != null) {
+      try {
+        issuanceDate = DateTime.tryParse(issuanceDateStr) ??
+            DateTime.fromMillisecondsSinceEpoch(
+                int.parse(issuanceDateStr) * 1000);
+      } catch (_) {}
+    }
+
+    var expirationDateStr = payload['expirationDate'] ?? payload['validUntil'];
+    DateTime? expirationDate;
+    if (expirationDateStr != null) {
+      expirationDate = DateTime.tryParse(expirationDateStr.toString());
+    }
+
+    List<String> context = [];
+    if (payload['@context'] != null) {
+      context = (payload['@context'] as List).cast<String>();
+    }
+    if (context.isEmpty) {
+      context = [credentialsV1Iri];
+    }
+    // VC DM 2.0 uses a different context IRI; normalize to v1 for the wrapper
+    // object since dart_ssi requires it. The original JWT is preserved in isoMdlData.
+    const credentialsV2Iri = 'https://www.w3.org/ns/credentials/v2';
+    if (context.first == credentialsV2Iri) {
+      context = [credentialsV1Iri, ...context.skip(1)];
+    } else if (!context.contains(credentialsV1Iri)) {
+      context = [credentialsV1Iri, ...context];
+    }
+
+    List<String> type = [];
+    if (payload['type'] != null) {
+      type = (payload['type'] as List).cast<String>();
+    }
+
+    var vc = VerifiableCredential(
+        id: payload['id'],
+        context: context,
+        type: type,
+        issuer: payload['issuer'] ?? {'id': credentialIssuer},
+        credentialSubject: Map<String, dynamic>.from(credSubject),
+        issuanceDate: issuanceDate,
+        expirationDate: expirationDate);
+
+    wallet.storeCredential(vc, subjectId ?? credentialDid,
+        isoMdlData: '$jwtVcPrefix:$credential');
+    wallet.storeExchangeHistoryEntry(
+        subjectId ?? credentialDid, DateTime.now(), 'issue', credentialIssuer);
+
+    showSuccessMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.credentialReceived,
+        getTypeToShow(vc.type));
     return;
   } else {
     logger.d(credential);

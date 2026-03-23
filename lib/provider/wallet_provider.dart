@@ -57,6 +57,7 @@ class WalletProvider extends ChangeNotifier {
   List<VerifiableCredential> paymentCredentials = [];
   List<Credential> isoMdocCredentials = [];
   List<Credential> sdJwtCredentials = [];
+  List<Credential> jwtVcCredentials = [];
   List<VerifiableCredential> w3cCredentials = [];
   Map<String, VerifiableCredential> accountVcs = {};
   List<VerifiableCredential> mailCredentials = [];
@@ -836,6 +837,7 @@ class WalletProvider extends ChangeNotifier {
     paymentCredentials = [];
     isoMdocCredentials = [];
     sdJwtCredentials = [];
+    jwtVcCredentials = [];
     w3cCredentials = [];
     mailCredentials = [];
     credentialsTypes = {
@@ -850,12 +852,16 @@ class WalletProvider extends ChangeNotifier {
       }
       if (cred.metadata == '' ||
           cred.metadata.startsWith('$isoPrefix:') ||
-          cred.metadata.startsWith('$sdPrefix:')) {
+          cred.metadata.startsWith('$sdPrefix:') ||
+          cred.metadata.startsWith('$jwtVcPrefix:')) {
         if (cred.metadata.startsWith('$isoPrefix:')) {
           isoMdocCredentials.add(cred);
         }
         if (cred.metadata.startsWith('$sdPrefix:')) {
           sdJwtCredentials.add(cred);
+        }
+        if (cred.metadata.startsWith('$jwtVcPrefix:')) {
+          jwtVcCredentials.add(cred);
         }
 
         var vc = VerifiableCredential.fromJson(cred.verifiableCredential);

@@ -10,6 +10,7 @@ var relay = 'https://167.235.195.132:8888';
 //var relay = 'http://localhost:8888';
 const String isoPrefix = 'isoData';
 const String sdPrefix = 'sdJwt';
+const String jwtVcPrefix = 'jwtVc';
 
 Map knownAuthServer = {
   'https://issuer.eudiw.dev/oidc': {
