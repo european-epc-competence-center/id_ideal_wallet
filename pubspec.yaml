@@ -43,14 +43,15 @@ dependencies:
   dart_ssi:
     git:
       url: https://github.com/european-epc-competence-center/dart_ssi
-      ref: flexible_key_store
+      ref: master
   #  dart_ssi:
   #    path: ../flutter_ssi_wallet
   #dart_ssi: ^3.0.0
-  sd_jwt: ^1.0.0
-  #    git:
-  #      url: https://github.com/b2cm/sd_jwt
-  #      ref: development
+  sd_jwt:
+    git:
+      url: https://github.com/b2cm/sd_jwt
+      ref: development
+  #  sd_jwt: ^1.0.0
   #    path: ../sd-jwt
   x509b:
     git:
@@ -59,7 +60,11 @@ dependencies:
   json_schema_form:
     git:
       url: https://github.com/SaOtto/flutter_json_schema_form
-  iso_mdoc: ^1.4.1
+  iso_mdoc:
+    git:
+      url: https://github.com/b2cm/iso_mdoc
+      ref: main
+  #  iso_mdoc: ^1.4.1
   #path: ../cbor_test
   json_ld_processor: any
   keystore_plugin:
@@ -91,7 +96,7 @@ dependencies:
 
   # other
   uuid: any
-  json_path: ^0.7.4
+  json_path: ^0.8.0
   json_schema: ^5.1.2
   printing: ^5.11.1
   pdf: ^3.10.3
