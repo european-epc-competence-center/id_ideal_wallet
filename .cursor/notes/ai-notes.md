@@ -361,6 +361,22 @@
 - `[ausweis_provider.dart](mdc:lib/provider/ausweis_provider.dart)` - ID card state management
 - `[navigation_provider.dart](mdc:lib/provider/navigation_provider.dart)` - Main app navigation
 
+## jwt_vc_json issuance support - 2026-03-23
+
+**Status:** ✅ Completed
+
+**Problem:** OID4VCI offers with `jwt_vc_json` format were failing silently. The `storeCredential` function's `else` branch tried to parse the JWT compact serialization string as JSON-LD, which throws and shows a "wrong credential" error.
+
+**Fix:** Added `else if (format == OidCredentialFormat.jwtVcJson)` branch in `storeCredential` (before the existing `else`):
+1. Splits JWT compact serialization and base64url-decodes the payload
+2. Handles both old-style JWT VC (with `vc` wrapper key) and new VCDM 2.0 (claims directly in payload)
+3. Normalizes VCDM 2.0 fields: `validFrom` → `issuanceDate`, `validUntil` → `expirationDate`
+4. Parses as `VerifiableCredential` and stores normally (no raw JWT kept; the decoded VC is sufficient for display and basic use)
+
+**Note:** The companion LDP credential (`ldp_vc` with `di_vp` proof type) correctly shows "unsupported proof type" since we don't support `di_vp`. Only `jwt_vc_json` is handled.
+
+**File modified:** `lib/functions/oidc_handler.dart` (lines ~1014-1061)
+
 ## dart_ssi clean signing pattern - 2026-03-23
 
 **Status:** ✅ Fully completed

@@ -1011,6 +1011,54 @@ storeCredential(String format, dynamic credential, String credentialDid,
         AppLocalizations.of(navigatorKey.currentContext!)!.credentialReceived,
         type);
     return;
+  } else if (format == OidCredentialFormat.jwtVcJson) {
+    try {
+      final parts = (credential as String).split('.');
+      if (parts.length != 3) {
+        showErrorMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+          AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredentialNote,
+        );
+        return;
+      }
+
+      final payloadMap = jsonDecode(
+              utf8.decode(base64Decode(addPaddingToBase64(parts[1]))))
+          as Map<String, dynamic>;
+
+      // Support both old JWT VC format (payload contains 'vc' key) and new
+      // format where VC claims sit directly in the JWT payload (VCDM 2.0 / OID4VCI draft 13+)
+      final vcMap = payloadMap.containsKey('vc')
+          ? Map<String, dynamic>.from(payloadMap['vc'] as Map)
+          : Map<String, dynamic>.from(payloadMap);
+
+      // Normalize VCDM 2.0 field names to what VerifiableCredential.fromJson expects
+      if (!vcMap.containsKey('issuanceDate') && vcMap.containsKey('validFrom')) {
+        vcMap['issuanceDate'] = vcMap['validFrom'];
+      }
+      if (!vcMap.containsKey('expirationDate') &&
+          vcMap.containsKey('validUntil')) {
+        vcMap['expirationDate'] = vcMap['validUntil'];
+      }
+
+      final credVc = VerifiableCredential.fromJson(jsonEncode(vcMap));
+      var credDid = getHolderDid(credVc);
+      if (credDid.isEmpty) credDid = credentialDid;
+
+      wallet.storeCredential(credVc, credDid.split('#').first);
+      wallet.storeExchangeHistoryEntry(
+          credDid, DateTime.now(), 'issue', credentialIssuer);
+
+      showSuccessMessage(
+          AppLocalizations.of(navigatorKey.currentContext!)!.credentialReceived,
+          getTypeToShow(credVc.type));
+    } catch (e) {
+      logger.d(e);
+      showErrorMessage(
+        AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
+        AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredentialNote,
+      );
+    }
   } else {
     logger.d(credential);
 
