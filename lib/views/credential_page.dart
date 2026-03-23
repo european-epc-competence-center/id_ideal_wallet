@@ -14,7 +14,6 @@ import 'package:id_ideal_wallet/basicUi/standard/styled_scaffold_title.dart';
 import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/property_names.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
-import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
@@ -156,7 +155,7 @@ class CredentialPageState extends State<CredentialPage> {
                     itemBuilder: (context, index) {
                       var cred = credentialList[index];
                       var type = getTypeToShow(cred.type);
-                      var id = getHolderDidFromCredential(cred.toJson());
+                      var id = getHolderDid(cred);
                       if (id == '') {
                         id = '${cred.issuanceDate.toIso8601String()}$type';
                       }
@@ -352,7 +351,7 @@ class ContextCardState extends State<ContextCard> {
           TextButton(
               onPressed: () async {
                 var credId = widget.context.id ??
-                    getHolderDidFromCredential(widget.context.toJson());
+                    getHolderDid(widget.context);
                 if (credId == '') {
                   var type = getTypeToShow(widget.context.type);
                   credId =
@@ -521,7 +520,7 @@ class CredentialCard extends StatelessWidget {
                         credential: credential, track: false)
             : null,
         child: Consumer<WalletProvider>(builder: (context, wallet, child) {
-          var id = getHolderDidFromCredential(credential.toJson());
+          var id = getHolderDid(credential);
           var revState = wallet.revocationState[id];
           if (revState == RevocationState.expired.index ||
               revState == RevocationState.revoked.index ||

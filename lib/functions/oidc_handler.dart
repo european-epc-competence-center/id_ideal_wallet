@@ -14,7 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:id_ideal_wallet/l10n/app_localizations.dart';
 import 'package:http/http.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
-import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
+import 'dart:typed_data';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/ausweis_provider.dart';
@@ -147,7 +147,7 @@ Future<void> handleOfferOidc(String offerUri) async {
       return;
     }
   } else {
-    offer = OidCredentialOffer.fromUri(offerUri);
+    offer = OidCredentialOffer.fromUri(_normaliseCredentialOffer(offerUri));
   }
 
   var issuerString = removeTrailingSlash(offer.credentialIssuer);
@@ -573,12 +573,14 @@ Future<(String, dynamic, KeyType)> buildJwt(List<String> algValues,
     payload['nonce'] = cNonce;
   }
   logger.d(credentialDid);
-  var jwt = await signStringOrJson(
-      wallet: wallet.wallet,
-      didToSignWith: credentialDid,
-      toSign: payload,
-      jwsHeader: header,
-      detached: false);
+  final encodedHeader = removePaddingFromBase64(
+      base64UrlEncode(utf8.encode(jsonEncode(header))));
+  final encodedPayload = removePaddingFromBase64(
+      base64UrlEncode(utf8.encode(jsonEncode(payload))));
+  final signingInput = '$encodedHeader.$encodedPayload';
+  final sigBytes = await wallet.wallet
+      .sign(credentialDid, Uint8List.fromList(ascii.encode(signingInput)));
+  final jwt = '$signingInput.${removePaddingFromBase64(base64UrlEncode(sigBytes))}';
   //end JWT creation
 
   return (credentialDid, jwt, keyType);
@@ -658,13 +660,13 @@ Future<void> getCredential(
         context: [credentialsV1Iri, ed25519ContextIri],
         type: ['VerifiablePresentation'],
         holder: credentialDid);
-    var signer = EdDsaSigner(loadDocumentFast);
-    var p = await signer.buildProof(
-        presentation.toJson(), wallet.wallet, credentialDid,
+    final (ldpSigner, ldpType) =
+        await getCredentialSigningStuff(wallet.wallet, credentialDid);
+    await presentation.addProof(ldpSigner, ldpType,
         challenge: tokenResponse.cNonce,
         domain: credentialIssuer,
-        proofPurpose: 'authentication');
-    presentation.proof = [LinkedDataProof.fromJson(p)];
+        proofPurpose: 'authentication',
+        loadDocument: loadDocumentFast);
     // end VP creation
     proofValue = presentation.toJson();
     keyType = KeyType.ed25519;
@@ -926,9 +928,8 @@ storeCredential(String format, dynamic credential, String credentialDid,
           issuanceDate: signedData.validityInfo.validFrom,
           expirationDate: signedData.validityInfo.validUntil);
 
-      wallet.storeCredential(vc.toString(), credentialDid,
-          isoMdlData: '$isoPrefix:${base64Encode(doc.toEncodedCbor())}',
-          keyType: keyType);
+      wallet.storeCredential(vc, credentialDid,
+          isoMdlData: '$isoPrefix:${base64Encode(doc.toEncodedCbor())}');
       wallet.storeExchangeHistoryEntry(
           credentialDid, DateTime.now(), 'issue', credentialIssuer);
 
@@ -1001,8 +1002,8 @@ storeCredential(String format, dynamic credential, String credentialDid,
         issuanceDate: sd.issuedAt ?? DateTime.now(),
         expirationDate: sd.expirationTime);
 
-    wallet.storeCredential(vc.toString(), restoredDid,
-        isoMdlData: '$sdPrefix:$credential', keyType: keyType);
+    wallet.storeCredential(vc, restoredDid,
+        isoMdlData: '$sdPrefix:$credential');
     wallet.storeExchangeHistoryEntry(
         credentialDid, DateTime.now(), 'issue', credentialIssuer);
 
@@ -1015,8 +1016,8 @@ storeCredential(String format, dynamic credential, String credentialDid,
 
     var verified = false;
     try {
-      verified = await verifyCredential(credential,
-          loadDocumentFunction: loadDocumentFast);
+      final credVc = VerifiableCredential.fromJson(credential);
+      verified = await credVc.verify(loadDocument: loadDocumentFast);
     } catch (e) {
       showErrorMessage(
         AppLocalizations.of(navigatorKey.currentContext!)!.wrongCredential,
@@ -1027,17 +1028,16 @@ storeCredential(String format, dynamic credential, String credentialDid,
 
     logger.d(verified);
     if (verified) {
-      var credDid = getHolderDidFromCredential(credential);
+      final credVcForDid = VerifiableCredential.fromJson(credential);
+      var credDid = getHolderDid(credVcForDid);
       logger.d(credDid);
-      wallet.storeCredential(jsonEncode(credential), credDid.split('#').first);
+      wallet.storeCredential(credVcForDid, credDid.split('#').first);
       wallet.storeExchangeHistoryEntry(
           credDid, DateTime.now(), 'issue', credentialIssuer);
 
-      var asVC = VerifiableCredential.fromJson(credential);
-
       showSuccessMessage(
           AppLocalizations.of(navigatorKey.currentContext!)!.credentialReceived,
-          getTypeToShow(asVC.type));
+          getTypeToShow(credVcForDid.type));
     }
   }
 }

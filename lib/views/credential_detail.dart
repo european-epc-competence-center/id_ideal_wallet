@@ -6,7 +6,6 @@ import 'package:id_ideal_wallet/basicUi/standard/styled_scaffold_title.dart';
 import 'package:id_ideal_wallet/constants/colors.dart';
 import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
-import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
@@ -23,7 +22,7 @@ class HistoryEntries extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<WalletProvider>(builder: (context, wallet, child) {
-      var credId = getHolderDidFromCredential(credential.toJson());
+      var credId = getHolderDid(credential);
       if (credId == '') {
         var type = getTypeToShow(credential.type);
         credId = '${credential.issuanceDate.toIso8601String()}$type';
@@ -100,7 +99,7 @@ class CredentialDetailState extends State<CredentialDetailView> {
           TextButton(
               onPressed: () async {
                 var credId =
-                    getHolderDidFromCredential(widget.credential.toJson());
+                    getHolderDid(widget.credential);
                 if (credId == '') {
                   var type = getTypeToShow(widget.credential.type);
                   credId =
@@ -312,7 +311,7 @@ class CredentialInfo extends StatelessWidget {
       otherData.add(expDateTile);
     }
 
-    var id = getHolderDidFromCredential(credential.toJson());
+    var id = getHolderDid(credential);
     if (id == '') {
       var type = getTypeToShow(credential.type);
       id = '${credential.issuanceDate.toIso8601String()}$type';

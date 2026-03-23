@@ -8,7 +8,6 @@ import 'package:id_ideal_wallet/basicUi/standard/modal_dismiss_wrapper.dart';
 import 'package:id_ideal_wallet/basicUi/standard/payment_finished.dart';
 import 'package:id_ideal_wallet/basicUi/standard/styled_scaffold_title.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
-import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:json_schema2/json_schema.dart';
@@ -99,11 +98,12 @@ class FixedSelfIssue extends StatelessWidget {
         credentialSubject: result,
         issuanceDate: DateTime.now());
 
-    var signed = await signCredential(wallet.wallet, credential.toJson());
+    var (signer, proofType) = await getCredentialSigningStuff(wallet.wallet, credentialDid);
+    await credential.sign(signer, proofType);
 
-    logger.d(signed);
+    logger.d(credential.toString());
 
-    wallet.storeCredential(signed, credentialDid);
+    wallet.storeCredential(credential, credentialDid);
     wallet.storeExchangeHistoryEntry(
         credentialDid, DateTime.now(), 'issue', credentialDid);
 

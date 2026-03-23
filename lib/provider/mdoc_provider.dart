@@ -9,9 +9,7 @@ import 'package:cbor/cbor.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/did.dart';
 import 'package:dart_ssi/util.dart';
-import 'package:dart_ssi/wallet.dart';
-import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart'
-    show WalletSignatureGenerator;
+import 'package:id_ideal_wallet/functions/util.dart' as my_util;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -587,7 +585,7 @@ class MdocProvider extends ChangeNotifier {
               navigatorKey.currentContext!,
               listen: false);
           final signer =
-              WalletSignatureGenerator.forDid(walletProvider.wallet, did);
+              WalletSignatureGeneratorForMdoc(my_util.getCoseAlgorithmForDid(did), walletProvider.wallet, did);
           var ds = await generateDeviceSignature(
               {}, mso.docType, transcriptHolder,
               signer: signer);

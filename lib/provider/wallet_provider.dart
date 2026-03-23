@@ -17,7 +17,7 @@ import 'package:id_ideal_wallet/basicUi/standard/payment_finished.dart';
 import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/root_certificates.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
-import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
+import 'package:dart_ssi/exceptions.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/payment_utils.dart';
 import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
@@ -197,8 +197,9 @@ class WalletProvider extends ChangeNotifier {
               credentialSubject: {'id': did, ...passAsJson, ...simplyfiedData},
               issuanceDate: DateTime.now());
 
-          var signed = await signCredential(_wallet, vc.toJson());
-          storeCredential(signed, did);
+          var (signer, proofType) = await my_util.getCredentialSigningStuff(_wallet, did);
+          await vc.sign(signer, proofType, loadDocument: loadDocumentFast);
+          storeCredential(vc, did);
           storeExchangeHistoryEntry(did, DateTime.now(), 'issue', did);
           showSuccessMessage(AppLocalizations.of(navigatorKey.currentContext!)!
               .importSuccess(type));
@@ -395,7 +396,7 @@ class WalletProvider extends ChangeNotifier {
 
   Future<void> checkValiditySingle(VerifiableCredential vc,
       [bool notify = false]) async {
-    var id = getHolderDidFromCredential(vc.toJson());
+    var id = my_util.getHolderDid(vc);
     if (id == '') {
       var type = my_util.getTypeToShow(vc.type);
       id = '${vc.issuanceDate.toIso8601String()}$type';
@@ -420,7 +421,7 @@ class WalletProvider extends ChangeNotifier {
     if (vc.status != null) {
       logger.d(vc.status);
       try {
-        var revoked = await checkForRevocation(vc);
+        var revoked = await my_util.checkForRevocation(vc);
         if (!revoked) {
           revocationState[id] = RevocationState.valid.index;
         }
@@ -591,8 +592,9 @@ class WalletProvider extends ChangeNotifier {
         },
         issuanceDate: DateTime.now());
 
-    var signed = await signCredential(_wallet, contextCred.toJson());
-    storeCredential(signed, did);
+    var (signer, proofType) = await my_util.getCredentialSigningStuff(_wallet, did);
+    await contextCred.sign(signer, proofType, loadDocument: loadDocumentFast);
+    storeCredential(contextCred, did);
     storeExchangeHistoryEntry(did, DateTime.now(), 'update', did);
 
     notifyListeners();
@@ -715,15 +717,12 @@ class WalletProvider extends ChangeNotifier {
     return _wallet.getCredential(did);
   }
 
-  void storeCredential(String vc, String hdPath,
-      {String? newDid,
-      String? isoMdlData,
-      KeyType keyType = KeyType.ed25519}) async {
-    await _wallet.storeCredential(vc, newDid ?? hdPath, isoMdlData);
+  void storeCredential(VerifiableCredential vc, String credentialId,
+      {String? isoMdlData}) async {
+    await _wallet.storeCredential(vc.toString(), credentialId, isoMdlData);
     _buildCredentialList();
-    var vcParsed = VerifiableCredential.fromJson(vc);
-    var type = vcParsed.type
-        .firstWhere((element) => element != 'VerifiableCredential');
+    var type =
+        vc.type.firstWhere((element) => element != 'VerifiableCredential');
     logger.d(type);
 
     if (type == 'PieceOfArt') {
@@ -738,7 +737,7 @@ class WalletProvider extends ChangeNotifier {
             false);
       }
     }
-    await checkValiditySingle(vcParsed);
+    await checkValiditySingle(vc);
     notifyListeners();
     var nav = Provider.of<NavigationProvider>(navigatorKey.currentContext!,
         listen: false);
@@ -808,8 +807,9 @@ class WalletProvider extends ChangeNotifier {
         type: ['VerifiableCredential', 'MemberCard'],
         credentialSubject: {'id': did, ...subject});
 
-    var signed = await signCredential(_wallet, vc.toJson());
-    storeCredential(signed, did);
+    var (signer, proofType) = await my_util.getCredentialSigningStuff(_wallet, did);
+    await vc.sign(signer, proofType, loadDocument: loadDocumentFast);
+    storeCredential(vc, did);
     wallet.storeExchangeHistoryEntry(did, DateTime.now(), 'issue', did);
   }
 

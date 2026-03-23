@@ -361,6 +361,34 @@
 - `[ausweis_provider.dart](mdc:lib/provider/ausweis_provider.dart)` - ID card state management
 - `[navigation_provider.dart](mdc:lib/provider/navigation_provider.dart)` - Main app navigation
 
+## dart_ssi clean signing pattern - 2026-03-23
+
+**Status:** ✅ Fully completed
+
+**Refactored `storeCredential` to accept `VerifiableCredential` directly (matching reference branch):**
+- `WalletProvider.storeCredential(String, String, {newDid, isoMdlData, keyType})` → `storeCredential(VerifiableCredential, String credentialId, {isoMdlData})`
+- Removed `newDid` and `keyType` params; internally calls `vc.toString()` for `_wallet.storeCredential`
+- Removed `signVc()` helper from `util.dart` entirely
+- All call sites now use `getCredentialSigningStuff + vc.sign(signer, proofType) + storeCredential(vc, did)` directly
+- Files updated: `wallet_provider.dart` (signature + 3 internal sites), `ausweis_provider.dart`, `self_issuance.dart`, `payment_card_overview.dart`, `presentation_request.dart`, `issue_credential.dart`, `oidc_handler.dart`
+
+## dart_ssi compat removal / clean migration - 2026-03-23
+
+**Status:** ✅ Fully completed
+
+**Summary:**
+Removed `lib/functions/dart_ssi_compat.dart` (the ugly compatibility shim) and replaced all its functionality with native dart_ssi v4 APIs throughout the codebase. New helper functions added to `lib/functions/util.dart`:
+- `getHolderDid(VerifiableCredential vc)` / `getIssuerDid(dynamic issuer)`
+- `getCoseAlgorithmForDid(String did)` / `getCredentialSigningStuff(WalletStore, String did)`
+- `signVc(WalletStore, VerifiableCredential)` / `checkForRevocation(VerifiableCredential)`
+- `buildW3cPresentation(List<FilterResult>, WalletStore, challenge, ...)`
+
+Also added missing import: `package:json_ld_processor/json_ld_processor.dart show LoadDocumentOptions` in `util.dart`.
+
+Removed unused `import 'package:dart_ssi/wallet.dart'` from `mdoc_provider.dart`.
+
+`flutter analyze` result: 0 errors in `lib/`, only pre-existing warnings and one unrelated test error in `test/widget_test.dart` (MyApp not a class).
+
 ## dart_ssi EECC Fork API Migration - 2026-03-23
 
 **Status:** ✅ All migration tasks completed

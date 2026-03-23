@@ -5,7 +5,6 @@ import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/didcomm.dart';
 import 'package:flutter/material.dart';
 import 'package:id_ideal_wallet/l10n/app_localizations.dart';
-import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:uuid/uuid.dart';
 import '../constants/server_address.dart';
@@ -81,7 +80,7 @@ Future<bool> handleRequestPresentation(
       var vc = VerifiableCredential.fromJson(value.verifiableCredential);
       var type = getTypeToShow(vc.type);
       if (type != 'PaymentReceipt') {
-        var id = getHolderDidFromCredential(vc.toJson());
+        var id = getHolderDid(vc);
         var status = wallet.revocationState[id];
         if (status == RevocationState.valid.index ||
             status == RevocationState.unknown.index) {
@@ -163,15 +162,15 @@ Future<bool> handleRequestPresentation(
 
     if (initialWebview != null && authorizedApps.contains(initialWebview)) {
       logger.d('send with no interaction');
-      var vp = await buildPresentation(filtered, wallet.wallet,
+      var vp = await buildW3cPresentation(filtered, wallet.wallet,
           message.presentationDefinition.first.challenge,
-          loadDocumentFunction: loadDocumentFast);
+          loadDocument: loadDocumentFast);
       var presentationMessage = Presentation(
           replyUrl: '$relay/buffer/$myDid',
           returnRoute: ReturnRouteValue.thread,
           to: [message.from!],
           from: myDid,
-          verifiablePresentation: [VerifiablePresentation.fromJson(vp)],
+          verifiablePresentation: [vp],
           threadId: message.threadId ?? message.id,
           parentThreadId: message.parentThreadId);
 
@@ -219,8 +218,8 @@ Future<bool> handlePresentation(
       RequestPresentation.fromJson(conversation.lastMessage);
   var challenge = requestPresentation.presentationDefinition.first.challenge;
 
-  var verified =
-      await verifyPresentation(message.verifiablePresentation.first, challenge);
+  var verified = await message.verifiablePresentation.first
+      .verify(expectedChallenge: challenge, loadDocument: loadDocumentFast);
   if (verified) {
     await showDialog(
         context: navigatorKey.currentContext!,

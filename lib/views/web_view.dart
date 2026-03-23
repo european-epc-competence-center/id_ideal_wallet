@@ -9,7 +9,6 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart';
 import 'package:id_ideal_wallet/basicUi/standard/cached_image.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
-import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/oidc_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
@@ -423,7 +422,7 @@ class WebViewWindowState extends State<WebViewWindow> {
         var vc = VerifiableCredential.fromJson(value.verifiableCredential);
         var type = getTypeToShow(vc.type);
         if (type != 'PaymentReceipt') {
-          var id = getHolderDidFromCredential(vc.toJson());
+          var id = getHolderDid(vc);
           var status = wallet.revocationState[id];
           if (status == RevocationState.valid.index ||
               status == RevocationState.unknown.index) {
@@ -503,7 +502,7 @@ class WebViewWindowState extends State<WebViewWindow> {
         var vc = VerifiableCredential.fromJson(value.verifiableCredential);
         var type = getTypeToShow(vc.type);
         if (type != 'PaymentReceipt') {
-          var id = getHolderDidFromCredential(vc.toJson());
+          var id = getHolderDid(vc);
           var status = wallet.revocationState[id];
           if (status == RevocationState.valid.index ||
               status == RevocationState.unknown.index) {
@@ -526,9 +525,8 @@ class WebViewWindowState extends State<WebViewWindow> {
       if (authorizedApps.contains(initialUrl) &&
           authorizedHashes.contains(definitionHash.toString())) {
         logger.d('send with no interaction');
-        var tmp = await buildPresentation(filtered, wallet.wallet, nonce,
-            loadDocumentFunction: loadDocumentFast);
-        vp = VerifiablePresentation.fromJson(tmp);
+        vp = await buildW3cPresentation(filtered, wallet.wallet, nonce,
+            loadDocument: loadDocumentFast);
       } else {
         var target = PresentationRequestDialog(
           definition: definition,

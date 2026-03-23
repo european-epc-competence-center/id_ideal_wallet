@@ -1,21 +1,28 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dart_ssi/credentials.dart';
+import 'package:dart_ssi/exceptions.dart';
+import 'package:json_ld_processor/json_ld_processor.dart' show LoadDocumentOptions;
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:id_ideal_wallet/l10n/app_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:id_ideal_wallet/constants/root_certificates.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/oidc_handler.dart';
+import 'package:iso_mdoc/iso_mdoc.dart' show CoseAlgorithm;
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth_android/local_auth_android.dart';
 import 'package:local_auth_darwin/local_auth_darwin.dart';
 import 'package:random_password_generator/random_password_generator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:x509b/x509.dart' as x509;
+
+export 'package:dart_ssi/exceptions.dart' show RevokedException, SignatureException;
 
 void printWrapped(String text) {
   final pattern = RegExp('.{1,800}'); // 800 is the size of each chunk
@@ -167,4 +174,133 @@ class AboData {
   String toString() {
     return jsonEncode(toJson());
   }
+}
+
+/// Extracts the holder DID from a [VerifiableCredential]'s credentialSubject.
+String getHolderDid(VerifiableCredential vc) =>
+    (vc.credentialSubject['id'] as String?) ?? '';
+
+/// Extracts the issuer DID from the [issuer] field of a [VerifiableCredential].
+String getIssuerDid(dynamic issuer) {
+  if (issuer is String) return issuer;
+  if (issuer is Map) return (issuer['id'] as String?) ?? '';
+  return '';
+}
+
+/// Returns the COSE algorithm integer for a did:key DID.
+int getCoseAlgorithmForDid(String did) {
+  if (did.startsWith('did:key:z6Mk')) return CoseAlgorithm.edDSA;
+  if (did.startsWith('did:key:zQ3s')) return CoseAlgorithm.es256;
+  if (did.startsWith('did:key:zDn')) return CoseAlgorithm.es256;
+  if (did.startsWith('did:key:z82')) return CoseAlgorithm.es384;
+  if (did.startsWith('did:key:z2J9')) return CoseAlgorithm.es512;
+  return CoseAlgorithm.es256;
+}
+
+/// Returns a [WalletCredentialSigner] and [LdpProofType] appropriate for [did].
+Future<(WalletCredentialSigner, LdpProofType)> getCredentialSigningStuff(
+    WalletStore wallet, String did) async {
+  final keyInfo = await wallet.getKeyInformation(did);
+  String alg = 'EdDSA';
+  LdpProofType type = LdpProofType.ed25519Signature2020;
+  final crv = keyInfo['crv'] as String?;
+  if (crv == 'P-256' || crv == 'secp256k1') {
+    alg = 'ES256';
+    type = LdpProofType.jsonWebSignature2020;
+  } else if (crv == 'P-384') {
+    alg = 'ES384';
+    type = LdpProofType.jsonWebSignature2020;
+  } else if (crv == 'P-521') {
+    alg = 'ES512';
+    type = LdpProofType.jsonWebSignature2020;
+  }
+  return (
+    WalletCredentialSigner(
+        wallet, did, alg, '$did#${did.split(':').last}'),
+    type
+  );
+}
+
+
+/// Checks whether [vc] has been revoked.
+///
+/// Throws [RevokedException] if the credential is revoked or the status
+/// list cannot be fetched. Returns `false` if the credential is not revoked.
+Future<bool> checkForRevocation(VerifiableCredential vc) async {
+  if (vc.status == null) return false;
+
+  final credStatus = vc.status!.toJson();
+
+  if (credStatus['type'] == 'RevocationList2020Status') {
+    final status = RevocationList2020Status.fromJson(credStatus);
+    final res = await http.get(Uri.parse(status.revocationListCredential),
+            headers: {'Accept': 'application/json'})
+        .timeout(const Duration(seconds: 30), onTimeout: () {
+      return http.Response('Timeout', 408);
+    });
+    if (res.statusCode == 200) {
+      final revCred = RevocationList2020Credential.fromJson(res.body);
+      try {
+        await revCred.verify();
+      } on SignatureException catch (_) {
+        throw RevokedException(
+            'could not verify RevocationListCredential', 'revErr');
+      }
+      final revoked = revCred.isRevoked(int.parse(status.revocationListIndex));
+      if (revoked) throw RevokedException('Credential is revoked', 'rev');
+    } else {
+      throw RevokedException(
+          'Error loading status list from ${status.revocationListCredential}',
+          'revErr');
+    }
+  } else if (credStatus['type'] == 'StatusList2021Entry') {
+    final status = StatusList2021Entry.fromJson(credStatus);
+    final res = await http.get(Uri.parse(status.statusListCredential),
+            headers: {'Accept': 'application/json'})
+        .timeout(const Duration(seconds: 30), onTimeout: () {
+      return http.Response('Timeout', 408);
+    });
+    if (res.statusCode == 200) {
+      final revCred = StatusList2021Credential.fromJson(res.body);
+      try {
+        await revCred.verify();
+      } on SignatureException catch (_) {
+        throw RevokedException(
+            'could not verify RevocationListCredential', 'revErr');
+      }
+      final revoked = revCred.isRevoked(int.parse(status.statusListIndex));
+      if (revoked) throw RevokedException('Credential is revoked', 'rev');
+    } else {
+      throw RevokedException(
+          'Error loading status list from ${status.statusListCredential}',
+          'revErr');
+    }
+  } else {
+    throw RevokedException(
+        'Unknown Status-method : ${credStatus['type']}', 'revErr');
+  }
+  return false;
+}
+
+/// Builds a signed [VerifiablePresentation] from a list of [FilterResult]s.
+///
+/// Each unique holder DID in the credentials gets an individual proof added.
+Future<VerifiablePresentation> buildW3cPresentation(
+    List<FilterResult> filterResults,
+    WalletStore wallet,
+    String challenge,
+    {String? domain,
+    Function(Uri, LoadDocumentOptions?)? loadDocument}) async {
+  final loader = loadDocument ?? loadDocumentFast;
+  final vp = VerifiablePresentation.fromFilterResults(filterResults);
+  final signedDids = <String>{};
+  for (final vc in vp.verifiableCredential ?? <VerifiableCredential>[]) {
+    final holderDid = getHolderDid(vc);
+    if (holderDid.isEmpty || signedDids.contains(holderDid)) continue;
+    signedDids.add(holderDid);
+    final (signer, proofType) = await getCredentialSigningStuff(wallet, holderDid);
+    await vp.addProof(signer, proofType,
+        challenge: challenge, domain: domain, loadDocument: loader);
+  }
+  return vp;
 }

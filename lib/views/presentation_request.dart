@@ -9,7 +9,6 @@ import 'package:dart_ssi/did.dart';
 import 'package:dart_ssi/didcomm.dart';
 import 'package:dart_ssi/oid.dart';
 import 'package:dart_ssi/util.dart';
-import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/material.dart';
 import 'package:id_ideal_wallet/l10n/app_localizations.dart';
@@ -264,14 +263,15 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
                         issuer: did,
                         credentialSubject: credSubject,
                         issuanceDate: DateTime.now());
-                    var signed = await signCredential(wallet.wallet, cred);
-                    logger.d(signed);
+                    var (signer, proofType) = await getCredentialSigningStuff(wallet.wallet, did);
+                    await cred.sign(signer, proofType);
+                    logger.d(cred.toString());
                     widget.results[index].selfIssuable!.remove(i);
                     if (widget.results[index].selfIssuable!.isEmpty) {
                       widget.results[index].selfIssuable = null;
                     }
                     var cList = widget.results[index].credentials ?? [];
-                    cList.add(VerifiableCredential.fromJson(signed));
+                    cList.add(cred);
                     widget.results[index].credentials = cList;
                     logger.d(widget.results);
                     selectedCredsPerResult[
@@ -606,7 +606,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
         if (selectedCredsPerResult['o${outerPos}i$innerPos']!) {
           credList.add(cred);
 
-          issuerDids.add(getIssuerDidFromCredential(cred.toJson()));
+          issuerDids.add(getIssuerDid(cred.issuer));
         }
         innerPos++;
       }
@@ -659,8 +659,8 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             var mso = MobileSecurityObject.fromCbor(cred.issuerAuth.payload);
             var did = coseKeyToDid(mso.deviceKeyInfo.deviceKey);
 
-            final signer =
-                WalletSignatureGenerator.forDid(wallet.wallet, did);
+            final signer = WalletSignatureGeneratorForMdoc(
+                getCoseAlgorithmForDid(did), wallet.wallet, did);
             var transcript = SessionTranscript(handover: handover);
             var ds = await generateDeviceSignature({}, mso.docType, transcript,
                 signer: signer);
@@ -695,7 +695,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             var multibase = jwkToMultiBase(cnf['jwk']);
             var restoredDid = 'did:key:$multibase';
 
-            final signer = WalletCryptoProvider(wallet.wallet, restoredDid);
+            final signer = WalletCryptoProviderForSdJwt(wallet.wallet, restoredDid);
             final crv = cnf['jwk']['crv'] as String? ?? '';
             final sd_jwt.SigningAlgorithm algorithm;
             if (crv == 'P-384') {
@@ -730,12 +730,12 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
       }
 
       if (hasW3cCreds) {
-        vp.add(await buildPresentation(finalSend, wallet.wallet, widget.nonce!,
-            loadDocumentFunction: loadDocumentFast));
-        casted = VerifiablePresentation.fromJson(vp.last);
+        casted = await buildW3cPresentation(finalSend, wallet.wallet, widget.nonce!,
+            loadDocument: loadDocumentFast);
         descriptorMap = casted.presentationSubmission!.descriptorMap;
-        logger.d(await verifyPresentation(vp.last, widget.nonce!,
-            loadDocumentFunction: loadDocumentFast));
+        vp.add(jsonEncode(casted.toJson()));
+        logger.d(await casted.verify(
+            expectedChallenge: widget.nonce!, loadDocument: loadDocumentFast));
 
         logger.d(vp);
       }
@@ -918,7 +918,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
         for (var entry in finalSend) {
           for (var cred in entry.credentials ?? <VerifiableCredential>[]) {
             wallet.storeExchangeHistoryEntry(
-                getHolderDidFromCredential(cred.toJson()),
+                getHolderDid(cred),
                 DateTime.now(),
                 'present',
                 widget.otherEndpoint);
@@ -1005,7 +1005,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
         if (casted != null) {
           for (var cred in casted.verifiableCredential!) {
             wallet.storeExchangeHistoryEntry(
-                getHolderDidFromCredential(cred.toJson()),
+                getHolderDid(cred),
                 DateTime.now(),
                 'present failed',
                 widget.otherEndpoint);
@@ -1038,20 +1038,20 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
       }
       return casted;
     } else {
-      var vp = await buildPresentation(
+      final vpObj = await buildW3cPresentation(
           finalSend,
           wallet.wallet,
           widget.message?.presentationDefinition.first.challenge ??
               widget.nonce ??
               '',
-          loadDocumentFunction: loadDocumentKaprion);
+          loadDocument: loadDocumentKaprion);
       if (widget.message != null) {
         var presentationMessage = Presentation(
             replyUrl: '$relay/buffer/${widget.myDid}',
             returnRoute: ReturnRouteValue.thread,
             to: [widget.receiverDid],
             from: widget.myDid,
-            verifiablePresentation: [VerifiablePresentation.fromJson(vp)],
+            verifiablePresentation: [vpObj],
             threadId: widget.message!.threadId ?? widget.message!.id,
             parentThreadId: widget.message!.parentThreadId);
         logger.d(widget.lnInvoiceRequest);
@@ -1089,17 +1089,16 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             lnInvoice: widget.lnInvoice, paymentCards: widget.paymentCards);
       }
 
-      for (var cred
-          in VerifiablePresentation.fromJson(vp).verifiableCredential ?? []) {
+      for (var cred in vpObj.verifiableCredential ?? []) {
         wallet.storeExchangeHistoryEntry(
-            getHolderDidFromCredential(cred.toJson()),
+            getHolderDid(cred),
             DateTime.now(),
             'present',
             widget.otherEndpoint);
       }
 
       // Navigator.of(context).pop();
-      return VerifiablePresentation.fromJson(vp);
+      return vpObj;
     }
   }
 

@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:id_ideal_wallet/basicUi/standard/cached_image.dart';
 import 'package:id_ideal_wallet/basicUi/standard/issuer_info.dart';
 import 'package:id_ideal_wallet/basicUi/standard/xml_widget.dart';
-import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
 import 'package:id_ideal_wallet/views/credential_detail.dart';
@@ -131,7 +130,7 @@ class IdCard extends StatelessWidget {
         layout = wallet.credentialStyling[type];
       }
 
-      var issuer = getIssuerDidFromCredential(credential);
+      var issuer = getIssuerDid(credential.issuer);
       var cCreds = wallet?.getConfig('certCreds:$issuer');
       if (cCreds != null) {
         certCred =

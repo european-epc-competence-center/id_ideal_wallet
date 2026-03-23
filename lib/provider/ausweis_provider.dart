@@ -10,7 +10,7 @@ import 'package:http/http.dart';
 import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/ausweis_message.dart';
-import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
+import 'package:id_ideal_wallet/functions/util.dart' as my_util;
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/main.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
@@ -112,8 +112,9 @@ class AusweisProvider extends ChangeNotifier {
           credentialSubject: readData,
           issuer: did,
           issuanceDate: DateTime.now());
-      var signed = await signCredential(wallet.wallet, vc);
-      wallet.storeCredential(signed, did);
+      var (signer, proofType) = await my_util.getCredentialSigningStuff(wallet.wallet, did);
+      await vc.sign(signer, proofType);
+      wallet.storeCredential(vc, did);
 
       showSuccessMessage(
           AppLocalizations.of(navigatorKey.currentContext!)!.credentialReceived,

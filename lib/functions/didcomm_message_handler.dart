@@ -11,7 +11,6 @@ import 'package:id_ideal_wallet/basicUi/standard/currency_display.dart';
 import 'package:id_ideal_wallet/basicUi/standard/modal_dismiss_wrapper.dart';
 import 'package:id_ideal_wallet/basicUi/standard/payment_finished.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
-import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
 import 'package:id_ideal_wallet/functions/discover_feature.dart';
 import 'package:id_ideal_wallet/functions/issue_credential.dart';
 import 'package:id_ideal_wallet/functions/payment_utils.dart';
@@ -535,7 +534,7 @@ sendMessage(String myDid, String? otherEndpoint, WalletProvider wallet,
           if (pres.verifiableCredential != null) {
             for (var cred in pres.verifiableCredential!) {
               wallet.storeExchangeHistoryEntry(
-                  getHolderDidFromCredential(cred.toJson()),
+                  getHolderDid(cred),
                   DateTime.now(),
                   'present failed',
                   message.to!.first);
