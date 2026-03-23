@@ -198,8 +198,7 @@ class WalletProvider extends ChangeNotifier {
               issuanceDate: DateTime.now());
 
           var signed = await signCredential(_wallet, vc.toJson());
-          var storageCred = getCredential(did);
-          storeCredential(signed, storageCred!.hdPath);
+          storeCredential(signed, did);
           storeExchangeHistoryEntry(did, DateTime.now(), 'issue', did);
           showSuccessMessage(AppLocalizations.of(navigatorKey.currentContext!)!
               .importSuccess(type));
@@ -593,8 +592,7 @@ class WalletProvider extends ChangeNotifier {
         issuanceDate: DateTime.now());
 
     var signed = await signCredential(_wallet, contextCred.toJson());
-    var storageCred = wallet.getCredential(did);
-    storeCredential(signed, storageCred!.hdPath);
+    storeCredential(signed, did);
     storeExchangeHistoryEntry(did, DateTime.now(), 'update', did);
 
     notifyListeners();
@@ -803,7 +801,6 @@ class WalletProvider extends ChangeNotifier {
 
   Future<void> addMemberCard(Map<String, String> subject) async {
     var did = await newCredentialDid();
-    var storage = getCredential(did);
     var vc = VerifiableCredential(
         context: [credentialsV1Iri, schemaOrgIri],
         issuer: did,
@@ -812,7 +809,7 @@ class WalletProvider extends ChangeNotifier {
         credentialSubject: {'id': did, ...subject});
 
     var signed = await signCredential(_wallet, vc.toJson());
-    storeCredential(signed, storage!.hdPath);
+    storeCredential(signed, did);
     wallet.storeExchangeHistoryEntry(did, DateTime.now(), 'issue', did);
   }
 

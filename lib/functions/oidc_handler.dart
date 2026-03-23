@@ -887,16 +887,7 @@ storeCredential(String format, dynamic credential, String credentialDid,
           issuanceDate: signedData.validityInfo.validFrom,
           expirationDate: signedData.validityInfo.validUntil);
 
-      var storageCred = wallet.getCredential(credentialDid);
-
-      if (storageCred == null) {
-        showErrorMessage(
-            AppLocalizations.of(navigatorKey.currentContext!)!.saveError,
-            AppLocalizations.of(navigatorKey.currentContext!)!.saveErrorNote);
-        return;
-      }
-
-      wallet.storeCredential(vc.toString(), storageCred.hdPath,
+      wallet.storeCredential(vc.toString(), credentialDid,
           isoMdlData: '$isoPrefix:${base64Encode(doc.toEncodedCbor())}',
           keyType: keyType);
       wallet.storeExchangeHistoryEntry(
@@ -971,15 +962,7 @@ storeCredential(String format, dynamic credential, String credentialDid,
         issuanceDate: sd.issuedAt ?? DateTime.now(),
         expirationDate: sd.expirationTime);
 
-    var storageCred = wallet.getCredential(restoredDid);
-    if (storageCred == null) {
-      showErrorMessage(
-          AppLocalizations.of(navigatorKey.currentContext!)!.saveError,
-          AppLocalizations.of(navigatorKey.currentContext!)!.saveErrorNote);
-      return;
-    }
-
-    wallet.storeCredential(vc.toString(), storageCred.hdPath,
+    wallet.storeCredential(vc.toString(), restoredDid,
         isoMdlData: '$sdPrefix:$credential', keyType: keyType);
     wallet.storeExchangeHistoryEntry(
         credentialDid, DateTime.now(), 'issue', credentialIssuer);
@@ -1007,15 +990,7 @@ storeCredential(String format, dynamic credential, String credentialDid,
     if (verified) {
       var credDid = getHolderDidFromCredential(credential);
       logger.d(credDid);
-      var storageCred = wallet.getCredential(credDid.split('#').first);
-      if (storageCred == null) {
-        showErrorMessage(
-            AppLocalizations.of(navigatorKey.currentContext!)!.saveError,
-            AppLocalizations.of(navigatorKey.currentContext!)!.saveErrorNote);
-        return;
-      }
-
-      wallet.storeCredential(jsonEncode(credential), storageCred.hdPath);
+      wallet.storeCredential(jsonEncode(credential), credDid.split('#').first);
       wallet.storeExchangeHistoryEntry(
           credDid, DateTime.now(), 'issue', credentialIssuer);
 

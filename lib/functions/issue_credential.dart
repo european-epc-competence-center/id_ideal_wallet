@@ -401,14 +401,6 @@ Future<bool> handleIssueCredential(
         }
         if (verified) {
           var credDid = getHolderDidFromCredential(cred.toJson());
-          Credential? storageCred;
-          if (credDid != '') {
-            storageCred = wallet.getCredential(credDid);
-            if (storageCred == null) {
-              throw Exception(
-                  'No hd path for credential found. Sure we control it?');
-            }
-          }
 
           var type = getTypeToShow(cred.type);
           if (credDid == '') {
@@ -416,11 +408,10 @@ Future<bool> handleIssueCredential(
           }
 
           if (type == 'PaymentReceipt') {
-            wallet.storeCredential(cred.toString(), storageCred?.hdPath ?? '',
+            wallet.storeCredential(cred.toString(), credDid,
                 newDid: cred.credentialSubject['receiptId']);
           } else {
-            wallet.storeCredential(cred.toString(), storageCred?.hdPath ?? '',
-                newDid: credDid);
+            wallet.storeCredential(cred.toString(), credDid);
             wallet.storeExchangeHistoryEntry(
                 credDid, DateTime.now(), 'issue', message.from!);
 
@@ -511,7 +502,7 @@ Future<bool> handleIssueCredential(
             issuerJwk: issuerJwk.cast<String, dynamic>(),
             loadDocumentFunction: loadDocumentKaprion);
 
-        wallet.storeCredential(myCred.toString(), connection.hdPath,
+        wallet.storeCredential(myCred.toString(), myDid,
             keyType: KeyType.p384);
 
         // wallet.storeConfig(

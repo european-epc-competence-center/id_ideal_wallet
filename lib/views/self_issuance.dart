@@ -103,9 +103,7 @@ class FixedSelfIssue extends StatelessWidget {
 
     logger.d(signed);
 
-    var storageCred = wallet.getCredential(credentialDid);
-
-    wallet.storeCredential(signed, storageCred!.hdPath);
+    wallet.storeCredential(signed, credentialDid);
     wallet.storeExchangeHistoryEntry(
         credentialDid, DateTime.now(), 'issue', credentialDid);
 
