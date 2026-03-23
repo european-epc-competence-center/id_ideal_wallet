@@ -286,5 +286,7 @@
   "validity": "Validity",
   "reason": "Reason",
   "providerInformation": "Provider Information",
-  "requestedData": "Requested Data"
+  "requestedData": "Requested Data",
+  "oidMetadataError": "Metadata Error",
+  "oidMetadataErrorNote": "The issuer metadata could not be retrieved."
 }

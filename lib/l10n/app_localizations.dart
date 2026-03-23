@@ -1651,6 +1651,18 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Angefragte Daten'**
   String get requestedData;
+
+  /// No description provided for @oidMetadataError.
+  ///
+  /// In de, this message translates to:
+  /// **'Metadaten-Fehler'**
+  String get oidMetadataError;
+
+  /// No description provided for @oidMetadataErrorNote.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Metadaten des Ausstellers konnten nicht abgerufen werden.'**
+  String get oidMetadataErrorNote;
 }
 
 class _AppLocalizationsDelegate

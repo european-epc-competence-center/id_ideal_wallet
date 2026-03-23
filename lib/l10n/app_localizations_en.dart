@@ -847,4 +847,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get requestedData => 'Requested Data';
+
+  @override
+  String get oidMetadataError => 'Metadata Error';
+
+  @override
+  String get oidMetadataErrorNote =>
+      'The issuer metadata could not be retrieved.';
 }
