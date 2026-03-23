@@ -379,9 +379,12 @@ class MainActivity : FlutterFragmentActivity() {
                         result.error("Send failed", e.toString(), "")
                     }
                 } else if (call.method!!.contentEquals("disconnectSdk")) {
-                    unbindService(mConnection)
+                    if (boundToService) {
+                        unbindService(mConnection)
+                        boundToService = false
+                    }
                     mAdapter?.disableReaderMode(this)
-                    boundToService = false
+                    result.success(null)
                 }
             }
 

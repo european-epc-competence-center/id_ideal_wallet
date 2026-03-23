@@ -9,6 +9,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart';
 import 'package:id_ideal_wallet/basicUi/standard/cached_image.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
+import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/oidc_handler.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
@@ -418,8 +419,8 @@ class WebViewWindowState extends State<WebViewWindow> {
     var allCreds = wallet.allCredentials();
     List<VerifiableCredential> creds = [];
     allCreds.forEach((key, value) {
-      if (value.w3cCredential != '') {
-        var vc = VerifiableCredential.fromJson(value.w3cCredential);
+      if (value.verifiableCredential != '') {
+        var vc = VerifiableCredential.fromJson(value.verifiableCredential);
         var type = getTypeToShow(vc.type);
         if (type != 'PaymentReceipt') {
           var id = getHolderDidFromCredential(vc.toJson());
@@ -498,8 +499,8 @@ class WebViewWindowState extends State<WebViewWindow> {
     var allCreds = wallet.allCredentials();
     List<VerifiableCredential> creds = [];
     allCreds.forEach((key, value) {
-      if (value.w3cCredential != '') {
-        var vc = VerifiableCredential.fromJson(value.w3cCredential);
+      if (value.verifiableCredential != '') {
+        var vc = VerifiableCredential.fromJson(value.verifiableCredential);
         var type = getTypeToShow(vc.type);
         if (type != 'PaymentReceipt') {
           var id = getHolderDidFromCredential(vc.toJson());

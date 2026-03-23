@@ -8,6 +8,7 @@ import 'package:id_ideal_wallet/basicUi/standard/currency_display.dart';
 import 'package:id_ideal_wallet/basicUi/standard/modal_dismiss_wrapper.dart';
 import 'package:id_ideal_wallet/basicUi/standard/payment_finished.dart';
 import 'package:id_ideal_wallet/constants/kaprion_context.dart';
+import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
 import 'package:id_ideal_wallet/functions/payment_utils.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/views/credential_offer_new.dart';
@@ -250,14 +251,9 @@ Future<bool> handleOfferCredential(
       var subject = credDetail.credential.credentialSubject;
       if (subject.containsKey('id')) {
         String id = subject['id'];
-        String? private;
         try {
-          private = await wallet.getPrivateKeyForCredentialDid(id);
+          await wallet.wallet.getKeyInformation(id);
         } catch (e) {
-          _sendProposeCredential(message, wallet, myDid, paymentDetails);
-          return false;
-        }
-        if (private == null) {
           _sendProposeCredential(message, wallet, myDid, paymentDetails);
           return false;
         }

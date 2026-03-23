@@ -76,7 +76,7 @@ Future<bool> openWallet(WalletStore wallet) async {
               passwordLength: 20);
           await storage.write(key: 'password', value: pw);
         }
-        await wallet.openBoxes(pw);
+        await wallet.openBoxes(password: pw);
       } else {
         return false;
       }

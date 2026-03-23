@@ -10,6 +10,7 @@ import 'package:http/http.dart';
 import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/ausweis_message.dart';
+import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/main.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
@@ -152,12 +153,11 @@ class AusweisProvider extends ChangeNotifier {
     connected = true;
   }
 
-  void disconnectSdk() {
+  Future<void> disconnectSdk() async {
     try {
-      method.invokeMethod('disconnectSdk');
+      await method.invokeMethod('disconnectSdk');
     } on PlatformException catch (e) {
       logger.d('Failed to disconnect from sdk: ${e.message}.');
-      return;
     }
     connected = false;
   }

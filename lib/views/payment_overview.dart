@@ -34,7 +34,7 @@ class PaymentOverview extends StatelessWidget {
                       if (allPayments[index].shownAttributes.isNotEmpty) {
                         var cred = wallet.getCredential(
                             allPayments[index].shownAttributes.first);
-                        if (cred != null && cred.w3cCredential.isNotEmpty) {
+                        if (cred != null && cred.verifiableCredential.isNotEmpty) {
                           Provider.of<NavigationProvider>(context,
                                   listen: false)
                               .changePage([
@@ -42,7 +42,7 @@ class PaymentOverview extends StatelessWidget {
                             NavigationPage.paymentOverview
                           ],
                                   credential: VerifiableCredential.fromJson(
-                                      cred.w3cCredential));
+                                      cred.verifiableCredential));
                         }
                       }
                     },

@@ -17,6 +17,7 @@ import 'package:id_ideal_wallet/basicUi/standard/payment_finished.dart';
 import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/root_certificates.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
+import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/functions/payment_utils.dart';
 import 'package:id_ideal_wallet/provider/mdoc_provider.dart';
@@ -230,9 +231,9 @@ class WalletProvider extends ChangeNotifier {
         return;
       }
 
-      if (!_wallet.isInitialized()) {
+      if (_wallet.getStandardIssuerDid() == null) {
         await _wallet.initialize();
-        await _wallet.initializeIssuer(KeyType.ed25519);
+        await _wallet.initializeIssuer(keyType: KeyType.ed25519);
       }
 
       _buildCredentialList();
@@ -610,20 +611,20 @@ class WalletProvider extends ChangeNotifier {
 
     var all = allCredentials();
     for (var cred in all.values) {
-      if (cred.w3cCredential == '' || cred.w3cCredential == 'vc') {
+      if (cred.verifiableCredential == '' || cred.verifiableCredential == 'vc') {
         continue;
       }
-      if (cred.plaintextCredential == '' ||
-          cred.plaintextCredential.startsWith('$isoPrefix:') ||
-          cred.plaintextCredential.startsWith('$sdPrefix:')) {
-        if (cred.plaintextCredential.startsWith('$isoPrefix:')) {
+      if (cred.metadata == '' ||
+          cred.metadata.startsWith('$isoPrefix:') ||
+          cred.metadata.startsWith('$sdPrefix:')) {
+        if (cred.metadata.startsWith('$isoPrefix:')) {
           isoMdocCredentials.add(cred);
         }
-        if (cred.plaintextCredential.startsWith('$sdPrefix:')) {
+        if (cred.metadata.startsWith('$sdPrefix:')) {
           sdJwtCredentials.add(cred);
         }
 
-        var vc = VerifiableCredential.fromJson(cred.w3cCredential);
+        var vc = VerifiableCredential.fromJson(cred.verifiableCredential);
         if (vc.type.contains('PaymentContext')) {
           paymentCredentials.add(vc);
           _updateLastThreePayments(vc.id!);
@@ -701,7 +702,7 @@ class WalletProvider extends ChangeNotifier {
   }
 
   Future<String> newConnectionDid([KeyType keytype = KeyType.x25519]) async {
-    return _wallet.getNextConnectionDID(keytype, true);
+    return _wallet.getNextConnectionDID(keyType: keytype);
   }
 
   Connection? getConnection(String did) {
@@ -709,7 +710,7 @@ class WalletProvider extends ChangeNotifier {
   }
 
   Future<String> newCredentialDid([KeyType keytype = KeyType.ed25519]) async {
-    return _wallet.getNextCredentialDID(keytype, true);
+    return _wallet.getNextCredentialDID(keyType: keytype);
   }
 
   Credential? getCredential(String did) {
@@ -720,8 +721,7 @@ class WalletProvider extends ChangeNotifier {
       {String? newDid,
       String? isoMdlData,
       KeyType keyType = KeyType.ed25519}) async {
-    await _wallet.storeCredential(vc, isoMdlData ?? '', hdPath,
-        keyType: keyType, credDid: newDid);
+    await _wallet.storeCredential(vc, newDid ?? hdPath, isoMdlData);
     _buildCredentialList();
     var vcParsed = VerifiableCredential.fromJson(vc);
     var type = vcParsed.type
@@ -754,12 +754,17 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>?> privateKeyForConnectionDidAsJwk(String did) {
-    return _wallet.getPrivateKeyForConnectionDidAsJwk(did);
+  Future<Map<String, dynamic>?> privateKeyForConnectionDidAsJwk(String did) async {
+    try {
+      return await _wallet.getKeyInformation(did);
+    } catch (_) {
+      return null;
+    }
   }
 
-  Future<String?> getPrivateKeyForCredentialDid(String did) {
-    return _wallet.getPrivateKeyForCredentialDid(did);
+  Future<String?> getPrivateKeyForCredentialDid(String did) async {
+    throw UnimplementedError(
+        'Direct private key access is no longer supported. Use wallet.sign(keyId, data) instead.');
   }
 
   Map<dynamic, Connection> allConnections() {

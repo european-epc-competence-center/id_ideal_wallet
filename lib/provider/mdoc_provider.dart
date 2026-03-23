@@ -10,6 +10,8 @@ import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/did.dart';
 import 'package:dart_ssi/util.dart';
 import 'package:dart_ssi/wallet.dart';
+import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart'
+    show WalletSignatureGenerator;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -153,17 +155,12 @@ class MdocProvider extends ChangeNotifier {
   }
 
   generateDeviceEngagement() async {
-    var wallet = Provider.of<WalletProvider>(navigatorKey.currentContext!,
-        listen: false);
-    var mdocDid = await wallet.newConnectionDid(KeyType.p256);
-    var deviceEphemeralCosePub = await didToCosePublicKey(mdocDid);
-    myPrivateKey = deviceEphemeralCosePub;
-    myPrivateKey!.d = base64Decode(addPaddingToBase64((await wallet.wallet
-        .getPrivateKeyForConnectionDidAsJwk(mdocDid))!['d']));
+    myPrivateKey = CoseKey.generate(CoseCurve.p256);
     engagement = DeviceEngagement(
         security: Security(
             cipherSuiteIdentifier: 1,
-            deviceKeyBytes: deviceEphemeralCosePub.toCoseKeyBytes().bytes),
+            deviceKeyBytes:
+                myPrivateKey!.toPublicKey().toCoseKeyBytes().bytes),
         deviceRetrievalMethods: [
           DeviceRetrievalMethod(
               type: 2,
@@ -508,11 +505,10 @@ class MdocProvider extends ChangeNotifier {
     }
 
     var certIt = parsePem(
-        '-----BEGIN CERTIFICATE-----\n${base64Encode(decodedRequest.docRequests.first.readerAuthSignature!.unprotected.x509chain!)}\n-----END CERTIFICATE-----');
+        '-----BEGIN CERTIFICATE-----\n${base64Encode(decodedRequest.docRequests.first.readerAuthSignature!.unprotected.x509chain!.first)}\n-----END CERTIFICATE-----');
     var requesterCert = certIt.first as X509Certificate;
 
     List<IssuerSignedObject> toShow = [];
-    List<IsoRequestedItem> filterResult = [];
 
     var isoCreds =
         Provider.of<WalletProvider>(navigatorKey.currentContext!, listen: false)
@@ -522,19 +518,13 @@ class MdocProvider extends ChangeNotifier {
 
     for (var cred in isoCreds) {
       var data = IssuerSignedObject.fromCbor(
-          base64Decode(cred.plaintextCredential.replaceAll('$isoPrefix:', '')));
+          base64Decode(cred.metadata.replaceAll('$isoPrefix:', '')));
       var m = MobileSecurityObject.fromCbor(data.issuerAuth.payload);
       var coseKey = m.deviceKeyInfo.deviceKey;
-      KeyType keyType;
-      if (coseKey.crv == CoseCurve.ed25519) {
-        keyType = KeyType.ed25519;
-      } else if (coseKey.crv == CoseCurve.p521) {
-        keyType = KeyType.p521;
-      } else if (coseKey.crv == CoseCurve.p384) {
-        keyType = KeyType.p384;
-      } else if (coseKey.crv == CoseCurve.p256) {
-        keyType = KeyType.p256;
-      } else {
+      if (coseKey.crv != CoseCurve.ed25519 &&
+          coseKey.crv != CoseCurve.p521 &&
+          coseKey.crv != CoseCurve.p384 &&
+          coseKey.crv != CoseCurve.p256) {
         showErrorMessage('Unbekannter KeyType', 'Das sollte nicht passieren');
         logger.d(coseKey);
         return (null, null);
@@ -559,20 +549,9 @@ class MdocProvider extends ChangeNotifier {
             });
 
             data.items = revealedData;
-            var vc = VerifiableCredential.fromJson(cred.w3cCredential);
+            var vc = VerifiableCredential.fromJson(cred.verifiableCredential);
             vc.credentialSubject = contentToShow;
             toShow.add(data);
-            var key = await Provider.of<WalletProvider>(
-                    navigatorKey.currentContext!,
-                    listen: false)
-                .wallet
-                .getPrivateKey(cred.hdPath, keyType);
-            filterResult.add(IsoRequestedItem(
-                m.docType,
-                {},
-                data,
-                CoseKey(
-                    kty: coseKey.kty, crv: coseKey.crv, d: hex.decode(key))));
           }
         }
       }
@@ -604,21 +583,14 @@ class MdocProvider extends ChangeNotifier {
         for (var doc in entry.isoMdocCredentials ?? <IssuerSignedObject>[]) {
           var mso = MobileSecurityObject.fromCbor(doc.issuerAuth.payload);
           var did = coseKeyToDid(mso.deviceKeyInfo.deviceKey);
-
-          var private = await Provider.of<WalletProvider>(
-                  navigatorKey.currentContext!,
-                  listen: false)
-              .getPrivateKeyForCredentialDid(did);
-          if (private == null) {
-            showErrorMessage('Kein privater schlüssel');
-            return (null, null);
-          }
-          var privateKey = await didToCosePublicKey(did);
-          privateKey.d = hexDecode(private);
-
+          final walletProvider = Provider.of<WalletProvider>(
+              navigatorKey.currentContext!,
+              listen: false);
+          final signer =
+              WalletSignatureGenerator.forDid(walletProvider.wallet, did);
           var ds = await generateDeviceSignature(
               {}, mso.docType, transcriptHolder,
-              signer: SignatureGenerator.get(privateKey));
+              signer: signer);
 
           var docToSend = Document(
               docType: mso.docType, issuerSigned: doc, deviceSigned: ds);

@@ -7,8 +7,9 @@ import 'package:base_codecs/base_codecs.dart';
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/did.dart';
 import 'package:dart_ssi/didcomm.dart';
-import 'package:dart_ssi/oidc.dart';
+import 'package:dart_ssi/oid.dart';
 import 'package:dart_ssi/util.dart';
+import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
 import 'package:dart_ssi/wallet.dart';
 import 'package:flutter/material.dart';
 import 'package:id_ideal_wallet/l10n/app_localizations.dart';
@@ -368,8 +369,8 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
 
       // sd Jwt
       for (var v in result.sdJwtCredentials ?? <sd_jwt.SdJws>[]) {
-        var sd = v.unverified();
-        Map<String, dynamic> subject = sd.claims;
+        var sd = v.toSdJwt();
+        Map<String, dynamic> subject = sd.additionalClaims ?? {};
 
         var type = subject.remove('vct');
         var key = 'o${outerPos}i$innerPos';
@@ -658,17 +659,11 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             var mso = MobileSecurityObject.fromCbor(cred.issuerAuth.payload);
             var did = coseKeyToDid(mso.deviceKeyInfo.deviceKey);
 
-            var private = await wallet.getPrivateKeyForCredentialDid(did);
-            if (private == null) {
-              logger.d('Kein privater schlüssel');
-              throw Exception();
-            }
-            var privateKey = await didToCosePublicKey(did);
-            privateKey.d = hexDecode(private);
-
+            final signer =
+                WalletSignatureGenerator.forDid(wallet.wallet, did);
             var transcript = SessionTranscript(handover: handover);
             var ds = await generateDeviceSignature({}, mso.docType, transcript,
-                signer: SignatureGenerator.get(privateKey));
+                signer: signer);
             docs.add(Document(
                 docType: mso.docType, issuerSigned: cred, deviceSigned: ds));
           }
@@ -677,7 +672,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
 
           descriptorMap.add(InputDescriptorMappingObject(
               id: entry.matchingDescriptorIds.first,
-              format: OidcCredentialFormat.msoMdoc,
+              format: OidCredentialFormat.msoMdoc,
               path: JsonPath(r'$')));
 
           vp.add(removePaddingFromBase64(base64UrlEncode(res.toEncodedCbor())));
@@ -693,48 +688,40 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             entry.sdJwtCredentials!.isNotEmpty) {
           logger.d('handle sd jwt');
           for (var s in entry.sdJwtCredentials!) {
-            var sd = s.unverified();
+            var sd = s.toSdJwt();
 
             var cnf = sd.confirmation!.toJson();
             logger.d(cnf['jwk']);
             var multibase = jwkToMultiBase(cnf['jwk']);
             var restoredDid = 'did:key:$multibase';
 
-            var private = await wallet.wallet
-                .getPrivateKeyForCredentialDidAsJwk(restoredDid);
-            if (private == null) {
-              logger.d('no private key found for $restoredDid');
-              throw Exception();
-            }
-            private['x'] = cnf['jwk']['x'];
-            private['y'] = cnf['jwk']['y'];
-            logger.d(private);
-
-            var jwk = sd_jwt.Jwk.fromJson(private);
-            logger.d(jwk.toJson());
-            sd_jwt.SigningAlgorithm? algorithm;
-            if (private['crv'] == 'P-256') {
-              algorithm = sd_jwt.SigningAlgorithm.ecdsaSha256Prime;
-            } else if (private['crv'] == 'P-384') {
+            final signer = WalletCryptoProvider(wallet.wallet, restoredDid);
+            final crv = cnf['jwk']['crv'] as String? ?? '';
+            final sd_jwt.SigningAlgorithm algorithm;
+            if (crv == 'P-384') {
               algorithm = sd_jwt.SigningAlgorithm.ecdsaSha384Prime;
-            } else if (private['crv'] == 'P-221') {
+            } else if (crv == 'P-521') {
               algorithm = sd_jwt.SigningAlgorithm.ecdsaSha512Prime;
+            } else if (restoredDid.startsWith('did:key:z6Mk')) {
+              algorithm = sd_jwt.SigningAlgorithm.eddsa25519Sha512;
+            } else {
+              algorithm = sd_jwt.SigningAlgorithm.ecdsaSha256Prime;
             }
 
-            var signed = s.bind(
-                jsonWebKey: jwk,
+            var bound = await s.bind(
+                signer: signer,
                 audience: widget.otherEndpoint,
                 issuedAt: DateTime.now(),
                 nonce: widget.nonce!,
                 signingAlgorithm: algorithm);
 
-            logger.d(signed);
+            logger.d(bound);
 
-            vp.add(signed.toCompactSerialization());
+            vp.add(bound.toCompactSerialization());
 
             descriptorMap.add(InputDescriptorMappingObject(
                 id: entry.matchingDescriptorIds.first,
-                format: OidcCredentialFormat.sdJwt,
+                format: OidCredentialFormat.sdJwt,
                 path: JsonPath(
                     '\$${vp.isEmpty && entry.sdJwtCredentials!.length == 1 ? '' : '[${arrayIndex + vp.length}]'}')));
             arrayIndex++;
@@ -811,9 +798,6 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             walletKeyType = KeyType.secp256k1;
           }
           var cDid = await wallet.newConnectionDid(walletKeyType);
-          var myJwk =
-              await wallet.wallet.getPrivateKeyForConnectionDidAsJwk(cDid);
-          logger.d(myJwk);
           var myJwkPub = resolveDidKey(cDid)
               .convertAllKeysToJwk()
               .resolveKeyIds()
@@ -835,8 +819,13 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
           logger.d(header);
 
           if (header['alg'] == 'ECDH-ES') {
-            var sharedSecret = ecdhES(myJwk, readerKey, header['alg'], enc,
-                apu: header['apu'], apv: header['apv']);
+            var sharedSecret = await ecdhES(
+                WalletKeyAgreementGenerator(wallet.wallet, cDid),
+                readerKey,
+                header['alg'] as String,
+                enc,
+                apu: header['apu'] as String?,
+                apv: header['apv'] as String?);
 
             logger.d('$sharedSecret, ${sharedSecret.length}');
             // direct mode
@@ -950,7 +939,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
           logger.d(type);
 
           for (var cred in entry.sdJwtCredentials ?? <sd_jwt.SdJws>[]) {
-            var sdJwt = cred.unverified();
+            var sdJwt = cred.toSdJwt();
 
             var cnf = sdJwt.confirmation!.toJson();
             logger.d(cnf['jwk']);
@@ -959,7 +948,7 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
             wallet.storeExchangeHistoryEntry(
                 restoredDid, DateTime.now(), 'present', widget.otherEndpoint);
 
-            var vct = sdJwt.claims['vct'];
+            var vct = (sdJwt.additionalClaims ?? {})['vct'];
             type += '$vct, \n';
           }
         }

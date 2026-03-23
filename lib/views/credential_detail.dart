@@ -6,6 +6,7 @@ import 'package:id_ideal_wallet/basicUi/standard/styled_scaffold_title.dart';
 import 'package:id_ideal_wallet/constants/colors.dart';
 import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
+import 'package:id_ideal_wallet/functions/dart_ssi_compat.dart';
 import 'package:id_ideal_wallet/functions/util.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
@@ -123,7 +124,7 @@ class CredentialDetailState extends State<CredentialDetailView> {
       var receipt = Provider.of<WalletProvider>(context, listen: false)
           .getCredential(widget.credential.credentialSubject['receiptId']);
       if (receipt != null) {
-        var receiptVc = VerifiableCredential.fromJson(receipt.w3cCredential);
+        var receiptVc = VerifiableCredential.fromJson(receipt.verifiableCredential);
         var target = PdfPreviewPage(
             paymentReceipt: receiptVc,
             eventName: widget.credential.credentialSubject['event'] ?? '');
