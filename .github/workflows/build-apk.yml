@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - EECC
-      - ci-test      # temporary test branch — remove once confirmed working
-  workflow_dispatch:   # allows manual trigger from GitHub UI
 
 jobs:
   build:
