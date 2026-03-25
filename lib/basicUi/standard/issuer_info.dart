@@ -1,6 +1,6 @@
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/did.dart';
-import 'package:dart_ssi/x509.dart';
+import 'package:dart_ssi/util.dart';
 import 'package:flutter/material.dart';
 import 'package:id_ideal_wallet/l10n/app_localizations.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
@@ -127,6 +127,7 @@ class IssuerInfoTextState extends State<IssuerInfoText> {
   @override
   Widget build(BuildContext context) {
     return Text(issuerName,
+        overflow: TextOverflow.ellipsis,
         style: Theme.of(context).primaryTextTheme.titleMedium);
   }
 }

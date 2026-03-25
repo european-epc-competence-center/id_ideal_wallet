@@ -130,7 +130,7 @@ class IdCard extends StatelessWidget {
         layout = wallet.credentialStyling[type];
       }
 
-      var issuer = getIssuerDidFromCredential(credential);
+      var issuer = getIssuerDid(credential.issuer);
       var cCreds = wallet?.getConfig('certCreds:$issuer');
       if (cCreds != null) {
         certCred =
@@ -203,17 +203,19 @@ class IdCard extends StatelessWidget {
         ),
       ),
       child: Row(children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 10),
-          child: Text(
-            cardTitle,
-            style: Theme.of(navigatorKey.currentContext!)
-                .primaryTextTheme
-                .titleLarge!
-                .copyWith(color: cardTitleColor),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 10),
+            child: Text(
+              cardTitle,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(navigatorKey.currentContext!)
+                  .primaryTextTheme
+                  .titleLarge!
+                  .copyWith(color: cardTitleColor),
+            ),
           ),
         ),
-        const Spacer(),
         issuerIcon != null
             ? Padding(
                 padding: const EdgeInsets.only(right: 10),
@@ -280,11 +282,12 @@ class IdCard extends StatelessWidget {
         ),
       ),
       child: Row(children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 10),
-          child: bottomLeftText,
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 10),
+            child: bottomLeftText,
+          ),
         ),
-        const Spacer(),
         Padding(
           padding: const EdgeInsets.only(right: 10),
           child: bottomRightText,

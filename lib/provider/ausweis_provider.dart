@@ -10,6 +10,7 @@ import 'package:http/http.dart';
 import 'package:id_ideal_wallet/constants/navigation_pages.dart';
 import 'package:id_ideal_wallet/constants/server_address.dart';
 import 'package:id_ideal_wallet/functions/ausweis_message.dart';
+import 'package:id_ideal_wallet/functions/util.dart' as my_util;
 import 'package:id_ideal_wallet/functions/didcomm_message_handler.dart';
 import 'package:id_ideal_wallet/main.dart';
 import 'package:id_ideal_wallet/provider/navigation_provider.dart';
@@ -111,13 +112,9 @@ class AusweisProvider extends ChangeNotifier {
           credentialSubject: readData,
           issuer: did,
           issuanceDate: DateTime.now());
-      var signed = await signCredential(wallet.wallet, vc);
-      var storedCred = wallet.getCredential(did);
-      if (storedCred != null) {
-        wallet.storeCredential(signed, storedCred.hdPath);
-      } else {
-        throw Exception('Das sollte nicht passieren');
-      }
+      var (signer, proofType) = await my_util.getCredentialSigningStuff(wallet.wallet, did);
+      await vc.sign(signer, proofType);
+      wallet.storeCredential(vc, did);
 
       showSuccessMessage(
           AppLocalizations.of(navigatorKey.currentContext!)!.credentialReceived,
@@ -152,12 +149,11 @@ class AusweisProvider extends ChangeNotifier {
     connected = true;
   }
 
-  void disconnectSdk() {
+  Future<void> disconnectSdk() async {
     try {
-      method.invokeMethod('disconnectSdk');
+      await method.invokeMethod('disconnectSdk');
     } on PlatformException catch (e) {
       logger.d('Failed to disconnect from sdk: ${e.message}.');
-      return;
     }
     connected = false;
   }

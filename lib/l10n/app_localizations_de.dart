@@ -854,4 +854,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get requestedData => 'Angefragte Daten';
+
+  @override
+  String get oidMetadataError => 'Metadaten-Fehler';
+
+  @override
+  String get oidMetadataErrorNote =>
+      'Die Metadaten des Ausstellers konnten nicht abgerufen werden.';
 }

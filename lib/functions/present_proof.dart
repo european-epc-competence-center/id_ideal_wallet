@@ -76,11 +76,11 @@ Future<bool> handleRequestPresentation(
   var allCreds = wallet.allCredentials();
   List<VerifiableCredential> creds = [];
   allCreds.forEach((key, value) {
-    if (value.w3cCredential != '') {
-      var vc = VerifiableCredential.fromJson(value.w3cCredential);
+    if (value.verifiableCredential != '') {
+      var vc = VerifiableCredential.fromJson(value.verifiableCredential);
       var type = getTypeToShow(vc.type);
       if (type != 'PaymentReceipt') {
-        var id = getHolderDidFromCredential(vc.toJson());
+        var id = getHolderDid(vc);
         var status = wallet.revocationState[id];
         if (status == RevocationState.valid.index ||
             status == RevocationState.unknown.index) {
@@ -162,15 +162,15 @@ Future<bool> handleRequestPresentation(
 
     if (initialWebview != null && authorizedApps.contains(initialWebview)) {
       logger.d('send with no interaction');
-      var vp = await buildPresentation(filtered, wallet.wallet,
+      var vp = await buildW3cPresentation(filtered, wallet.wallet,
           message.presentationDefinition.first.challenge,
-          loadDocumentFunction: loadDocumentFast);
+          loadDocument: loadDocumentFast);
       var presentationMessage = Presentation(
           replyUrl: '$relay/buffer/$myDid',
           returnRoute: ReturnRouteValue.thread,
           to: [message.from!],
           from: myDid,
-          verifiablePresentation: [VerifiablePresentation.fromJson(vp)],
+          verifiablePresentation: [vp],
           threadId: message.threadId ?? message.id,
           parentThreadId: message.parentThreadId);
 
@@ -218,8 +218,8 @@ Future<bool> handlePresentation(
       RequestPresentation.fromJson(conversation.lastMessage);
   var challenge = requestPresentation.presentationDefinition.first.challenge;
 
-  var verified =
-      await verifyPresentation(message.verifiablePresentation.first, challenge);
+  var verified = await message.verifiablePresentation.first
+      .verify(expectedChallenge: challenge, loadDocument: loadDocumentFast);
   if (verified) {
     await showDialog(
         context: navigatorKey.currentContext!,

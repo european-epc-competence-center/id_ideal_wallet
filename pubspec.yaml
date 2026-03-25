@@ -34,15 +34,15 @@ dependencies:
     sdk: flutter
   dart_ssi:
     git:
-      url: https://github.com/b2cm/dart_ssi
-      ref: development
+      url: https://github.com/european-epc-competence-center/dart_ssi
+      ref: master
   #  dart_ssi:
   #    path: ../flutter_ssi_wallet
   #dart_ssi: ^3.0.0
   sd_jwt:
     git:
       url: https://github.com/b2cm/sd_jwt
-      ref: 11647deaeaf89a0b2b347085ae5439a9408c0ff3
+      ref: development
     #path: ../sd-jwt
   path_provider: ^2.0.12
   local_auth: ^2.2.0
@@ -54,7 +54,7 @@ dependencies:
   qr_flutter:
     git:
       url: https://github.com/theyakka/qr.flutter.git
-  json_path: any
+  json_path: ^0.8.0
   json_schema: ^5.1.2
   provider: ^6.0.4
   logger: ^2.0.0
@@ -86,7 +86,10 @@ dependencies:
   url_launcher: any
   archive: ^3.4.1
   pkcs7: any
-  iso_mdoc: ^1.3.0
+  iso_mdoc:
+    git:
+      url: https://github.com/b2cm/iso_mdoc
+      ref: main
   #path: ../cbor_test
   json_ld_processor: any
   bluetooth_low_energy: ^6.0.1
@@ -113,6 +116,8 @@ dependencies:
 
 dependency_overrides:
   pinenacl: ^0.6.0
+  # bip39 1.0.6 declares pointycastle ^3; iso_mdoc needs ^4. APIs used by bip39 are compatible.
+  pointycastle: ^4.0.0
 
 dev_dependencies:
   flutter_test:

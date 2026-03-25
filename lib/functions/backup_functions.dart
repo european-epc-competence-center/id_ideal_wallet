@@ -3,10 +3,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'package:dart_ssi/src/wallet/hive_model.dart';
 import 'package:flutter/material.dart';
 import 'package:id_ideal_wallet/l10n/app_localizations.dart';
-import 'package:hive/hive.dart';
 import 'package:id_ideal_wallet/provider/encryption_provider.dart';
 import 'package:id_ideal_wallet/provider/server_provider.dart';
 import 'package:id_ideal_wallet/provider/wallet_provider.dart';
@@ -26,25 +24,17 @@ Future<void> performBackup(BuildContext context, String memonic) async {
       utf8.encode(encryptionService.getPasswordFromMemonic(memonic));
 
   var wallet = Provider.of<WalletProvider>(context, listen: false);
-  var boxes = wallet.wallet.getBoxes();
+  final exported = await wallet.wallet.export();
+  final encodedData = jsonEncode(exported);
 
-  // Filter out null boxes
-  Map<String, Box<dynamic>> nonNullableBoxes = Map.fromEntries(
-    boxes.entries
-        .where((entry) => entry.value != null)
-        .map((entry) => MapEntry(entry.key, entry.value!)),
-  );
-
-  var encodedBoxes = encodeBoxes(nonNullableBoxes);
-
-  // Encrypt boxes
-  final encryptedData = encryptionService.encryptData(encodedBoxes, password);
+  // Encrypt wallet data
+  final encryptedData = encryptionService.encryptData(encodedData, password);
 
   // Save the file locally first
-  File file = await saveFileLocally(sha256.convert(password).toString(), encryptedData);
+  File file =
+      await saveFileLocally(sha256.convert(password).toString(), encryptedData);
 
-  String apiUrl =
-      '${localhost}/data'; // Replace with your server URL      // Replace with your API key
+  String apiUrl = '$localhost/data';
   String textData = sha256.convert(password).toString();
 
   await sendStringAndFile(apiUrl, apiKey, textData, file);
@@ -60,85 +50,21 @@ Future<void> applyBackup(BuildContext context, String memonic) async {
   String encryptedData;
 
   try {
-    encryptedData = await fetchFileInMemory(
-        sha256.convert(utf8.encode(password!)).toString());
+    encryptedData =
+        await fetchFileInMemory(sha256.convert(utf8.encode(password)).toString());
   } catch (e) {
-    // if we catch here we did not get a 200
     ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.backupNotFound)));
     return;
   }
 
-  // Decrypt the data using the password
-  String encodedBoxes =
-      await encryptionService.decryptData(password!, encryptedData);
+  final decodedData = await encryptionService.decryptData(password, encryptedData);
+  final imported = (jsonDecode(decodedData) as Map<String, dynamic>)
+      .map((k, v) => MapEntry(k, Map<String, dynamic>.from(v as Map)));
 
-  Map<String, Box<dynamic>> boxes =
-      wallet.wallet.getBoxes().cast<String, Box<dynamic>>();
-
-  // Decode and restore boxes
-  await decodeAndSetBoxes(encodedBoxes, boxes);
+  await wallet.wallet.import(imported);
 
   restart();
-}
-
-// Function to encode boxes
-String encodeBoxes(Map<String, Box<dynamic>> boxes) {
-  Map<String, Map<dynamic, dynamic>> encodedBoxes = {};
-
-  boxes.forEach((key, box) {
-    encodedBoxes[key] = box.toMap().map((k, v) {
-      if (v is Credential) {
-        return MapEntry(k, v.toJson());
-      } else if (v is Connection) {
-        return MapEntry(k, v.toJson());
-      } else if (v is DidcommConversation) {
-        return MapEntry(k, v.toJson());
-      } else {
-        return MapEntry(k, v); // For basic types (int, String, etc.)
-      }
-    });
-  });
-
-  return jsonEncode(encodedBoxes);
-}
-
-// Function to decode and set boxes
-Future<void> decodeAndSetBoxes(
-    String encodedData, Map<String, Box<dynamic>> boxes) async {
-  Map<String, dynamic> decodedData = jsonDecode(encodedData);
-
-  for (var entry in decodedData.entries) {
-    String boxKey = entry.key;
-    Map<dynamic, dynamic> boxData = entry.value;
-
-    if (boxes.containsKey(boxKey)) {
-      Box<dynamic> box = boxes[boxKey]!;
-      await box.clear(); // Clear existing data in the box
-
-      for (var dataEntry in boxData.entries) {
-        dynamic key = dataEntry.key;
-        dynamic value = dataEntry.value;
-        /**
-          The boxes are handled by the dart_ssi library. To see the boxes types with their keys 
-          check dart_ssi/lib/src/wallet/wallet_store.dart -> openBoxes()
-        */
-        if (boxKey == 'credentialBox' || boxKey == "issuingHistory") {
-          box.put(key, Credential.fromJson(value));
-        } else if (boxKey == 'connection') {
-          box.put(key, Connection.fromJson(value));
-        } else if (boxKey == 'didcommConversations') {
-          box.put(key, DidcommConversation.fromJson(value));
-        } else {
-          if (boxKey == 'keyBox' && key == 'seed') {
-            box.put(key, Uint8List.fromList((value as List).cast<int>()));
-          } else {
-            box.put(key, value); // For basic types (int, String, etc.)
-          }
-        }
-      }
-    }
-  }
 }
 
 // Function to save the file on disk

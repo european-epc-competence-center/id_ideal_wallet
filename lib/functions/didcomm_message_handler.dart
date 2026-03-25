@@ -246,7 +246,7 @@ Future<DidcommPlaintextMessage> getPlaintext(
     try {
       var encrypted = DidcommEncryptedMessage.fromJson(message);
       var decrypted =
-          await encrypted.decrypt(wallet.wallet, didResolver: resolveKeri);
+          await encrypted.decrypt(wallet: wallet.wallet, didResolver: resolveKeri);
       if (decrypted is DidcommPlaintextMessage) {
         decrypted.from ??= encrypted.protectedHeaderSkid!.split('#').first;
         List<String> toDids = [];
@@ -328,8 +328,7 @@ Future<bool> handleInvitation(
 
     if (replyUrl != null) {
       var con = wallet.getConnection(myDid);
-      wallet.wallet.storeConnection(replyUrl, 'Kaprion', con!.hdPath,
-          keyType: KeyType.p384);
+      wallet.wallet.storeConnection(replyUrl, 'Kaprion', con!.hdPath);
     }
 
     logger.d(replyUrl);
@@ -357,9 +356,8 @@ Future<bool> handleInvitation(
     var threadId = const Uuid().v4();
     var myDid = await wallet.newConnectionDid(KeyType.p384);
     var con = wallet.getConnection(myDid);
-    wallet.wallet.storeConnection(replyUrl!, 'Kaprion', con!.hdPath,
-        keyType: KeyType.p384);
-    logger.d(await wallet.wallet.getPublicKey(con.hdPath, KeyType.p384));
+    wallet.wallet.storeConnection(replyUrl!, 'Kaprion', con!.hdPath);
+    logger.d(await wallet.wallet.getKeyInformation(con.hdPath));
     var propose = ProposeCredential(
         id: threadId,
         threadId: threadId,
@@ -414,7 +412,6 @@ sendMessage(String myDid, String? otherEndpoint, WalletProvider wallet,
         AppLocalizations.of(navigatorKey.currentContext!)!.sendFailedNote);
     throw Exception(' no Endpoint');
   }
-  var myPrivateKey = await wallet.privateKeyForConnectionDidAsJwk(myDid);
   DidDocument recipientDDO;
   if (receiverDid.startsWith('did:keri')) {
     if (receiverDid.contains('?')) {
@@ -449,10 +446,10 @@ sendMessage(String myDid, String? otherEndpoint, WalletProvider wallet,
   if (pubKey['kid'] == null) {
     pubKey['kid'] = (recipientDDO.keyAgreement!.first as VerificationMethod).id;
   }
-  var encrypted = DidcommEncryptedMessage.fromPlaintext(
-      senderPrivateKeyJwk: myPrivateKey!,
-      recipientPublicKeyJwk: [pubKey],
-      plaintext: message);
+  var encrypted = await message.encrypt(
+      wallet: wallet.wallet,
+      keyId: myDid,
+      recipientPublicKeyJwk: [pubKey]);
 
   if (otherEndpoint.startsWith('http')) {
     logger.d('send message to $otherEndpoint');
@@ -537,7 +534,7 @@ sendMessage(String myDid, String? otherEndpoint, WalletProvider wallet,
           if (pres.verifiableCredential != null) {
             for (var cred in pres.verifiableCredential!) {
               wallet.storeExchangeHistoryEntry(
-                  getHolderDidFromCredential(cred.toJson()),
+                  getHolderDid(cred),
                   DateTime.now(),
                   'present failed',
                   message.to!.first);

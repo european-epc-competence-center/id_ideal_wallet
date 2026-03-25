@@ -286,5 +286,7 @@
   "validity": "Gültigkeit",
   "reason": "Grund",
   "providerInformation": "Anbieterinformationen",
-  "requestedData": "Angefragte Daten"
+  "requestedData": "Angefragte Daten",
+  "oidMetadataError": "Metadaten-Fehler",
+  "oidMetadataErrorNote": "Die Metadaten des Ausstellers konnten nicht abgerufen werden."
 }

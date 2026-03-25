@@ -418,11 +418,11 @@ class WebViewWindowState extends State<WebViewWindow> {
     var allCreds = wallet.allCredentials();
     List<VerifiableCredential> creds = [];
     allCreds.forEach((key, value) {
-      if (value.w3cCredential != '') {
-        var vc = VerifiableCredential.fromJson(value.w3cCredential);
+      if (value.verifiableCredential != '') {
+        var vc = VerifiableCredential.fromJson(value.verifiableCredential);
         var type = getTypeToShow(vc.type);
         if (type != 'PaymentReceipt') {
-          var id = getHolderDidFromCredential(vc.toJson());
+          var id = getHolderDid(vc);
           var status = wallet.revocationState[id];
           if (status == RevocationState.valid.index ||
               status == RevocationState.unknown.index) {
@@ -498,11 +498,11 @@ class WebViewWindowState extends State<WebViewWindow> {
     var allCreds = wallet.allCredentials();
     List<VerifiableCredential> creds = [];
     allCreds.forEach((key, value) {
-      if (value.w3cCredential != '') {
-        var vc = VerifiableCredential.fromJson(value.w3cCredential);
+      if (value.verifiableCredential != '') {
+        var vc = VerifiableCredential.fromJson(value.verifiableCredential);
         var type = getTypeToShow(vc.type);
         if (type != 'PaymentReceipt') {
-          var id = getHolderDidFromCredential(vc.toJson());
+          var id = getHolderDid(vc);
           var status = wallet.revocationState[id];
           if (status == RevocationState.valid.index ||
               status == RevocationState.unknown.index) {
@@ -525,9 +525,8 @@ class WebViewWindowState extends State<WebViewWindow> {
       if (authorizedApps.contains(initialUrl) &&
           authorizedHashes.contains(definitionHash.toString())) {
         logger.d('send with no interaction');
-        var tmp = await buildPresentation(filtered, wallet.wallet, nonce,
-            loadDocumentFunction: loadDocumentFast);
-        vp = VerifiablePresentation.fromJson(tmp);
+        vp = await buildW3cPresentation(filtered, wallet.wallet, nonce,
+            loadDocument: loadDocumentFast);
       } else {
         var target = PresentationRequestDialog(
           definition: definition,

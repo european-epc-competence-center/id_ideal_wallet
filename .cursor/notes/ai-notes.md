@@ -1,5 +1,34 @@
 # AI Notes - Persistent Memory
 
+## Session - 2026-03-23: dart_ssi API migration fixes
+
+**Status:** ✅ Completed
+
+**Problem:** After switching `dart_ssi` dependency to the EECC fork (commit 6fb33d), 15+ compile errors and runtime crashes.
+
+**Compile Errors Fixed:**
+1. `dart_ssi_compat.dart`: `pc.decodeBigIntWithSign`/`pc.encodeBigIntAsUnsigned` not in pointycastle 4.0 public API → added local `_decodeBigIntWithSign`/`_encodeBigIntAsUnsigned` helpers
+2. `dart_ssi_compat.dart`: Added missing `json_path` import for `JsonPath`
+3. `dart_ssi_compat.dart`: `FutureOr<bool>` return type from `_wallet.verify` → made method `async`/`await`
+4. `dart_ssi_compat.dart`: `WalletKeyAgreementGenerator` now exported by dart_ssi → removed duplicate class, re-export from dart_ssi instead
+5. `oidc_handler.dart`: `authorizationServer!.first` → `authorizationServer` is now `String?` not `List<String>?`; also check `authorizationServers` fallback
+6. `oidc_handler.dart`: `proofTypesSupported?['jwt']?.cast<String>()` → use `.signingAlgValuesSupported.cast<String>()`
+7. `oidc_handler.dart`: `SdJwt.verified(parsed, jwk)` removed → use `SdJwt.fromSdJws(parsed)` + `sd.verify()`
+8. `oidc_handler.dart`+`mdoc_provider.dart`: `x509chain` changed from `List<int>` to `List<List<int>>` in iso_mdoc → use `.first`
+9. `presentation_request.dart`: `sd.claims` → `sd.additionalClaims ?? {}`
+
+**Runtime Errors Fixed:**
+10. `oidc_handler.dart`: Old-format OID4VCI credential offers (missing `@context`) crash `OidCredentialOffer.fromUri` → added `_normaliseCredentialOffer()` pre-processor
+11. `MainActivity.kt`+`ausweis_provider.dart`: `disconnectSdk` called multiple times causes `IllegalArgumentException` → guard with `boundToService` flag in Kotlin; make Dart method `async`/`await` so exception is caught
+
+**Key Files Modified:**
+- `lib/functions/dart_ssi_compat.dart`
+- `lib/functions/oidc_handler.dart`
+- `lib/provider/mdoc_provider.dart`
+- `lib/provider/ausweis_provider.dart`
+- `lib/views/presentation_request.dart`
+- `android/app/src/main/kotlin/eu/hidy/app/MainActivity.kt`
+
 ## Current Session - 2024-12-19
 
 **Status:**
@@ -332,6 +361,109 @@
 - `[ausweis_provider.dart](mdc:lib/provider/ausweis_provider.dart)` - ID card state management
 - `[navigation_provider.dart](mdc:lib/provider/navigation_provider.dart)` - Main app navigation
 
+## OID4VCI duplicate credential format deduplication - 2026-03-25
+
+**Status:** ✅ Completed
+
+**Problem:** An OID4VCI offer containing multiple `credential_configuration_ids` for the same logical credential but in different formats (e.g. `ProductDataCredential_JWT` / `jwt_vc_json` + `jwt` proof, and `ProductDataCredential_LDP` / `ldp_vc` + `di_vp` proof) caused:
+1. The dialog to show the same credential twice
+2. Both to be requested; `jwt_vc_json` succeeds, `ldp_vc` (with `di_vp` proof) shows "Proof type nicht unterstützt"
+
+**Fix:** Added `_proofTypePriority()` + `_selectBestFormats()` helper functions in `oidc_handler.dart` (before `removeTrailingSlash`). After building `offeredCredentials`, they deduplicate by credential type — keeping the format with the highest-priority supported proof type:
+- Priority 3: `jwt` proof → fully supported
+- Priority 2: `ldp_vp` proof → supported  
+- Priority 1: `proofTypesSupported == null` → defaults to jwt
+- Priority 0: anything else (e.g. `di_vp`) → unsupported, dropped if better option exists
+
+The deduplication is applied with `offeredCredentials = _selectBestFormats(offeredCredentials)` right before the user dialog is shown (line ~232).
+
+**File modified:** `lib/functions/oidc_handler.dart`
+
+## jwt_vc_json issuance support - 2026-03-23
+
+**Status:** ✅ Completed
+
+**Problem:** OID4VCI offers with `jwt_vc_json` format were failing silently. The `storeCredential` function's `else` branch tried to parse the JWT compact serialization string as JSON-LD, which throws and shows a "wrong credential" error.
+
+**Fix:** Added `else if (format == OidCredentialFormat.jwtVcJson)` branch in `storeCredential` (before the existing `else`):
+1. Splits JWT compact serialization and base64url-decodes the payload
+2. Handles both old-style JWT VC (with `vc` wrapper key) and new VCDM 2.0 (claims directly in payload)
+3. Normalizes VCDM 2.0 fields: `validFrom` → `issuanceDate`, `validUntil` → `expirationDate`
+4. Parses as `VerifiableCredential` and stores normally (no raw JWT kept; the decoded VC is sufficient for display and basic use)
+
+**Note:** The companion LDP credential (`ldp_vc` with `di_vp` proof type) correctly shows "unsupported proof type" since we don't support `di_vp`. Only `jwt_vc_json` is handled.
+
+**File modified:** `lib/functions/oidc_handler.dart` (lines ~1014-1061)
+
+## dart_ssi clean signing pattern - 2026-03-23
+
+**Status:** ✅ Fully completed
+
+**Refactored `storeCredential` to accept `VerifiableCredential` directly (matching reference branch):**
+- `WalletProvider.storeCredential(String, String, {newDid, isoMdlData, keyType})` → `storeCredential(VerifiableCredential, String credentialId, {isoMdlData})`
+- Removed `newDid` and `keyType` params; internally calls `vc.toString()` for `_wallet.storeCredential`
+- Removed `signVc()` helper from `util.dart` entirely
+- All call sites now use `getCredentialSigningStuff + vc.sign(signer, proofType) + storeCredential(vc, did)` directly
+- Files updated: `wallet_provider.dart` (signature + 3 internal sites), `ausweis_provider.dart`, `self_issuance.dart`, `payment_card_overview.dart`, `presentation_request.dart`, `issue_credential.dart`, `oidc_handler.dart`
+
+## dart_ssi compat removal / clean migration - 2026-03-23
+
+**Status:** ✅ Fully completed
+
+**Summary:**
+Removed `lib/functions/dart_ssi_compat.dart` (the ugly compatibility shim) and replaced all its functionality with native dart_ssi v4 APIs throughout the codebase. New helper functions added to `lib/functions/util.dart`:
+- `getHolderDid(VerifiableCredential vc)` / `getIssuerDid(dynamic issuer)`
+- `getCoseAlgorithmForDid(String did)` / `getCredentialSigningStuff(WalletStore, String did)`
+- `signVc(WalletStore, VerifiableCredential)` / `checkForRevocation(VerifiableCredential)`
+- `buildW3cPresentation(List<FilterResult>, WalletStore, challenge, ...)`
+
+Also added missing import: `package:json_ld_processor/json_ld_processor.dart show LoadDocumentOptions` in `util.dart`.
+
+Removed unused `import 'package:dart_ssi/wallet.dart'` from `mdoc_provider.dart`.
+
+`flutter analyze` result: 0 errors in `lib/`, only pre-existing warnings and one unrelated test error in `test/widget_test.dart` (MyApp not a class).
+
+## dart_ssi EECC Fork API Migration - 2026-03-23
+
+**Status:** ✅ All migration tasks completed
+
+**Summary of Changes:**
+- Created `lib/functions/dart_ssi_compat.dart` as a compatibility shim re-implementing removed dart_ssi functions and providing adapter classes (`WalletCryptoProvider`, `WalletSignatureGenerator`, `WalletKeyAgreementGenerator`, `EdDsaSigner`, `JsonWebSignature2020Signer`)
+- Updated all imports: `dart_ssi/oidc.dart` → `dart_ssi/oid.dart`, `dart_ssi/x509.dart` → `dart_ssi/util.dart`
+- Renamed all `Oidc*` types to `Oid*` (e.g., `OidcCredentialOffer` → `OidCredentialOffer`)
+- Migrated `Credential` field access: `w3cCredential` → `verifiableCredential`, `plaintextCredential` → `metadata`
+- Fixed `WalletStore` call sites: named params for `openBoxes`, `initializeIssuer`, `getNextConnectionDID`, `getNextCredentialDID`; replaced `isInitialized()` with `getStandardIssuerDid() != null`; replaced `getPublicKey()` with `getKeyInformation()`
+- Replaced `DidcommEncryptedMessage.fromPlaintext()` with `message.encrypt(wallet:, keyId:, recipientPublicKeyJwk:)`
+- Updated `decrypt()` to use named `wallet:` parameter
+- Fixed SD-JWT: replaced `SdJws.unverified()` with `toSdJwt()`, updated `bind()` to use `WalletCryptoProvider`
+- Added `WalletKeyAgreementGenerator` for `ecdhES` call in `presentation_request.dart`
+- Used `WalletSignatureGenerator.forDid()` for ISO mDOC device signing in `mdoc_provider.dart`
+- Generated ephemeral `CoseKey.generate(CoseCurve.p256)` directly for BLE session in `mdoc_provider.dart` (avoids needing private key extraction)
+- Rewrote `backup_functions.dart` to use `WalletStore.export()`/`import()` (removed `getBoxes()` dependency)
+- Added `dart_ssi_compat.dart` import to all files using compat functions
+
+**Files Modified:**
+- `lib/functions/dart_ssi_compat.dart` (created)
+- `lib/functions/backup_functions.dart` (rewritten)
+- `lib/functions/didcomm_message_handler.dart`
+- `lib/functions/issue_credential.dart`
+- `lib/functions/present_proof.dart`
+- `lib/functions/oidc_handler.dart`
+- `lib/functions/util.dart`
+- `lib/provider/wallet_provider.dart`
+- `lib/provider/mdoc_provider.dart`
+- `lib/provider/ausweis_provider.dart`
+- `lib/views/presentation_request.dart`
+- `lib/views/self_issuance.dart`
+- `lib/views/web_view.dart`
+- `lib/views/credential_detail.dart`
+- `lib/views/credential_page.dart`
+- `lib/views/payment_card_overview.dart`
+- `lib/basicUi/standard/issuer_info.dart`
+- `lib/basicUi/standard/requester_info.dart`
+- `lib/basicUi/standard/id_card.dart`
+- `pubspec.yaml` (dependency_overrides for pointycastle ^4.0.0)
+
 ## Previous Sessions
 
-*No previous sessions recorded yet* 
+*Sessions before dart_ssi migration not recorded* 

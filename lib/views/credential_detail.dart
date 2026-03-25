@@ -22,7 +22,7 @@ class HistoryEntries extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<WalletProvider>(builder: (context, wallet, child) {
-      var credId = getHolderDidFromCredential(credential.toJson());
+      var credId = getHolderDid(credential);
       if (credId == '') {
         var type = getTypeToShow(credential.type);
         credId = '${credential.issuanceDate.toIso8601String()}$type';
@@ -99,7 +99,7 @@ class CredentialDetailState extends State<CredentialDetailView> {
           TextButton(
               onPressed: () async {
                 var credId =
-                    getHolderDidFromCredential(widget.credential.toJson());
+                    getHolderDid(widget.credential);
                 if (credId == '') {
                   var type = getTypeToShow(widget.credential.type);
                   credId =
@@ -123,7 +123,7 @@ class CredentialDetailState extends State<CredentialDetailView> {
       var receipt = Provider.of<WalletProvider>(context, listen: false)
           .getCredential(widget.credential.credentialSubject['receiptId']);
       if (receipt != null) {
-        var receiptVc = VerifiableCredential.fromJson(receipt.w3cCredential);
+        var receiptVc = VerifiableCredential.fromJson(receipt.verifiableCredential);
         var target = PdfPreviewPage(
             paymentReceipt: receiptVc,
             eventName: widget.credential.credentialSubject['event'] ?? '');
@@ -311,7 +311,7 @@ class CredentialInfo extends StatelessWidget {
       otherData.add(expDateTile);
     }
 
-    var id = getHolderDidFromCredential(credential.toJson());
+    var id = getHolderDid(credential);
     if (id == '') {
       var type = getTypeToShow(credential.type);
       id = '${credential.issuanceDate.toIso8601String()}$type';

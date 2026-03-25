@@ -155,7 +155,7 @@ class CredentialPageState extends State<CredentialPage> {
                     itemBuilder: (context, index) {
                       var cred = credentialList[index];
                       var type = getTypeToShow(cred.type);
-                      var id = getHolderDidFromCredential(cred.toJson());
+                      var id = getHolderDid(cred);
                       if (id == '') {
                         id = '${cred.issuanceDate.toIso8601String()}$type';
                       }
@@ -351,7 +351,7 @@ class ContextCardState extends State<ContextCard> {
           TextButton(
               onPressed: () async {
                 var credId = widget.context.id ??
-                    getHolderDidFromCredential(widget.context.toJson());
+                    getHolderDid(widget.context);
                 if (credId == '') {
                   var type = getTypeToShow(widget.context.type);
                   credId =
@@ -520,7 +520,7 @@ class CredentialCard extends StatelessWidget {
                         credential: credential, track: false)
             : null,
         child: Consumer<WalletProvider>(builder: (context, wallet, child) {
-          var id = getHolderDidFromCredential(credential.toJson());
+          var id = getHolderDid(credential);
           var revState = wallet.revocationState[id];
           if (revState == RevocationState.expired.index ||
               revState == RevocationState.revoked.index ||
