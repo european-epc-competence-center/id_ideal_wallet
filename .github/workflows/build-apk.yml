@@ -1,0 +1,53 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - EECC
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.5'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Decode signing keystore
+        run: |
+          echo "${{ secrets.CI_KEYSTORE_BASE64 }}" | base64 --decode > android/ci-release.keystore
+
+      - name: Create key.properties
+        run: |
+          cat > android/key.properties << EOF
+          storePassword=${{ secrets.CI_KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.CI_KEY_PASSWORD }}
+          keyAlias=${{ secrets.CI_KEY_ALIAS }}
+          storeFile=$GITHUB_WORKSPACE/android/ci-release.keystore
+          EOF
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: id-ideal-wallet-${{ github.ref_name }}-${{ github.run_number }}
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
