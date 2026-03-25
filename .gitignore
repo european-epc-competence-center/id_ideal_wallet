@@ -45,3 +45,8 @@ android/app/debug
 android/app/profile
 android/app/release
 android/app/.cxx
+
+# Android signing - never commit keystores or key.properties to git
+android/key.properties
+android/*.jks
+android/*.keystore
