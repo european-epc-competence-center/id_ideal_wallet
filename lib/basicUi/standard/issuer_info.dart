@@ -127,6 +127,7 @@ class IssuerInfoTextState extends State<IssuerInfoText> {
   @override
   Widget build(BuildContext context) {
     return Text(issuerName,
+        overflow: TextOverflow.ellipsis,
         style: Theme.of(context).primaryTextTheme.titleMedium);
   }
 }
