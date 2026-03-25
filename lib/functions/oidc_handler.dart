@@ -38,6 +38,45 @@ String removeTrailingSlash(String base64Input) {
   return base64Input;
 }
 
+// When an issuer offers the same credential in multiple formats (e.g. both
+// jwt_vc_json and ldp_vc), we pick the best-supported one per credential type
+// rather than requesting — and storing — duplicates.
+//
+// Supported proof types and their priority:
+//   jwt    (priority 3) — JWT proof, fully supported.
+//   ldp_vp (priority 2) — old-style LD-Proof VP, supported.
+//   null   (priority 1) — no proofTypesSupported declared; we fall back to jwt.
+//   di_vp  (priority 0) — NOT supported. di_vp requires the W3C Data Integrity
+//                         spec's RDFC-based cryptosuites (eddsa-rdfc-2022,
+//                         ecdsa-rdfc-2019, ...). dart_ssi implements none of them.
+//                         On top of that, OidCredentialRequest.toJson() in
+//                         dart_ssi only serialises jwt and ldp_vp entries in the
+//                         multi-proof "proofs" object — a di_vp entry would be
+//                         silently dropped before the request even leaves the app.
+int _proofTypePriority(CredentialsSupportedObject c) {
+  if (c.proofTypesSupported == null) return 1;
+  if (c.proofTypesSupported!.containsKey('jwt')) return 3;
+  if (c.proofTypesSupported!.containsKey('ldp_vp')) return 2;
+  return 0;
+}
+
+/// For each unique credential type in [credentials], keeps only the entry with
+/// the highest proof-type priority. Credentials without a type are keyed by
+/// format so they are never accidentally merged with each other.
+List<CredentialsSupportedObject> _selectBestFormats(
+    List<CredentialsSupportedObject> credentials) {
+  final groups = <String, CredentialsSupportedObject>{};
+  for (var cred in credentials) {
+    final types = List<String>.from(cred.credentialType ?? [])..sort();
+    final key = types.isEmpty ? 'format:${cred.format}' : types.join(',');
+    if (!groups.containsKey(key) ||
+        _proofTypePriority(cred) > _proofTypePriority(groups[key]!)) {
+      groups[key] = cred;
+    }
+  }
+  return groups.values.toList();
+}
+
 Map<String, dynamic> findClaims(Map? claimsDescription) {
   var claims = <String, dynamic>{};
   claimsDescription ??= {};
@@ -203,6 +242,8 @@ Future<void> handleOfferOidc(String offerUri) async {
     }
     offeredCredentials.add(credConfig);
   }
+
+  offeredCredentials = _selectBestFormats(offeredCredentials);
 
   dynamic res = true;
   res = await Future.delayed(const Duration(seconds: 1), () async {

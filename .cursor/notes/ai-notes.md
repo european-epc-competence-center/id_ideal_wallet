@@ -361,6 +361,24 @@
 - `[ausweis_provider.dart](mdc:lib/provider/ausweis_provider.dart)` - ID card state management
 - `[navigation_provider.dart](mdc:lib/provider/navigation_provider.dart)` - Main app navigation
 
+## OID4VCI duplicate credential format deduplication - 2026-03-25
+
+**Status:** ✅ Completed
+
+**Problem:** An OID4VCI offer containing multiple `credential_configuration_ids` for the same logical credential but in different formats (e.g. `ProductDataCredential_JWT` / `jwt_vc_json` + `jwt` proof, and `ProductDataCredential_LDP` / `ldp_vc` + `di_vp` proof) caused:
+1. The dialog to show the same credential twice
+2. Both to be requested; `jwt_vc_json` succeeds, `ldp_vc` (with `di_vp` proof) shows "Proof type nicht unterstützt"
+
+**Fix:** Added `_proofTypePriority()` + `_selectBestFormats()` helper functions in `oidc_handler.dart` (before `removeTrailingSlash`). After building `offeredCredentials`, they deduplicate by credential type — keeping the format with the highest-priority supported proof type:
+- Priority 3: `jwt` proof → fully supported
+- Priority 2: `ldp_vp` proof → supported  
+- Priority 1: `proofTypesSupported == null` → defaults to jwt
+- Priority 0: anything else (e.g. `di_vp`) → unsupported, dropped if better option exists
+
+The deduplication is applied with `offeredCredentials = _selectBestFormats(offeredCredentials)` right before the user dialog is shown (line ~232).
+
+**File modified:** `lib/functions/oidc_handler.dart`
+
 ## jwt_vc_json issuance support - 2026-03-23
 
 **Status:** ✅ Completed
