@@ -810,8 +810,21 @@ Future<void> getCredential(
               decodedCredentialResponse.transactionId!,
               decryptionKey));
     } else {
-      storeCredential(format, decodedCredentialResponse.credential,
-          credentialDid, wallet, keyType, credentialIssuer);
+      // OID4VCI draft 15+ uses plural 'credentials' array; older drafts use singular 'credential'
+      if (decodedCredentialResponse.credential != null) {
+        storeCredential(format, decodedCredentialResponse.credential,
+            credentialDid, wallet, keyType, credentialIssuer);
+      } else if (decodedCredentialResponse.credentials != null &&
+          decodedCredentialResponse.credentials!.isNotEmpty) {
+        for (final entry in decodedCredentialResponse.credentials!) {
+          storeCredential(format, entry.credential, credentialDid, wallet,
+              keyType, credentialIssuer);
+        }
+      } else {
+        logger.d('No credential in response');
+        showErrorMessage(AppLocalizations.of(navigatorKey.currentContext!)!
+            .credentialDownloadFailed);
+      }
     }
   } else {
     logger.d(credentialResponse.statusCode);
@@ -901,8 +914,21 @@ sendDeferredRequest(
       decodedCredentialResponse =
           OidCredentialResponse.fromJson(credentialResponse.body);
     }
-    storeCredential(format, decodedCredentialResponse.credential, credentialDid,
-        wallet, keyType, credentialIssuer);
+    // OID4VCI draft 15+ uses plural 'credentials' array; older drafts use singular 'credential'
+    if (decodedCredentialResponse.credential != null) {
+      storeCredential(format, decodedCredentialResponse.credential,
+          credentialDid, wallet, keyType, credentialIssuer);
+    } else if (decodedCredentialResponse.credentials != null &&
+        decodedCredentialResponse.credentials!.isNotEmpty) {
+      for (final entry in decodedCredentialResponse.credentials!) {
+        storeCredential(format, entry.credential, credentialDid, wallet,
+            keyType, credentialIssuer);
+      }
+    } else {
+      logger.d('No credential in deferred response');
+      showErrorMessage(AppLocalizations.of(navigatorKey.currentContext!)!
+          .credentialDownloadFailed);
+    }
   } else {
     logger.d('${credentialResponse.statusCode} / ${credentialResponse.body}');
     var parsedBody = jsonDecode(credentialResponse.body);
