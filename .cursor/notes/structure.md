@@ -181,7 +181,7 @@ lib/
 ## Configuration & Environment
 
 ### Server Endpoints (`lib/constants/server_address.dart`)
-- **Production**: hidy.app, wallet.eecc.de
+- **Production**: hidy.app, [wallet.eecc.de](https://ssi-wallet.prod-k8s.eecc.de/terms.html)
 - **Test Environment**: Available but commented out
 - **Lightning**: payments.pixeldev.eu
 - **Relay**: 167.235.195.132:8888 for DIDComm messaging

@@ -37,8 +37,8 @@ class WalletProvider extends ChangeNotifier {
   bool openError = false;
 
   String? lndwId;
-  String tosUrl = 'https://wallet.eecc.de/terms.html';
-  String aboutUrl = 'https://wallet.eecc.de';
+  String tosUrl = 'https://ssi-wallet.prod-k8s.eecc.de/terms.html';
+  String aboutUrl = 'https://ssi-wallet.prod-k8s.eecc.de';
 
   SortingType sortingType = SortingType.dateDown;
 

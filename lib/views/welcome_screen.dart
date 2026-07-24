@@ -28,7 +28,7 @@ class WelcomeScreenState extends State<WelcomeScreen> {
   bool versionLoad = false;
   bool error = false;
   String version = '1.0.0';
-  String url = 'https://wallet.eecc.de/terms.html';
+  String url = 'https://ssi-wallet.prod-k8s.eecc.de/terms.html';
 
   @override
   void initState() {
