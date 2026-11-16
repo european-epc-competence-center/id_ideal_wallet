@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/exceptions.dart';
@@ -303,4 +304,64 @@ Future<VerifiablePresentation> buildW3cPresentation(
         challenge: challenge, domain: domain, loadDocument: loader);
   }
   return vp;
+}
+
+/// Builds a compact JWT presentation (jwt_vp_json) for one jwt_vc_json
+/// credential, signed with the credential's holder did:key.
+Future<String> buildJwtPresentation(String credentialJwt, String holderDid,
+    String audience, String nonce, WalletStore wallet) async {
+  String alg;
+  int sigLength;
+  if (holderDid.startsWith('did:key:z6Mk')) {
+    alg = 'EdDSA';
+    sigLength = 64;
+  } else if (holderDid.startsWith('did:key:z82')) {
+    alg = 'ES384';
+    sigLength = 96;
+  } else if (holderDid.startsWith('did:key:z2J9')) {
+    alg = 'ES512';
+    sigLength = 132;
+  } else {
+    alg = 'ES256';
+    sigLength = 64;
+  }
+
+  final header = {
+    'alg': alg,
+    'typ': 'JWT',
+    'kid': '$holderDid#${holderDid.split(':').last}',
+  };
+  final iat = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+  final payload = {
+    'iss': holderDid,
+    'aud': audience,
+    'nonce': nonce,
+    'iat': iat,
+    'exp': iat + 300,
+    'vp': {
+      '@context': [credentialsV1Iri],
+      'type': ['VerifiablePresentation'],
+      'holder': holderDid,
+      'verifiableCredential': [credentialJwt],
+    },
+  };
+
+  final encodedHeader =
+      removePaddingFromBase64(base64UrlEncode(utf8.encode(jsonEncode(header))));
+  final encodedPayload = removePaddingFromBase64(
+      base64UrlEncode(utf8.encode(jsonEncode(payload))));
+  final signingInput = '$encodedHeader.$encodedPayload';
+
+  // The wallet does not left-pad r and s of ECDSA signatures, so now and then
+  // a signature comes out one byte short and verifiers reject it.
+  // ECDSA signing is randomized, so signing again gives a valid length.
+  Uint8List sigBytes;
+  var attempts = 0;
+  do {
+    sigBytes = await wallet.sign(
+        holderDid, Uint8List.fromList(ascii.encode(signingInput)));
+    attempts++;
+  } while (sigBytes.length != sigLength && attempts < 10);
+
+  return '$signingInput.${removePaddingFromBase64(base64UrlEncode(sigBytes))}';
 }

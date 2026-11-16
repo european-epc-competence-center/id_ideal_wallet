@@ -1112,7 +1112,9 @@ storeCredential(String format, dynamic credential, String credentialDid,
       var credDid = getHolderDid(credVc);
       if (credDid.isEmpty) credDid = credentialDid;
 
-      wallet.storeCredential(credVc, credDid.split('#').first);
+      // Keep the raw issuer JWT: it is needed to present the credential later.
+      wallet.storeCredential(credVc, credDid.split('#').first,
+          isoMdlData: '$jwtVcPrefix:$credential');
       wallet.storeExchangeHistoryEntry(
           credDid, DateTime.now(), 'issue', credentialIssuer);
 

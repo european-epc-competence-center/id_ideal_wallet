@@ -616,7 +616,8 @@ class WalletProvider extends ChangeNotifier {
       }
       if (cred.metadata == '' ||
           cred.metadata.startsWith('$isoPrefix:') ||
-          cred.metadata.startsWith('$sdPrefix:')) {
+          cred.metadata.startsWith('$sdPrefix:') ||
+          cred.metadata.startsWith('$jwtVcPrefix:')) {
         if (cred.metadata.startsWith('$isoPrefix:')) {
           isoMdocCredentials.add(cred);
         }

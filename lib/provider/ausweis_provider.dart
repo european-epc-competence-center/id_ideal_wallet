@@ -517,12 +517,8 @@ class AusweisProvider extends ChangeNotifier {
               return;
             }
 
-            // TODO: got the id_card data in readData, how to continue?
-            // send readData to our backend -> "https://eathfresh.ssi.eecc.de"
-            // backend validates age and returns a link, which contains the over16/18 credential
-            // handleLink(url) method needs to be used?
-
-            logger.d('readData: $readData');
+            // The eatFresh backend checks the birthdate and returns an
+            // Over16/Over18 credential offer link (see validateAge).
             await validateAge(readData!);
 
             screen = AusweisScreen.finish;
@@ -565,7 +561,6 @@ class AusweisProvider extends ChangeNotifier {
       processDataField(result, key, value);
     });
 
-    logger.d(result);
     return result;
   }
 
@@ -577,7 +572,7 @@ class AusweisProvider extends ChangeNotifier {
 
     String translatedKey = idCardTranslations[key] ?? key;
 
-    logger.d('key: $key, value: $value');
+    logger.d('key: $key');
 
     if (key == 'PlaceOfBirth' && value is Map) {
       result[translatedKey] = value['FreetextPlace'];
@@ -597,7 +592,6 @@ class AusweisProvider extends ChangeNotifier {
       result[translatedKey] = 'Land: ${structuredPlace['Country']}, '
           'Stadt: ${structuredPlace['ZipCode']} ${structuredPlace['City']}, '
           'Straße: ${structuredPlace['Street'].replaceAll('ẞ', 'ß')}';
-      logger.d('Street: ${structuredPlace['Street']}');
     }
   }
 
@@ -624,12 +618,13 @@ class AusweisProvider extends ChangeNotifier {
   }
 
   Future<void> validateAge(Map<String, dynamic> data) async {
-    const String backendUrl = 'https://eatfresh.ssi.eecc.de/verify-age';
+    const String backendUrl = 'https://eatfresh-ssi.prod-k8s.eecc.de/verify-age';
     try {
       final response = await post(
         Uri.parse(backendUrl),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(data),
+        // The backend only needs the birthdate, so send nothing else.
+        body: jsonEncode({'Geburtsdatum:': data['Geburtsdatum:']}),
       );
 
       if (response.statusCode == 200) {

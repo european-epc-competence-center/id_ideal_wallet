@@ -729,7 +729,37 @@ class PresentationRequestDialogState extends State<PresentationRequestDialog> {
         }
       }
 
-      if (hasW3cCreds) {
+      // jwt_vc_json credentials keep their raw issuer JWT in the stored
+      // metadata ('jwtVc:<jwt>'). They are presented as a JWT VP instead of
+      // a Linked Data VP. Mixing both kinds in one request is not supported.
+      String? rawJwtVc(VerifiableCredential cred) {
+        final metadata =
+            wallet.getCredential(getHolderDid(cred))?.metadata ?? '';
+        return metadata.startsWith('$jwtVcPrefix:')
+            ? metadata.substring(jwtVcPrefix.length + 1)
+            : null;
+      }
+
+      final hasJwtVcCreds = finalSend.any((entry) =>
+          (entry.credentials ?? []).any((cred) => rawJwtVc(cred) != null));
+
+      if (hasW3cCreds && hasJwtVcCreds) {
+        for (FilterResult entry in finalSend) {
+          for (var cred in entry.credentials ?? <VerifiableCredential>[]) {
+            final credentialJwt = rawJwtVc(cred);
+            if (credentialJwt == null) continue;
+            final vpJwt = await buildJwtPresentation(credentialJwt,
+                getHolderDid(cred), widget.receiverDid, widget.nonce!,
+                wallet.wallet);
+            descriptorMap.add(InputDescriptorMappingObject(
+                id: entry.matchingDescriptorIds.first,
+                format: 'jwt_vp_json',
+                path: JsonPath(vp.isEmpty ? r'$' : '\$[${vp.length}]')));
+            vp.add(vpJwt);
+          }
+        }
+        logger.d(vp);
+      } else if (hasW3cCreds) {
         casted = await buildW3cPresentation(finalSend, wallet.wallet, widget.nonce!,
             loadDocument: loadDocumentFast);
         descriptorMap = casted.presentationSubmission!.descriptorMap;
