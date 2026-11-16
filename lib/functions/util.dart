@@ -76,12 +76,17 @@ Future<bool> openWallet(WalletStore wallet) async {
         const storage = FlutterSecureStorage();
         String? pw = await storage.read(key: 'password');
         if (pw == null) {
-          pw = RandomPasswordGenerator().randomPassword(
-              letters: true,
-              uppercase: true,
-              numbers: true,
-              specialChar: true,
-              passwordLength: 20);
+          // dart_ssi turns the password into a key with ascii.encode, which
+          // throws on non-ASCII characters. The generator's special characters
+          // include '£', so regenerate until the password is plain ASCII.
+          do {
+            pw = RandomPasswordGenerator().randomPassword(
+                letters: true,
+                uppercase: true,
+                numbers: true,
+                specialChar: true,
+                passwordLength: 20);
+          } while (pw.codeUnits.any((c) => c > 127));
           await storage.write(key: 'password', value: pw);
         }
         await wallet.openBoxes(password: pw);
