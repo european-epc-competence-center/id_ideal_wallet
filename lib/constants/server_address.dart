@@ -53,7 +53,7 @@ var pluginEndpoint =
 var stylingEndpoint = 'https://ssi-wallet.prod-k8s.eecc.de/styles/layouts.json';
 var termsVersionEndpoint =
     'https://ssi-wallet.prod-k8s.eecc.de/walletcontext/terms.json';
-String versionNumber = '1.1.1';
+String versionNumber = '1.1.2';
 String baseUrl = 'https://hidy.app';
 bool testBuild = false;
 
